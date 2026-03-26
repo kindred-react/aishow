@@ -25,32 +25,24 @@ type DimensionTab = "overview" | "knowledge" | "operation" | "tools" | "cases";
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const [activeModuleId, setActiveModuleId] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kb-module");
-      if (saved && sortedModules.find((m) => m.id === saved)) return saved;
-    }
-    return sortedModules[0]?.id ?? "";
-  });
-  const [activeDimension, setActiveDimension] = useState<DimensionTab>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kb-dimension") as DimensionTab | null;
-      if (saved && ["overview","knowledge","operation","tools","cases"].includes(saved)) return saved;
-    }
-    return "overview";
-  });
-  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
-      if (saved && ["全部","基础","进阶","实战"].includes(saved)) return saved;
-    }
-    return "全部";
-  });
+  const [activeModuleId, setActiveModuleId] = useState(sortedModules[0]?.id ?? "");
+  const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
+  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Persist tab memory to localStorage
+  // Restore localStorage state after hydration
+  useEffect(() => {
+    const savedModule = localStorage.getItem("kb-module");
+    const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
+    const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
+    if (savedModule && sortedModules.find((m) => m.id === savedModule)) setActiveModuleId(savedModule);
+    if (savedDimension && ["knowledge","operation","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
+  }, []);
+
+  // Persist to localStorage on change
   useEffect(() => { localStorage.setItem("kb-module", activeModuleId); }, [activeModuleId]);
   useEffect(() => { localStorage.setItem("kb-dimension", activeDimension); }, [activeDimension]);
   useEffect(() => { localStorage.setItem("kb-level", levelFilter); }, [levelFilter]);
@@ -102,7 +94,6 @@ export function KnowledgeBoard() {
   if (!activeModule) return null;
 
   const dimensions: { key: DimensionTab; label: string }[] = [
-    { key: "overview", label: "模块总览" },
     { key: "knowledge", label: "知识点" },
     { key: "operation", label: "操作点" },
     { key: "tools", label: "工具" },
@@ -129,7 +120,7 @@ export function KnowledgeBoard() {
           {sortedModules.map((module) => (
             <button key={module.id} type="button"
               className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
-              onClick={() => { setActiveModuleId(module.id); setActiveDimension("overview"); setLevelFilter("全部"); }}
+              onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter("全部"); }}
             >
               <span className="module-icon">{module.icon}</span>{module.name}
             </button>
@@ -137,10 +128,17 @@ export function KnowledgeBoard() {
         </nav>
 
         <div className="content-toolbar">
-          <div className="module-summary">
-            <PackageSearch size={15} />
-            <strong>{activeModule.icon} {activeModule.name}</strong>
-            <span>{activeModule.intro}</span>
+          <div className="module-summary-inline">
+            <span className="module-summary-icon">{activeModule.icon}</span>
+            <strong>{activeModule.name}</strong>
+            <span className="module-summary-divider">·</span>
+            <span className="module-summary-intro">{activeModule.intro}</span>
+            <span className="module-summary-stats">
+              {activeModule.knowledgeNodes.length} 知识点
+              · {activeModule.operationSteps.length} 操作点
+              · {moduleTools.length} 工具
+              · {activeModule.cases?.length ?? 0} 案例
+            </span>
           </div>
           <div className="dimension-menu" aria-label="维度切换">
             {dimensions.map((d) => (
@@ -155,33 +153,6 @@ export function KnowledgeBoard() {
         <div className="content-body">
           <div className="content-scroll" ref={scrollRef}>
 
-            {activeDimension === "overview" && (
-              <section className="section-block in-shell">
-                <div className="section-title-row"><BookOpen size={17} /><h2>模块总览</h2></div>
-                <div className="metric-grid">
-                  <article className="overview-card"><strong>{activeModule.knowledgeNodes.length}</strong><span>知识点数量</span></article>
-                  <article className="overview-card"><strong>{activeModule.operationSteps.length}</strong><span>操作步骤数量</span></article>
-                  <article className="overview-card"><strong>{moduleTools.length}</strong><span>涉及工具数量</span></article>
-                  <article className="overview-card"><strong>{activeModule.cases?.length ?? 0}</strong><span>真实案例数量</span></article>
-                </div>
-                <p className="overview-note">推荐先看「知识点」建立概念，再切「操作点」做落地练习，「工具」补齐工具链，「案例」对照真实踩坑。</p>
-                {activeModule.id === "agent" && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>5种Agent模式对比</p>
-                    <AgentPatternCompare />
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-neon)", marginBottom: "0.5rem", marginTop: "1rem", fontWeight: 600 }}>8种主流Agent框架 + MCP集成代码</p>
-                    <AgentFrameworkCompare />
-                  </div>
-                )}
-                {activeModule.id === "foundations" && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-cyan)", marginBottom: "0.5rem", fontWeight: 600 }}>6个机器学习核心算法对比</p>
-                    <MLAlgorithmCompare />
-                  </div>
-                )}
-              </section>
-            )}
-
             {activeDimension === "knowledge" && (
               <section className="section-block in-shell">
                 <div className="section-title-row"><BrainCircuit size={17} /><h2>知识点维度</h2></div>
@@ -193,6 +164,20 @@ export function KnowledgeBoard() {
                     >{item}</button>
                   ))}
                 </div>
+                {activeModule.id === "agent" && (
+                  <div style={{ marginBottom: "1.2rem" }}>
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>5种Agent模式对比</p>
+                    <AgentPatternCompare />
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-neon)", marginBottom: "0.5rem", marginTop: "1rem", fontWeight: 600 }}>8种主流Agent框架 + MCP集成代码</p>
+                    <AgentFrameworkCompare />
+                  </div>
+                )}
+                {activeModule.id === "foundations" && (
+                  <div style={{ marginBottom: "1.2rem" }}>
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-cyan)", marginBottom: "0.5rem", fontWeight: 600 }}>6个机器学习核心算法对比</p>
+                    <MLAlgorithmCompare />
+                  </div>
+                )}
                 <div className="cards knowledge-dense-grid">
                   {visibleKnowledge.map((node) => (
                     <article key={node.id} id={`item-${node.id}`} className="concept-card">

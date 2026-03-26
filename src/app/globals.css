@@ -183,6 +183,54 @@ body {
   font-size: 0.77rem;
 }
 
+/* ── Inline single-line module summary ── */
+.module-summary-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.module-summary-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.module-summary-inline strong {
+  font-size: 0.84rem;
+  color: #dde8ff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.module-summary-divider {
+  color: #3a4a6a;
+  flex-shrink: 0;
+}
+
+.module-summary-intro {
+  color: #7a90c0;
+  font-size: 0.76rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.module-summary-stats {
+  color: #3a5080;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(60,80,140,0.3);
+  border-radius: 999px;
+  background: rgba(20,30,60,0.4);
+}
+
 .dimension-menu {
   display: inline-flex;
   flex-wrap: wrap;
