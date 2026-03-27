@@ -1,26 +1,22 @@
 /**
  * useContentStore — 统一管理用户对知识库的所有本地编辑
- * 数据存在 localStorage，同时支持同步到 GitHub
+ * 数据存在 localStorage，同时通过 GitHub API 同步到代码仓库
  */
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import type { KnowledgeNode, LearningModule } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
+import { userContentStore } from "@/data/userStore";
+import { saveStoreToGitHub } from "@/lib/githubNotes";
 
 const LS_KEY = "aishow_content_store";
 
 export interface ContentStore {
-  // 卡片编辑: nodeId → 覆盖字段
   nodeEdits: Record<string, Partial<KnowledgeNode>>;
-  // 新增卡片: moduleId → 新卡片列表
   addedNodes: Record<string, KnowledgeNode[]>;
-  // 删除卡片: nodeId set
   deletedNodes: string[];
-  // 新增模块
   addedModules: LearningModule[];
-  // 删除模块: moduleId set
   deletedModules: string[];
-  // 模块编辑: moduleId → 覆盖字段
   moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro">>>;
 }
 
@@ -33,16 +29,22 @@ const DEFAULT_STORE: ContentStore = {
   moduleEdits: {},
 };
 
-function load(): ContentStore {
+// Merge: localStorage takes priority over userStore.ts (server data)
+function loadInitial(): ContentStore {
   if (typeof window === "undefined") return DEFAULT_STORE;
   try {
-    return { ...DEFAULT_STORE, ...JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") };
+    const local = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+    // If localStorage is empty, seed from server-side userStore.ts
+    const hasLocal = Object.keys(local).length > 0;
+    if (!hasLocal) {
+      return { ...DEFAULT_STORE, ...userContentStore };
+    }
+    return { ...DEFAULT_STORE, ...local };
   } catch { return DEFAULT_STORE; }
 }
 
-function save(store: ContentStore) {
+function saveLocal(store: ContentStore) {
   localStorage.setItem(LS_KEY, JSON.stringify(store));
-  // Defer dispatch to avoid setState-during-render
   setTimeout(() => {
     window.dispatchEvent(new CustomEvent("content-store-updated", { detail: store }));
   }, 0);
@@ -50,19 +52,29 @@ function save(store: ContentStore) {
 
 export function useContentStore() {
   const [store, setStore] = useState<ContentStore>(DEFAULT_STORE);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
+  const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
-    setStore(load());
+    setStore(loadInitial());
     const handler = (e: Event) => setStore((e as CustomEvent).detail as ContentStore);
     window.addEventListener("content-store-updated", handler);
-    window.addEventListener("storage", () => setStore(load()));
+    window.addEventListener("storage", () => setStore(loadInitial()));
     return () => window.removeEventListener("content-store-updated", handler);
   }, []);
 
   const update = useCallback((fn: (s: ContentStore) => ContentStore) => {
     setStore(prev => {
       const next = fn(prev);
-      save(next);
+      saveLocal(next);
+      // Async sync to GitHub
+      setSyncStatus("syncing");
+      saveStoreToGitHub({ ...next, lastUpdated: new Date().toISOString() })
+        .then(result => {
+          setSyncStatus(result.ok ? "done" : "error");
+          setSyncMsg(result.message);
+          setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); }, 4000);
+        });
       return next;
     });
   }, []);
@@ -86,7 +98,6 @@ export function useContentStore() {
     update(s => ({
       ...s,
       deletedNodes: [...s.deletedNodes.filter(id => id !== nodeId), nodeId],
-      // Also remove from addedNodes if it was a user-created node
       addedNodes: Object.fromEntries(
         Object.entries(s.addedNodes).map(([mid, nodes]) =>
           [mid, nodes.filter(n => n.id !== nodeId)]
@@ -143,6 +154,8 @@ export function useContentStore() {
   return {
     store,
     mergedModules,
+    syncStatus,
+    syncMsg,
     editNode,
     addNode,
     deleteNode,

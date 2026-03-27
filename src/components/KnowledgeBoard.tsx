@@ -28,7 +28,7 @@ type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" 
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, syncStatus, syncMsg } = useContentStore();
 
   const sortedModules = useMemo(
     () => [...mergedModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -462,6 +462,13 @@ export function KnowledgeBoard() {
         <Compass size={15} />
         知识可持续沉淀：新增 PPT/PDF 经 AI 分析后按模块写入，支持去重、补充、更新三种合并策略。
       </footer>
+      {syncStatus !== "idle" && (
+        <div className="note-toast">
+          {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> 同步到 GitHub…</span>}
+          {syncStatus === "done" && <span className="note-ok">☁ {syncMsg}</span>}
+          {syncStatus === "error" && <span className="note-err">✗ {syncMsg}</span>}
+        </div>
+      )}
     </main>
   );
 }
