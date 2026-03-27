@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Save, Trash2, Plus, PenLine } from "lucide-react";
+import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
+import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
 
 const LEVELS: KnowledgeLevel[] = ["基础", "进阶", "实战"];
 const COLORS = [
@@ -14,7 +15,6 @@ function genId() {
 }
 
 interface NodeEditorModalProps {
-  /** null = 新增模式，传入节点 = 编辑模式 */
   node: KnowledgeNode | null;
   moduleId: string;
   onSave: (node: KnowledgeNode) => void;
@@ -30,7 +30,12 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
   const [metaphor, setMetaphor] = useState(node?.metaphor ?? "");
   const [points, setPoints] = useState<string[]>(node?.points ?? [""]);
   const [color, setColor] = useState(node?.color ?? COLORS[0]);
+  const [imageUrl, setImageUrl] = useState(node?.imageUrl ?? "");
+  const [imagePreview, setImagePreview] = useState(node?.imageUrl ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTimeout(() => titleRef.current?.focus(), 60);
@@ -39,6 +44,35 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
   const updatePoint = (i: number, v: string) => setPoints(ps => ps.map((p, j) => j === i ? v : p));
   const addPoint = () => setPoints(ps => [...ps, ""]);
   const removePoint = (i: number) => setPoints(ps => ps.filter((_, j) => j !== i));
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 本地预览
+    const previewUrl = getImagePreviewUrl(file);
+    setImagePreview(previewUrl);
+    setUploadMsg("上传中…");
+    setUploading(true);
+
+    const result = await uploadImageToGitHub(file);
+    setUploading(false);
+
+    if (result.ok) {
+      setImageUrl(result.url);
+      setUploadMsg("✓ " + result.message);
+    } else {
+      setUploadMsg("✗ " + result.message);
+      setImagePreview(imageUrl); // 恢复旧预览
+    }
+    setTimeout(() => setUploadMsg(""), 4000);
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl("");
+    setImagePreview("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const handleSave = () => {
     if (!title.trim()) { titleRef.current?.focus(); return; }
@@ -54,7 +88,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
       source: node?.source,
       updatedAt: new Date().toISOString().slice(0, 10),
       version: (node?.version ?? 0) + 1,
-      imageUrl: node?.imageUrl,
+      imageUrl: imageUrl || undefined,
     };
     onSave(saved);
     onClose();
@@ -127,6 +161,38 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
             </div>
           </div>
 
+          {/* Image Upload */}
+          <div className="note-field">
+            <div className="note-label-row">
+              <label className="note-label">卡片图片</label>
+              {imagePreview && (
+                <button type="button" className="note-remove-point" onClick={handleRemoveImage}>
+                  <X size={11} /> 移除
+                </button>
+              )}
+            </div>
+            {imagePreview ? (
+              <div className="node-img-preview">
+                <img src={imagePreview} alt="preview" />
+                {uploading && <div className="node-img-uploading"><Loader size={18} className="note-spin" /></div>}
+              </div>
+            ) : (
+              <button type="button" className="node-img-upload-btn" onClick={() => fileRef.current?.click()}>
+                <ImagePlus size={16} />
+                <span>点击上传图片</span>
+                <span style={{fontSize:"0.65rem",color:"#3a5070"}}>JPG / PNG / GIF / WebP</span>
+              </button>
+            )}
+            {uploadMsg && <p style={{fontSize:"0.7rem",marginTop:"0.25rem",color: uploadMsg.startsWith("✓") ? "var(--c-neon)" : "#f06060"}}>{uploadMsg}</p>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleImageSelect}
+            />
+          </div>
+
           {/* Points */}
           <div className="note-field">
             <div className="note-label-row">
@@ -146,7 +212,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
 
         <div className="note-modal-footer">
           <span className="note-hint">保存后立即生效，同时同步到 GitHub 仓库</span>
-          <button type="button" className="note-save-btn note-save-btn-active" onClick={handleSave}>
+          <button type="button" className="note-save-btn note-save-btn-active" onClick={handleSave} disabled={uploading}>
             <Save size={13} /> {isNew ? "创建卡片" : "保存修改"}
           </button>
         </div>
