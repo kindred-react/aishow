@@ -44,6 +44,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.48rem;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.page-shell.mounted {
+  opacity: 1;
 }
 
 .ambient {
@@ -2185,16 +2191,47 @@ body {
   min-width: 0;
 }
 
-.module-btn-actions {
-  display: none;
-  align-items: center;
-  gap: 0.15rem;
-  flex-shrink: 0;
-  padding-right: 0.2rem;
+/* ── Module right-click context menu ── */
+.module-ctx-menu {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(10, 15, 30, 0.97);
+  border: 1px solid rgba(80, 120, 220, 0.35);
+  border-radius: 8px;
+  padding: 0.3rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(60,100,200,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 120px;
+  animation: slide-up 0.12s ease;
 }
 
-.module-btn-wrap:hover .module-btn-actions {
+.module-ctx-item {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: #8aaad0;
+  cursor: pointer;
   display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.6rem;
+  width: 100%;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
+}
+
+.module-ctx-item:hover {
+  background: rgba(60, 100, 200, 0.15);
+  color: #c0d8f8;
+}
+
+.module-ctx-delete:hover {
+  background: rgba(180, 40, 40, 0.15);
+  color: #f08080;
 }
 
 .module-action-btn {

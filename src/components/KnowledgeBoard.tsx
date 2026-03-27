@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/preserve-manual-memoization */
 
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
   BrainCircuit,
@@ -80,6 +81,7 @@ export function KnowledgeBoard() {
   const [activeModuleId, setActiveModuleId] = useState<string>("");
   const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
   const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
+  const [isMounted, setIsMounted] = useState(false);
 
   // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
   useEffect(() => {
@@ -91,12 +93,58 @@ export function KnowledgeBoard() {
     if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
     if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
     /* eslint-enable react-hooks/set-state-in-effect */
+    // Small delay so state settles before revealing UI (prevents jump)
+    setTimeout(() => setIsMounted(true), 80);
   }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const [showImageCleanup, setShowImageCleanup] = useState(false);
   const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: "knowledge" });
+  const [ctxMenu, setCtxMenu] = useState<{ moduleId: string; x: number; y: number } | null>(null);
+
+  // Block page refresh/close when in edit mode with unsaved local changes
+  useEffect(() => {
+    const hasChanges = (
+      Object.keys(store.nodeEdits).length > 0 ||
+      Object.values(store.addedNodes).some(a => a.length > 0) ||
+      store.deletedNodes.length > 0 ||
+      Object.values(store.addedOperations).some(a => a.length > 0) ||
+      Object.keys(store.editedOperations).length > 0 ||
+      Object.values(store.addedCases).some(a => a.length > 0) ||
+      Object.keys(store.editedCases).length > 0 ||
+      Object.values(store.addedSkills).some(a => a.length > 0) ||
+      Object.values(store.addedPathNodes).some(a => a.length > 0) ||
+      Object.values(store.addedInterviews).some(a => a.length > 0) ||
+      Object.values(store.addedCareer).some(a => a.length > 0) ||
+      Object.values(store.addedTools).some(a => a.length > 0) ||
+      store.addedModules.length > 0 ||
+      store.deletedModules.length > 0 ||
+      store.compareBlocks.length > 0
+    );
+    if (!isEditMode || !hasChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isEditMode, store]);
+
+  // Close context menu on outside click — delayed to avoid same-event close
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    const timer = setTimeout(() => {
+      window.addEventListener("click", close, { once: true });
+      window.addEventListener("contextmenu", close, { once: true });
+    }, 50);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
+  }, [ctxMenu]);
 
   type AnyTabItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
   const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: TabItemType; item: AnyTabItem | null }>({ open: false, tab: "operation", item: null });
@@ -203,7 +251,7 @@ export function KnowledgeBoard() {
   ];
 
   return (
-    <main className="page-shell">
+    <main className={`page-shell${isMounted ? " mounted" : ""}`}>
       <div className="ambient" aria-hidden />
       <header className="hero compact">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="hero-badge">
@@ -224,30 +272,10 @@ export function KnowledgeBoard() {
               <button type="button"
                 className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
                 onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter("全部"); }}
+                onContextMenu={isEditMode ? (e) => { e.preventDefault(); setCtxMenu({ moduleId: module.id, x: e.clientX, y: e.clientY }); } : undefined}
               >
                 <span className="module-icon">{module.icon}</span>{module.name}
               </button>
-              <div className="module-btn-actions">
-                {isEditMode && (<>
-                <button type="button" className="module-action-btn" title="编辑模块"
-                  onClick={(e) => { e.stopPropagation(); setModuleModal({ open: true, module }); }}>
-                  <PenLine size={11} />
-                </button>
-                <button type="button" className="module-action-btn module-action-del" title="删除模块"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm(`确定删除模块「${module.name}」？`)) {
-                      deleteModule(module.id);
-                      if (activeModuleId === module.id) {
-                        const next = sortedModules.find(m => m.id !== module.id);
-                        if (next) setActiveModuleId(next.id);
-                      }
-                    }
-                  }}>
-                  <Trash2 size={11} />
-                </button>
-                </>)}
-              </div>
             </div>
           ))}
           {isEditMode && <AddModuleButton onClick={() => setModuleModal({ open: true, module: null })} />}
@@ -814,6 +842,29 @@ export function KnowledgeBoard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Context menu portal — rendered at body level to avoid z-index/overflow clipping */}
+      {ctxMenu && isEditMode && typeof document !== "undefined" && createPortal(
+        <div className="module-ctx-menu" style={{ top: ctxMenu.y, left: ctxMenu.x }}
+          onClick={e => e.stopPropagation()}>
+          <button type="button" className="module-ctx-item" onClick={() => {
+            const mod = sortedModules.find(m => m.id === ctxMenu.moduleId)!;
+            setCtxMenu(null); setModuleModal({ open: true, module: mod });
+          }}><PenLine size={12} /> 编辑模块</button>
+          <button type="button" className="module-ctx-item module-ctx-delete" onClick={() => {
+            const mod = sortedModules.find(m => m.id === ctxMenu.moduleId)!;
+            setCtxMenu(null);
+            if (confirm(`确定删除模块「${mod.name}」？`)) {
+              deleteModule(mod.id);
+              if (activeModuleId === mod.id) {
+                const next = sortedModules.find(m => m.id !== mod.id);
+                if (next) setActiveModuleId(next.id);
+              }
+            }
+          }}><Trash2 size={12} /> 删除模块</button>
+        </div>,
+        document.body
       )}
     </main>
   );
