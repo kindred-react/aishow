@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { learningModules } from "@/data/knowledge";
+import { NoteButton, NoteDisplay } from "@/components/NoteEditor";
 import { AgentPatternCompare } from "@/components/AgentPatternCompare";
 import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
@@ -192,13 +193,17 @@ export function KnowledgeBoard() {
                     <article key={node.id} id={`item-${node.id}`} className="concept-card">
                       <div className="card-top" style={{ borderColor: node.color }}>
                         <strong>{node.title}</strong>
-                        <span>{node.level} · {node.metaphor}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                          <span>{node.level} · {node.metaphor}</span>
+                          <NoteButton nodeId={node.id} />
+                        </div>
                       </div>
                       <p>{node.summary}</p>
                       <ul>{node.points.map((point) => <li key={point}>{point}</li>)}</ul>
                       {node.imageUrl && (
                         <div className="knowledge-img"><img src={node.imageUrl} alt={node.title} loading="lazy" /></div>
                       )}
+                      <NoteDisplay nodeId={node.id} />
                       {(node.source || node.updatedAt) && (
                         <div className="knowledge-meta">
                           {node.source && <span className="meta-source">来源：{node.source}</span>}
