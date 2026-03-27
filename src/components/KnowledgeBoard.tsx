@@ -1104,20 +1104,6 @@ export function KnowledgeBoard() {
             type="button"
             className="edit-mode-lock-btn"
             style={{ fontSize: "0.65rem" }}
-            title="清除本地缓存，回归原始数据"
-            onClick={() => {
-              if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
-                localStorage.removeItem("aishow_content_store");
-                location.reload();
-              }
-            }}
-          >
-            ⟳ 清除缓存
-          </button>
-          <button
-            type="button"
-            className="edit-mode-lock-btn"
-            style={{ fontSize: "0.65rem" }}
             title="扫描并删除未引用的图片"
             onClick={() => setShowImageCleanup(true)}
           >
@@ -1315,6 +1301,42 @@ export function KnowledgeBoard() {
         </div>,
         document.body
       )}
+
+      {/* ── 清除缓存 悬浮按钮（右下角）── */}
+      <button
+        type="button"
+        title="清除本地缓存，回归原始数据"
+        onClick={() => {
+          if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
+            localStorage.removeItem("aishow_content_store");
+            location.reload();
+          }
+        }}
+        style={{
+          position: "fixed",
+          bottom: "1.5rem",
+          right: "1.5rem",
+          zIndex: 999,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.35rem",
+          padding: "0.45rem 0.9rem",
+          fontSize: "0.72rem",
+          fontFamily: "inherit",
+          background: "rgba(10,20,40,0.82)",
+          border: "1px solid rgba(80,130,220,0.25)",
+          borderRadius: "8px",
+          color: "#7aaad0",
+          cursor: "pointer",
+          backdropFilter: "blur(8px)",
+          transition: "border-color 0.18s, color 0.18s",
+          letterSpacing: "0.02em",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(120,180,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.color = "#a8d0f8"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(80,130,220,0.25)"; (e.currentTarget as HTMLButtonElement).style.color = "#7aaad0"; }}
+      >
+        ⟳ 清除缓存
+      </button>
     </main>
   );
 }
