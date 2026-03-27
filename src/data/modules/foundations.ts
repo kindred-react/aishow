@@ -242,5 +242,10 @@ export const foundationsModule: LearningModule = {
       label: "案例",
       widgets: ["case", "compare"],
     },
+    {
+      key: "custom-111-4qh",
+      label: "111",
+      widgets: ["compare"],
+    },
   ],
 };
