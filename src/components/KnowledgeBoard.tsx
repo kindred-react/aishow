@@ -17,16 +17,17 @@ import {
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { KnowledgeCard } from "@/components/NoteEditor";
-import { NodeEditorModal, AddNodeButton } from "@/components/NodeEditor";
+import { NodeEditorModal } from "@/components/NodeEditor";
 import { ModuleEditorModal, AddModuleButton } from "@/components/ModuleEditor";
 import { ImageCleanupModal } from "@/components/ImageCleanup";
 import { AgentPatternCompare } from "@/components/AgentPatternCompare";
 import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
+import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockEditor";
 import { InterviewPanel } from "@/components/InterviewPanel";
 import { useContentStore } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
-import type { KnowledgeNode, LearningModule } from "@/data/types";
+import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
 
@@ -34,7 +35,7 @@ type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" 
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, syncStatus, syncMsg } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, store, syncStatus, syncMsg } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt } = useEditMode();
 
   const sortedModules = useMemo(
@@ -42,26 +43,29 @@ export function KnowledgeBoard() {
     [mergedModules]
   );
 
-  const [activeModuleId, setActiveModuleId] = useState("");
-  const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
-  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
+  const [activeModuleId, setActiveModuleId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const saved = localStorage.getItem("kb-module");
+    return saved ?? "";
+  });
+  const [activeDimension, setActiveDimension] = useState<DimensionTab>(() => {
+    if (typeof window === "undefined") return "knowledge";
+    const saved = localStorage.getItem("kb-dimension") as DimensionTab | null;
+    return saved && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(saved)
+      ? saved : "knowledge";
+  });
+  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(() => {
+    if (typeof window === "undefined") return "全部";
+    const saved = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
+    return saved && ["全部","基础","进阶","实战"].includes(saved) ? saved : "全部";
+  });
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const [showImageCleanup, setShowImageCleanup] = useState(false);
+  const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null }>({ open: false, block: null });
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  // Restore localStorage state after hydration
-  useEffect(() => {
-    const savedModule = localStorage.getItem("kb-module");
-    const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
-    const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
-    if (savedModule && mergedModules.find((m) => m.id === savedModule)) setActiveModuleId(savedModule);
-    else setActiveModuleId(mergedModules[0]?.id ?? "");
-    if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
-    if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
-  }, []);
 
   // Persist to localStorage on change
   useEffect(() => { localStorage.setItem("kb-module", activeModuleId); }, [activeModuleId]);
@@ -211,10 +215,16 @@ export function KnowledgeBoard() {
                 <div className="section-title-row">
                   <BrainCircuit size={17} /><h2>知识点维度</h2>
                   {isEditMode && (
-                    <button type="button" className="section-add-btn"
-                      onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}>
-                      <Plus size={13} /> 新增知识点
-                    </button>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}>
+                        <Plus size={13} /> 新增知识点
+                      </button>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => setCompareModal({ open: true, block: null })}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="sub-filter">
@@ -239,6 +249,22 @@ export function KnowledgeBoard() {
                     <MLAlgorithmCompare />
                   </div>
                 )}
+
+                {/* ── Custom compare blocks for this module ── */}
+                {store.compareBlocks
+                  .filter(b => b.moduleId === activeModule.id)
+                  .sort((a, b) => a.order - b.order)
+                  .map(block => (
+                    <div key={block.id} style={{ marginBottom: "1.2rem" }}>
+                      <CompareBlockView
+                        block={block}
+                        onEdit={isEditMode ? () => setCompareModal({ open: true, block }) : undefined}
+                        onDelete={isEditMode ? () => deleteCompareBlock(block.id) : undefined}
+                      />
+                    </div>
+                  ))
+                }
+
                 <div className="cards knowledge-dense-grid">
                   {visibleKnowledge.map((rawNode) => (
                     <KnowledgeCard
@@ -387,7 +413,7 @@ export function KnowledgeBoard() {
                   <p className="empty-hint">本模块暂未配置职业规划</p>
                 )}
                 <div className="career-timeline">
-                  {(activeModule.careerPlan ?? []).map((m, idx) => (
+                  {(activeModule.careerPlan ?? []).map((m) => (
                     <article key={m.id} id={`item-${m.id}`} className="career-card">
                       <div className="career-week">
                         <span className="career-week-label">{m.week}</span>
@@ -529,6 +555,23 @@ export function KnowledgeBoard() {
 
       {/* ── Image Cleanup Modal ── */}
       {showImageCleanup && <ImageCleanupModal onClose={() => setShowImageCleanup(false)} />}
+
+      {/* ── Compare Block Editor Modal ── */}
+      {compareModal.open && (
+        <CompareBlockEditor
+          block={compareModal.block}
+          moduleId={activeModule.id}
+          onSave={(block) => {
+            if (compareModal.block) {
+              editCompareBlock(block.id, block);
+            } else {
+              addCompareBlock(block);
+            }
+          }}
+          onDelete={compareModal.block ? () => deleteCompareBlock(compareModal.block!.id) : undefined}
+          onClose={() => setCompareModal({ open: false, block: null })}
+        />
+      )}
 
       {/* ── Password prompt modal ── */}
       {showPrompt && (

@@ -351,22 +351,31 @@ const compareRows = [
 ];
 
 export function AgentFrameworkCompare() {
-  const [showAll, setShowAll] = useState(true);
+  const [expanded, setExpanded] = useState(true);
   const [activeId, setActiveId] = useState("openai-sdk");
 
   const active = frameworks.find(f => f.id === activeId) ?? frameworks[0];
 
   return (
     <div className="afc-root">
-      {/* 对比总表 */}
-      <div className="apc-table-header" onClick={() => setShowAll(v => !v)}>
+      {/* ── Collapse toggle header ── */}
+      <div className="apc-table-header" onClick={() => setExpanded(v => !v)}>
         <span>8种主流Agent框架横向对比</span>
-        {showAll ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </div>
 
+      {/* ── Table + Tabs + Panel all collapse together ── */}
       <AnimatePresence initial={false}>
-        {showAll && (
-          <motion.div key="all" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
+        {expanded && (
+          <motion.div
+            key="afc-content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22 }}
+            style={{ overflow: "hidden" }}
+          >
+            {/* Comparison Table */}
             <div className="apc-table-wrap">
               <table className="apc-table">
                 <thead>
@@ -393,7 +402,7 @@ export function AgentFrameworkCompare() {
               </table>
             </div>
 
-            {/* 框架选择标签 */}
+            {/* Framework selector tabs */}
             <div className="afc-tabs">
               {frameworks.map(f => (
                 <button
@@ -408,7 +417,7 @@ export function AgentFrameworkCompare() {
               ))}
             </div>
 
-            {/* 详情面板 */}
+            {/* Detail panel */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={active.id}

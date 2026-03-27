@@ -89,6 +89,28 @@ export interface LearningModule {
   careerPlan?: CareerMilestone[];
 }
 
+// ── Compare Block ─────────────────────────────────────────────────────────
+
+export interface CompareItem {
+  id: string;
+  name: string;       // 主标题，如「线性回归」
+  nameEn?: string;    // 副标题/英文名
+  color: string;      // CSS 颜色变量或 hex
+  accent?: string;    // 背景色（rgba）
+  tags: Record<string, string>; // 对比维度 key→value
+  flow?: string[];              // 步骤流程
+  keyPoints?: string[];         // 要点列表
+}
+
+export interface CompareBlock {
+  id: string;
+  moduleId: string;   // 所属模块
+  title: string;      // 标题，如「六种算法横向对比」
+  rows: { label: string; key: string }[]; // 表格行定义
+  items: CompareItem[];
+  order: number;
+}
+
 /**
  * 知识库合并规则（给 AI 分析 PPT/PDF 后写入时参考）：
  * 1. 完全重叠（标题+summary 高度相似）→ 跳过

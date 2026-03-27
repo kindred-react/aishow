@@ -4,7 +4,7 @@
  */
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import type { KnowledgeNode, LearningModule } from "@/data/types";
+import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
 import { saveModuleNodesToGitHub } from "@/lib/githubNotes";
 
@@ -23,6 +23,8 @@ export interface ContentStore {
   deletedModules: string[];
   // 模块名称/图标/简介编辑
   moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro">>>;
+  // 自定义对比组件（按模块存储）
+  compareBlocks: CompareBlock[];
 }
 
 const DEFAULT_STORE: ContentStore = {
@@ -32,6 +34,7 @@ const DEFAULT_STORE: ContentStore = {
   addedModules: [],
   deletedModules: [],
   moduleEdits: {},
+  compareBlocks: [],
 };
 
 function loadLocal(): ContentStore {
@@ -134,6 +137,36 @@ export function useContentStore() {
     }));
   }, [update]);
 
+  // ── Compare Block operations ──
+  const addCompareBlock = useCallback((block: CompareBlock) => {
+    setStore(prev => {
+      const next = { ...prev, compareBlocks: [...prev.compareBlocks, block] };
+      saveLocal(next);
+      return next;
+    });
+  }, []);
+
+  const editCompareBlock = useCallback((blockId: string, fields: Partial<CompareBlock>) => {
+    setStore(prev => {
+      const next = {
+        ...prev,
+        compareBlocks: prev.compareBlocks.map(b =>
+          b.id === blockId ? { ...b, ...fields } : b
+        ),
+      };
+      saveLocal(next);
+      return next;
+    });
+  }, []);
+
+  const deleteCompareBlock = useCallback((blockId: string) => {
+    setStore(prev => {
+      const next = { ...prev, compareBlocks: prev.compareBlocks.filter(b => b.id !== blockId) };
+      saveLocal(next);
+      return next;
+    });
+  }, []);
+
   // ── Module operations (no GitHub sync for now) ──
   const addModule = useCallback((module: LearningModule) => {
     setStore(prev => {
@@ -190,5 +223,8 @@ export function useContentStore() {
     addModule,
     deleteModule,
     editModule,
+    addCompareBlock,
+    editCompareBlock,
+    deleteCompareBlock,
   };
 }
