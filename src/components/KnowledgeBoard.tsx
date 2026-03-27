@@ -17,6 +17,7 @@ import {
   LockOpen,
   X,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { KnowledgeCard } from "@/components/NoteEditor";
@@ -1096,20 +1097,18 @@ export function KnowledgeBoard() {
           onClick={requestEdit}
         >
           {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
-          {isEditMode && <span>编辑中</span>}
         </button>
 
-        {isEditMode && (<>
+        {isEditMode && (
           <button
             type="button"
             className="edit-mode-lock-btn"
-            style={{ fontSize: "0.65rem" }}
             title="扫描并删除未引用的图片"
             onClick={() => setShowImageCleanup(true)}
           >
-            🗑 清理图片
+            <Trash2 size={14} />
           </button>
-        </>)}
+        )}
       </div>
 
       {/* ── Image Cleanup Modal ── */}
@@ -1319,23 +1318,22 @@ export function KnowledgeBoard() {
           zIndex: 999,
           display: "flex",
           alignItems: "center",
-          gap: "0.35rem",
-          padding: "0.45rem 0.9rem",
-          fontSize: "0.72rem",
-          fontFamily: "inherit",
+          justifyContent: "center",
+          width: "2.2rem",
+          height: "2.2rem",
+          padding: 0,
           background: "rgba(10,20,40,0.82)",
           border: "1px solid rgba(80,130,220,0.25)",
-          borderRadius: "8px",
+          borderRadius: "50%",
           color: "#7aaad0",
           cursor: "pointer",
           backdropFilter: "blur(8px)",
           transition: "border-color 0.18s, color 0.18s",
-          letterSpacing: "0.02em",
         }}
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(120,180,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.color = "#a8d0f8"; }}
         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(80,130,220,0.25)"; (e.currentTarget as HTMLButtonElement).style.color = "#7aaad0"; }}
       >
-        ⟳ 清除缓存
+        <RefreshCw size={14} />
       </button>
     </main>
   );
