@@ -272,8 +272,9 @@ export const aipmModule: LearningModule = {
         ],
         color: "var(--c-neon)",
         relatedOps: [],
+        imageUrl: "/uploads/img-1774605027043-lvco.jpg",
         updatedAt: "2026-03-27",
-        version: 1,
+        version: 2,
       },
     ],
 
