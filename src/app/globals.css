@@ -2264,18 +2264,17 @@ body {
   appearance: none;
   background: transparent;
   border: 1px dashed rgba(60, 90, 160, 0.35);
-  border-radius: 7px;
+  border-radius: 999px;
   color: #3a5070;
   cursor: pointer;
-  font-size: 0.72rem;
-  padding: 0.35rem 0.6rem;
+  font-size: 0.81rem;
+  padding: 0.34rem 0.72rem;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  width: 100%;
-  margin-top: 0.3rem;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
   justify-content: center;
+  flex: 0 0 auto;
+  margin-top: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
 .add-module-btn:hover {

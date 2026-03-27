@@ -37,25 +37,57 @@ import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseSt
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
-function TabLabelEditor({ init, isBuiltin, onSave }: {
+function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
   init: TabConfig | null;
   isBuiltin: boolean;
   onSave: (tab: TabConfig) => void;
   onClose: () => void;
+  moduleData?: import("@/data/types").LearningModule;
 }) {
+  // Count items for a given widget type in the merged module
+  const countForWidget = (key: string): number => {
+    if (!moduleData) return 0;
+    const tab = init?.key ?? "";
+    const check = (dim: string | undefined, native: string) => (dim ?? native) === tab;
+    if (key === "knowledge") return moduleData.knowledgeNodes.filter(i => check(i.dimensionTab, "knowledge")).length;
+    if (key === "operation") return moduleData.operationSteps.filter(i => check(i.dimensionTab, "operation")).length;
+    if (key === "case")      return (moduleData.cases ?? []).filter(i => check(i.dimensionTab, "cases")).length;
+    if (key === "tool")      return (moduleData.tools ?? []).filter(i => check(i.dimensionTab, "tools")).length;
+    if (key === "skill")     return (moduleData.skills ?? []).filter(i => check(i.dimensionTab, "skills")).length;
+    if (key === "path")      return (moduleData.learningPath ?? []).filter(i => check(i.dimensionTab, "path")).length;
+    if (key === "interview") return (moduleData.interviewQuestions ?? []).filter(i => check(i.dimensionTab, "interview")).length;
+    if (key === "career")    return (moduleData.careerPlan ?? []).filter(i => check(i.dimensionTab, "career")).length;
+    return 0;
+  };
   const [label, setLabel] = useState(init?.label ?? "");
-  const defaultWidgets = isBuiltin
-    ? (ALL_TABS.find(t => t.key === init?.key)?.widgets ?? ["compare"])
-    : ["compare" as TabWidget];
-  const [widgets, setWidgets] = useState<TabWidget[]>(init?.widgets ?? defaultWidgets);
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { setTimeout(() => ref.current?.focus(), 60); }, []);
 
+  // Build unified widget rows: all ALL_WIDGETS in user order
+  const initWidgetRows = () => {
+    const saved = init?.widgets;
+    if (!saved || saved.length === 0) {
+      const defaults = isBuiltin
+        ? (ALL_TABS.find(t => t.key === init?.key)?.widgets ?? ["compare"])
+        : ["compare" as TabWidget];
+      // enabled = in defaults, rest disabled
+      return ALL_WIDGETS.map(w => ({ key: w.key, enabled: defaults.includes(w.key) }));
+    }
+    // Start with saved order (enabled)
+    const rows = saved.map(k => ({ key: k, enabled: true }));
+    // Append any widgets not in saved (disabled)
+    ALL_WIDGETS.forEach(w => {
+      if (!rows.some(r => r.key === w.key)) rows.push({ key: w.key, enabled: false });
+    });
+    return rows;
+  };
+  const [widgetRows, setWidgetRows] = useState<{ key: TabWidget; enabled: boolean }[]>(initWidgetRows);
+
   const toggleWidget = (key: TabWidget) =>
-    setWidgets(prev => prev.includes(key) ? prev.filter(w => w !== key) : [...prev, key]);
+    setWidgetRows(prev => prev.map(r => r.key === key ? { ...r, enabled: !r.enabled } : r));
 
   const moveWidget = (idx: number, dir: -1 | 1) => {
-    setWidgets(prev => {
+    setWidgetRows(prev => {
       const next = [...prev];
       const target = idx + dir;
       if (target < 0 || target >= next.length) return prev;
@@ -67,8 +99,10 @@ function TabLabelEditor({ init, isBuiltin, onSave }: {
   const save = () => {
     if (!label.trim()) return;
     const key = init?.key ?? ("custom-" + label.trim().replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5));
+    const widgets = widgetRows.filter(r => r.enabled).map(r => r.key);
     onSave({ key, label: label.trim(), widgets });
   };
+
   return (
     <>
       <div className="note-field">
@@ -78,47 +112,44 @@ function TabLabelEditor({ init, isBuiltin, onSave }: {
           placeholder="Tab 显示名称" />
       </div>
       <div className="note-field">
-        <label className="note-label">可新增的组件类型</label>
-        <div className="node-level-btns" style={{flexWrap:"wrap",gap:"0.35rem",marginBottom:"0.5rem"}}>
-          {ALL_WIDGETS.map(w => (
-            <button key={w.key} type="button"
-              className={`node-level-btn ${widgets.includes(w.key) ? "active" : ""}`}
-              title={w.desc}
-              onClick={() => toggleWidget(w.key)}
-            >{w.label}</button>
-          ))}
+        <label className="note-label">可新增的组件类型 <span style={{color:"#5a7898",fontWeight:400}}>（勾选启用，箭头调整顺序）</span></label>
+        <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+          {widgetRows.map((row, idx) => {
+            const meta = ALL_WIDGETS.find(w => w.key === row.key);
+            return (
+              <div key={row.key} style={{
+                display:"flex",alignItems:"center",gap:"0.4rem",
+                background: row.enabled ? "rgba(40,70,120,0.22)" : "rgba(20,35,60,0.12)",
+                border: `1px solid ${row.enabled ? "rgba(80,130,220,0.28)" : "rgba(60,90,140,0.15)"}`,
+                borderRadius:"7px",padding:"0.28rem 0.55rem",
+                opacity: row.enabled ? 1 : 0.5,
+                transition:"opacity 0.15s,background 0.15s"
+              }}>
+                <input type="checkbox" checked={row.enabled}
+                  onChange={() => toggleWidget(row.key)}
+                  style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
+                />
+                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={meta?.desc}>
+                  <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
+                  {meta?.label ?? row.key}
+                  {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{c} 条</span> : null; })()}
+                </span>
+                <button type="button" disabled={idx === 0}
+                  onClick={() => moveWidget(idx, -1)}
+                  style={{appearance:"none",background:"none",border:"none",color:idx===0?"#2a4060":"#7aaad0",cursor:idx===0?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                  title="上移"
+                >▲</button>
+                <button type="button" disabled={idx === widgetRows.length - 1}
+                  onClick={() => moveWidget(idx, 1)}
+                  style={{appearance:"none",background:"none",border:"none",color:idx===widgetRows.length-1?"#2a4060":"#7aaad0",cursor:idx===widgetRows.length-1?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                  title="下移"
+                >▼</button>
+              </div>
+            );
+          })}
         </div>
-        {/* Ordered list of selected widgets — drag/reorder with arrows */}
-        {widgets.length > 0 && (
-          <>
-            <label className="note-label" style={{marginTop:"0.4rem"}}>显示顺序 <span style={{color:"#5a7898",fontWeight:400}}>（拖动箭头调整）</span></label>
-            <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
-              {widgets.map((key, idx) => {
-                const meta = ALL_WIDGETS.find(w => w.key === key);
-                return (
-                  <div key={key} style={{display:"flex",alignItems:"center",gap:"0.35rem",background:"rgba(40,70,120,0.18)",border:"1px solid rgba(80,130,220,0.2)",borderRadius:"6px",padding:"0.22rem 0.5rem"}}>
-                    <span style={{flex:1,fontSize:"0.78rem",color:"#a0c4f0"}}>
-                      <span style={{color:"#5a7898",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums"}}>{idx + 1}.</span>
-                      {meta?.label ?? key}
-                    </span>
-                    <button type="button" disabled={idx === 0}
-                      onClick={() => moveWidget(idx, -1)}
-                      style={{appearance:"none",background:"none",border:"none",color: idx === 0 ? "#2a4060" : "#7aaad0",cursor: idx === 0 ? "default" : "pointer",padding:"0 0.15rem",lineHeight:1,fontSize:"0.85rem"}}
-                      title="上移"
-                    >▲</button>
-                    <button type="button" disabled={idx === widgets.length - 1}
-                      onClick={() => moveWidget(idx, 1)}
-                      style={{appearance:"none",background:"none",border:"none",color: idx === widgets.length - 1 ? "#2a4060" : "#7aaad0",cursor: idx === widgets.length - 1 ? "default" : "pointer",padding:"0 0.15rem",lineHeight:1,fontSize:"0.85rem"}}
-                      title="下移"
-                    >▼</button>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
         <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.4rem",display:"block"}}>
-          勾选组件后在此调整显示顺序，内容区按此顺序渲染
+          勾选的组件会在内容区显示对应「新增」按钮，顺序即为内容区渲染顺序
         </span>
       </div>
       <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
@@ -386,9 +417,6 @@ export function KnowledgeBoard() {
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.4 }}>
           大模型多维知识中枢
         </motion.h1>
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.4 }}>
-          8 大模块覆盖：基础理论 → RAG → 微调 → 测评 → 部署 → Agent → 新兴应用 → 项目落地
-        </motion.p>
       </header>
 
       <section className="content-shell">
@@ -413,25 +441,39 @@ export function KnowledgeBoard() {
             <strong>{activeModule.name}</strong>
             <span className="module-summary-divider">·</span>
             <span className="module-summary-intro">{activeModule.intro}</span>
-            <span className="module-summary-stats">
-              {activeModule.knowledgeNodes.length} 知识点
-              · {activeModule.operationSteps.length} 操作点
-              · {(activeModule.tools ?? []).length} 工具
-              · {activeModule.cases?.length ?? 0} 案例
-            </span>
           </div>
           <div className="dimension-menu" aria-label="维度切换">
-            {dimensions.map((d) => (
-              <button key={d.key} type="button"
-                className={`dimension-btn ${activeDimension === d.key ? "active" : ""}`}
-                onClick={() => setActiveDimension(d.key)}
-                onContextMenu={isEditMode ? (e) => { e.preventDefault(); setTabCtxMenu({ tab: d, x: e.clientX, y: e.clientY }); } : undefined}
-              >{d.label}</button>
-            ))}
+            {dimensions.map((d) => {
+              // Count items belonging to this tab
+              const tabCount = (() => {
+                const k = d.key;
+                let n = 0;
+                n += activeModule.knowledgeNodes.filter(i => (i.dimensionTab ?? "knowledge") === k).length;
+                n += activeModule.operationSteps.filter(i => (i.dimensionTab ?? "operation") === k).length;
+                n += (activeModule.cases ?? []).filter(i => (i.dimensionTab ?? "cases") === k).length;
+                n += (activeModule.tools ?? []).filter(i => (i.dimensionTab ?? "tools") === k).length;
+                n += (activeModule.skills ?? []).filter(i => (i.dimensionTab ?? "skills") === k).length;
+                n += (activeModule.learningPath ?? []).filter(i => (i.dimensionTab ?? "path") === k).length;
+                n += (activeModule.interviewQuestions ?? []).filter(i => (i.dimensionTab ?? "interview") === k).length;
+                n += (activeModule.careerPlan ?? []).filter(i => (i.dimensionTab ?? "career") === k).length;
+                return n;
+              })();
+              return (
+                <button key={d.key} type="button"
+                  className={`dimension-btn ${activeDimension === d.key ? "active" : ""}`}
+                  onClick={() => setActiveDimension(d.key)}
+                  onContextMenu={isEditMode ? (e) => { e.preventDefault(); setTabCtxMenu({ tab: d, x: e.clientX, y: e.clientY }); } : undefined}
+                >
+                  {d.label}
+                  {tabCount > 0 && <span style={{fontSize:"0.65rem",opacity:0.65,marginLeft:"0.3rem",fontVariantNumeric:"tabular-nums"}}>{tabCount}</span>}
+                </button>
+              );
+            })}
             {isEditMode && (
-              <button type="button" className="dimension-btn" style={{opacity:0.5,fontSize:"0.72rem"}}
+              <button type="button" className="dimension-btn" title="新增 Tab"
+                style={{opacity:0.5,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 0.6rem"}}
                 onClick={() => setTabEditModal({ open: true, tab: null })}>
-                <Plus size={11}/> 新增 Tab
+                <Plus size={13}/>
               </button>
             )}
           </div>
@@ -1057,6 +1099,7 @@ export function KnowledgeBoard() {
       {moduleModal.open && (
         <ModuleEditorModal
           module={moduleModal.module}
+          moduleData={moduleModal.module ? mergedModules.find(m => m.id === moduleModal.module!.id) : undefined}
           onSave={(fields) => {
             if (moduleModal.module) {
               editModule(fields.id, { name: fields.name, icon: fields.icon, intro: fields.intro, enabledTabs: fields.enabledTabs });
@@ -1118,6 +1161,7 @@ export function KnowledgeBoard() {
       {moduleModal.open && (
         <ModuleEditorModal
           module={moduleModal.module}
+          moduleData={moduleModal.module ? mergedModules.find(m => m.id === moduleModal.module!.id) : undefined}
           onSave={(fields) => {
             if (!moduleModal.module) {
               addModule({
@@ -1263,6 +1307,7 @@ export function KnowledgeBoard() {
               <TabLabelEditor
                 init={tabEditModal.tab}
                 isBuiltin={tabEditModal.tab ? ALL_TABS.some(t => t.key === tabEditModal.tab!.key) : false}
+                moduleData={activeModule}
                 onSave={(tab) => {
                   const current = activeModule.enabledTabs ?? ALL_TABS;
                   const next = tabEditModal.tab
