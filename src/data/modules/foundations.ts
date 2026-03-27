@@ -1,4 +1,4 @@
-import type { LearningModule } from "../knowledge";
+import type { LearningModule } from "@/data/types";
 
 export const foundationsModule: LearningModule = {
   id: "foundations",
@@ -199,6 +199,48 @@ export const foundationsModule: LearningModule = {
       result: "关键信息保留率明显提升，摘要层次更清晰。",
       tags: ["Context Window", "长文档", "Prompt"],
       source: "内置",
+    },
+  ],
+  enabledTabs: [
+    {
+      key: "knowledge",
+      label: "知识点",
+      widgets: ["knowledge", "compare"],
+    },
+    {
+      key: "operation",
+      label: "操作点",
+      widgets: ["operation", "compare"],
+    },
+    {
+      key: "skills",
+      label: "能力雷达",
+      widgets: ["skill", "compare"],
+    },
+    {
+      key: "path",
+      label: "成长路径",
+      widgets: ["path", "compare"],
+    },
+    {
+      key: "interview",
+      label: "面试准备",
+      widgets: ["interview", "compare"],
+    },
+    {
+      key: "career",
+      label: "职业规划",
+      widgets: ["career", "compare"],
+    },
+    {
+      key: "tools",
+      label: "工具",
+      widgets: ["tool", "compare", "knowledge"],
+    },
+    {
+      key: "cases",
+      label: "案例",
+      widgets: ["case", "compare"],
     },
   ],
 };
