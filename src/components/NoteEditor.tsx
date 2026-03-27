@@ -1,136 +1,109 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { PenLine, X, Save, Cloud, CloudOff, Loader } from "lucide-react";
-import { saveNotesToGitHub } from "@/lib/githubNotes";
+import { useState, useEffect } from "react";
+import { PenLine, Trash2, ArrowRight } from "lucide-react";
+import type { KnowledgeNode, OperationStep } from "@/data/types";
 
-const LS_KEY = "aishow_user_notes";
+// ── Read nodeEdits from unified content store ──
+const LS_STORE_KEY = "aishow_content_store";
 
-function loadNotes(): Record<string, string> {
+function loadNodeEdits(): Record<string, Partial<KnowledgeNode>> {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
+    const store = JSON.parse(localStorage.getItem(LS_STORE_KEY) ?? "{}");
+    return store.nodeEdits ?? {};
+  } catch { return {}; }
 }
 
-function saveNotesLocal(notes: Record<string, string>) {
-  localStorage.setItem(LS_KEY, JSON.stringify(notes));
-}
+// ────────────────────────────────────────────
+// Hook: get merged node (original + user edit)
+// reads from the unified content store
+// ────────────────────────────────────────────
+export function useMergedNode(node: KnowledgeNode): KnowledgeNode {
+  const [edit, setEdit] = useState<Partial<KnowledgeNode> | null>(null);
 
-// ── Single note button shown on each card ──
-interface NoteButtonProps {
-  nodeId: string;
-}
-
-export function NoteButton({ nodeId }: NoteButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [text, setText] = useState("");
-  const [saving, setSaving] = useState<"idle" | "local" | "github" | "done" | "error">("idle");
-  const [msg, setMsg] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasToken = typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-
-  // Load from localStorage on mount
   useEffect(() => {
-    const n = loadNotes();
-    setNotes(n);
-    setText(n[nodeId] ?? "");
-  }, [nodeId]);
+    const refresh = () => setEdit(loadNodeEdits()[node.id] ?? null);
+    refresh();
+    const handler = (e: Event) => {
+      const store = (e as CustomEvent).detail as { nodeEdits?: Record<string, Partial<KnowledgeNode>> };
+      setEdit(store.nodeEdits?.[node.id] ?? null);
+    };
+    window.addEventListener("content-store-updated", handler);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("content-store-updated", handler);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [node.id]);
 
-  // Focus textarea when opened
-  useEffect(() => {
-    if (open) setTimeout(() => textareaRef.current?.focus(), 50);
-  }, [open]);
+  if (!edit) return node;
+  return { ...node, ...edit };
+}
 
-  const handleSave = async () => {
-    // 1. Save locally immediately
-    setSaving("local");
-    const updated = { ...notes, [nodeId]: text };
-    if (!text.trim()) delete updated[nodeId];
-    setNotes(updated);
-    saveNotesLocal(updated);
-
-    // 2. Try GitHub
-    setSaving("github");
-    const result = await saveNotesToGitHub(updated);
-    if (result.ok) {
-      setSaving("done");
-      setMsg(result.message);
-    } else {
-      setSaving("error");
-      setMsg(result.message);
-    }
-    setTimeout(() => { setSaving("idle"); setMsg(""); }, 3000);
-  };
-
-  const hasNote = !!notes[nodeId]?.trim();
-
+// ────────────────────────────────────────────
+// KnowledgeCard — wraps a single card with edit support
+// ────────────────────────────────────────────
+export function KnowledgeCard({
+  rawNode,
+  operationSteps,
+  onJumpToOp,
+  onEdit,
+  onDelete,
+}: {
+  rawNode: KnowledgeNode;
+  operationSteps: OperationStep[];
+  onJumpToOp: (id: string) => void;
+  onEdit?: (node: KnowledgeNode) => void;
+  onDelete?: (nodeId: string) => void;
+}) {
+  const node = useMergedNode(rawNode);
   return (
-    <>
-      <button
-        type="button"
-        className={`note-btn ${hasNote ? "note-btn-has" : ""}`}
-        title={hasNote ? "查看/编辑笔记" : "添加笔记"}
-        onClick={() => setOpen(true)}
-      >
-        <PenLine size={12} />
-        {hasNote && <span className="note-dot" />}
-      </button>
-
-      {open && (
-        <div className="note-overlay" onClick={() => setOpen(false)}>
-          <div className="note-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="note-modal-header">
-              <span><PenLine size={14} /> 我的笔记</span>
-              <button type="button" className="note-close" onClick={() => setOpen(false)}><X size={14} /></button>
-            </div>
-            <textarea
-              ref={textareaRef}
-              className="note-textarea"
-              placeholder="在这里写下你的笔记、理解或问题…"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={8}
-            />
-            <div className="note-modal-footer">
-              <div className="note-status">
-                {saving === "local" && <span><Loader size={12} className="note-spin" /> 保存中…</span>}
-                {saving === "github" && <span><Loader size={12} className="note-spin" /> 同步到 GitHub…</span>}
-                {saving === "done" && <span className="note-ok"><Cloud size={12} /> {msg}</span>}
-                {saving === "error" && <span className="note-err"><CloudOff size={12} /> {msg}</span>}
-                {saving === "idle" && !hasToken && <span className="note-warn"><CloudOff size={12} /> 仅本地保存（未配置 GitHub Token）</span>}
-              </div>
-              <button type="button" className="note-save-btn" onClick={handleSave} disabled={saving === "local" || saving === "github"}>
-                <Save size={13} /> 保存
-              </button>
-            </div>
-          </div>
+    <article id={`item-${node.id}`} className="concept-card">
+      <div className="card-top" style={{ borderColor: node.color }}>
+        <strong>{node.title}</strong>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+          <span>{node.level} · {node.metaphor}</span>
+          {onEdit && (
+            <button type="button" className="note-btn" title="编辑卡片" onClick={() => onEdit(node)}>
+              <PenLine size={12} />
+            </button>
+          )}
+          {onDelete && (
+            <button type="button" className="note-btn note-btn-danger" title="删除卡片"
+              onClick={() => {
+                if (confirm(`确定删除「${node.title}」？`)) onDelete(rawNode.id);
+              }}
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+      <p>{node.summary}</p>
+      <ul>{node.points.map((point: string) => <li key={point}>{point}</li>)}</ul>
+      {node.imageUrl && (
+        <div className="knowledge-img"><img src={node.imageUrl} alt={node.title} loading="lazy" /></div>
+      )}
+      {(node.source || node.updatedAt) && (
+        <div className="knowledge-meta">
+          {node.source && <span className="meta-source">来源：{node.source}</span>}
+          {node.updatedAt && <span className="meta-date">{node.updatedAt}</span>}
+          {node.version && node.version > 1 && <span className="meta-version">v{node.version}</span>}
         </div>
       )}
-    </>
-  );
-}
-
-// ── Display saved note inline on card ──
-export function NoteDisplay({ nodeId }: { nodeId: string }) {
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    const n = loadNotes();
-    setNote(n[nodeId] ?? "");
-    // Listen for storage changes (other tabs)
-    const handler = () => setNote(loadNotes()[nodeId] ?? "");
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, [nodeId]);
-
-  if (!note) return null;
-  return (
-    <div className="note-display">
-      <span className="note-display-label"><PenLine size={11} /> 我的笔记</span>
-      <p>{note}</p>
-    </div>
+      {rawNode.relatedOps && rawNode.relatedOps.length > 0 && (
+        <div className="related-ops">
+          {rawNode.relatedOps.map((opId: string) => {
+            const op = operationSteps.find((s) => s.id === opId);
+            if (!op) return null;
+            return (
+              <button key={opId} type="button" className="related-op-btn" onClick={() => onJumpToOp(opId)}>
+                <ArrowRight size={11} /> {op.title}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </article>
   );
 }

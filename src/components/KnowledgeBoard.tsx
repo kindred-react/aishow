@@ -2,35 +2,45 @@
 
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
-  BookOpen,
   BrainCircuit,
   Compass,
   FileText,
-  PackageSearch,
   Rocket,
   Sparkles,
   Wrench,
+  PenLine,
+  Trash2,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
-import { learningModules } from "@/data/knowledge";
-import { NoteButton, NoteDisplay } from "@/components/NoteEditor";
+import { KnowledgeCard } from "@/components/NoteEditor";
+import { NodeEditorModal, AddNodeButton } from "@/components/NodeEditor";
+import { ModuleEditorModal, AddModuleButton } from "@/components/ModuleEditor";
 import { AgentPatternCompare } from "@/components/AgentPatternCompare";
 import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
 import { InterviewPanel } from "@/components/InterviewPanel";
+import { useContentStore } from "@/lib/useContentStore";
+import type { KnowledgeNode, LearningModule } from "@/data/types";
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
-const sortedModules = [...learningModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
 type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" | "career" | "tools" | "cases";
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const [activeModuleId, setActiveModuleId] = useState(sortedModules[0]?.id ?? "");
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule } = useContentStore();
+
+  const sortedModules = useMemo(
+    () => [...mergedModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [mergedModules]
+  );
+
+  const [activeModuleId, setActiveModuleId] = useState("");
   const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
   const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
+  const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
+  const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -39,7 +49,8 @@ export function KnowledgeBoard() {
     const savedModule = localStorage.getItem("kb-module");
     const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
     const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
-    if (savedModule && sortedModules.find((m) => m.id === savedModule)) setActiveModuleId(savedModule);
+    if (savedModule && mergedModules.find((m) => m.id === savedModule)) setActiveModuleId(savedModule);
+    else setActiveModuleId(mergedModules[0]?.id ?? "");
     if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
     if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
   }, []);
@@ -51,7 +62,7 @@ export function KnowledgeBoard() {
 
   const activeModule = useMemo(
     () => sortedModules.find((m) => m.id === activeModuleId) ?? sortedModules[0],
-    [activeModuleId],
+    [activeModuleId, sortedModules]
   );
 
   const moduleTools = useMemo(() => {
@@ -128,13 +139,35 @@ export function KnowledgeBoard() {
       <section className="content-shell">
         <nav className="module-menu" aria-label="学习模块菜单">
           {sortedModules.map((module) => (
-            <button key={module.id} type="button"
-              className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
-              onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter("全部"); }}
-            >
-              <span className="module-icon">{module.icon}</span>{module.name}
-            </button>
+            <div key={module.id} className="module-btn-wrap">
+              <button type="button"
+                className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
+                onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter("全部"); }}
+              >
+                <span className="module-icon">{module.icon}</span>{module.name}
+              </button>
+              <div className="module-btn-actions">
+                <button type="button" className="module-action-btn" title="编辑模块"
+                  onClick={(e) => { e.stopPropagation(); setModuleModal({ open: true, module }); }}>
+                  <PenLine size={11} />
+                </button>
+                <button type="button" className="module-action-btn module-action-del" title="删除模块"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`确定删除模块「${module.name}」？`)) {
+                      deleteModule(module.id);
+                      if (activeModuleId === module.id) {
+                        const next = sortedModules.find(m => m.id !== module.id);
+                        if (next) setActiveModuleId(next.id);
+                      }
+                    }
+                  }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            </div>
           ))}
+          <AddModuleButton onClick={() => setModuleModal({ open: true, module: null })} />
         </nav>
 
         <div className="content-toolbar">
@@ -189,44 +222,18 @@ export function KnowledgeBoard() {
                   </div>
                 )}
                 <div className="cards knowledge-dense-grid">
-                  {visibleKnowledge.map((node) => (
-                    <article key={node.id} id={`item-${node.id}`} className="concept-card">
-                      <div className="card-top" style={{ borderColor: node.color }}>
-                        <strong>{node.title}</strong>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                          <span>{node.level} · {node.metaphor}</span>
-                          <NoteButton nodeId={node.id} />
-                        </div>
-                      </div>
-                      <p>{node.summary}</p>
-                      <ul>{node.points.map((point) => <li key={point}>{point}</li>)}</ul>
-                      {node.imageUrl && (
-                        <div className="knowledge-img"><img src={node.imageUrl} alt={node.title} loading="lazy" /></div>
-                      )}
-                      <NoteDisplay nodeId={node.id} />
-                      {(node.source || node.updatedAt) && (
-                        <div className="knowledge-meta">
-                          {node.source && <span className="meta-source">来源：{node.source}</span>}
-                          {node.updatedAt && <span className="meta-date">{node.updatedAt}</span>}
-                          {node.version && node.version > 1 && <span className="meta-version">v{node.version}</span>}
-                        </div>
-                      )}
-                      {node.relatedOps && node.relatedOps.length > 0 && (
-                        <div className="related-ops">
-                          {node.relatedOps.map((opId) => {
-                            const op = activeModule.operationSteps.find((s) => s.id === opId);
-                            if (!op) return null;
-                            return (
-                              <button key={opId} type="button" className="related-op-btn" onClick={() => jumpToOp(opId)}>
-                                <ArrowRight size={11} /> {op.title}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </article>
+                  {visibleKnowledge.map((rawNode) => (
+                    <KnowledgeCard
+                      key={rawNode.id}
+                      rawNode={rawNode}
+                      operationSteps={activeModule.operationSteps}
+                      onJumpToOp={jumpToOp}
+                      onEdit={(node) => setNodeModal({ open: true, node, moduleId: activeModule.id })}
+                      onDelete={(nodeId) => deleteNode(nodeId)}
+                    />
                   ))}
                 </div>
+                <AddNodeButton onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })} />
               </section>
             )}
 
@@ -403,6 +410,53 @@ export function KnowledgeBoard() {
           )}
         </div>
       </section>
+
+      {/* ── Node Editor Modal ── */}
+      {nodeModal.open && (
+        <NodeEditorModal
+          node={nodeModal.node}
+          moduleId={nodeModal.moduleId}
+          onSave={(node) => {
+            if (nodeModal.node) {
+              editNode(node.id, node);
+            } else {
+              addNode(nodeModal.moduleId, node);
+            }
+          }}
+          onDelete={nodeModal.node ? () => deleteNode(nodeModal.node!.id) : undefined}
+          onClose={() => setNodeModal({ open: false, node: null, moduleId: "" })}
+        />
+      )}
+
+      {/* ── Module Editor Modal ── */}
+      {moduleModal.open && (
+        <ModuleEditorModal
+          module={moduleModal.module}
+          onSave={(fields) => {
+            if (moduleModal.module) {
+              editModule(fields.id, { name: fields.name, icon: fields.icon, intro: fields.intro });
+            } else {
+              addModule({
+                id: fields.id,
+                name: fields.name,
+                icon: fields.icon,
+                intro: fields.intro,
+                order: (sortedModules[sortedModules.length - 1]?.order ?? 0) + 1,
+                knowledgeNodes: [],
+                operationSteps: [],
+                cases: [],
+              });
+              setActiveModuleId(fields.id);
+            }
+          }}
+          onDelete={moduleModal.module ? () => {
+            deleteModule(moduleModal.module!.id);
+            const next = sortedModules.find(m => m.id !== moduleModal.module!.id);
+            if (next) setActiveModuleId(next.id);
+          } : undefined}
+          onClose={() => setModuleModal({ open: false, module: null })}
+        />
+      )}
 
       <footer className="footer-note compact">
         <Compass size={15} />
