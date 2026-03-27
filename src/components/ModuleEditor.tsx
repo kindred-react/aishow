@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, LayoutGrid } from "lucide-react";
 import type { LearningModule, DimensionTab, TabConfig, TabWidget } from "@/data/types";
+import { useI18n } from "@/lib/i18n";
 
 const ICONS = ["📚","🔍","⚙️","🚀","🤖","🧠","💡","🎯","📊","🛠️","🌐","💼","🔬","📝","🎨","⚡"];
 
@@ -49,6 +50,14 @@ interface TabRow {
 
 export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClose }: ModuleEditorModalProps) {
   const isNew = module === null;
+  const { t } = useI18n();
+
+  const TAB_LABEL_MAP: Record<string, string> = {
+    knowledge: t.tabKnowledge, operation: t.tabOperation, skills: t.tabSkills,
+    path: t.tabPath, interview: t.tabInterview, career: t.tabCareer,
+    tools: t.tabTools, cases: t.tabCases,
+  };
+
   const [name, setName] = useState(module?.name ?? "");
   const [icon, setIcon] = useState(module?.icon ?? "📚");
   const [intro, setIntro] = useState(module?.intro ?? "");
@@ -123,7 +132,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
   const handleSave = () => {
     if (!name.trim()) { nameRef.current?.focus(); return; }
     const enabledTabs = tabRows.filter(r => r.enabled).map(r => r.tab);
-    if (enabledTabs.length === 0) { alert("至少需要启用一个 Tab"); return; }
+    if (enabledTabs.length === 0) { alert(t.enabledTabsMin); return; }
     onSave({
       id: module?.id ?? genModuleId(),
       name: name.trim(),
@@ -135,7 +144,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
   };
 
   const handleDelete = () => {
-    if (!confirm(`确定删除模块「${module?.name}」？该模块下的所有卡片将一并删除。`)) return;
+    if (!confirm(t.deleteModuleConfirm(module?.name ?? ""))) return;
     onDelete?.();
     onClose();
   };
@@ -145,11 +154,11 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
 
         <div className="note-modal-header">
-          <span><LayoutGrid size={14} /> {isNew ? "新增模块" : `编辑模块：${module.name}`}</span>
+          <span><LayoutGrid size={14} /> {isNew ? t.newModule : t.editModule(module.name)}</span>
           <div style={{ display: "flex", gap: "0.3rem" }}>
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}>
-                <Trash2 size={13} /> 删除模块
+                <Trash2 size={13} /> {t.deleteModule}
               </button>
             )}
             <button type="button" className="note-close" onClick={onClose}><X size={14} /></button>
@@ -158,17 +167,17 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 
         <div className="note-edit-body">
           <div className="note-field">
-            <label className="note-label">模块名称 <span style={{color:"#f06060"}}>*</span></label>
-            <input ref={nameRef} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder="如：深度学习基础" />
+            <label className="note-label">{t.moduleName} <span style={{color:"#f06060"}}>*</span></label>
+            <input ref={nameRef} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder={t.moduleNamePlaceholder} />
           </div>
 
           <div className="note-field">
-            <label className="note-label">模块简介</label>
-            <textarea className="note-textarea" value={intro} onChange={e => setIntro(e.target.value)} rows={2} placeholder="一句话描述这个模块的内容" />
+            <label className="note-label">{t.moduleIntro}</label>
+            <textarea className="note-textarea" value={intro} onChange={e => setIntro(e.target.value)} rows={2} placeholder={t.moduleIntroPlaceholder} />
           </div>
 
           <div className="note-field">
-            <label className="note-label">图标</label>
+            <label className="note-label">{t.moduleIcon}</label>
             <div className="module-icon-grid">
               {ICONS.map(ic => (
                 <button key={ic} type="button"
@@ -182,13 +191,13 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
               style={{ marginTop: "0.4rem" }}
               value={customIcon}
               onChange={e => setCustomIcon(e.target.value)}
-              placeholder="或输入自定义 Emoji"
+              placeholder={t.moduleIconCustomPlaceholder}
               maxLength={4}
             />
           </div>
 
           <div className="note-field">
-            <label className="note-label">启用的 Tab <span style={{color:"#8aaccc",fontWeight:400}}>（勾选启用，拖动箭头调整顺序）</span></label>
+            <label className="note-label">{t.enabledTabs} <span style={{color:"#8aaccc",fontWeight:400}}>{t.enabledTabsHint}</span></label>
             <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
               {tabRows.map((row, idx) => {
                 const isCustom = !ALL_TABS.some(t => t.key === row.tab.key);
@@ -207,24 +216,24 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
                     />
                     <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}}>
                       <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
-                      {row.tab.label}
-                      {isCustom && <span style={{fontSize:"0.65rem",color:"#5a7898",marginLeft:"0.3rem"}}>自定义</span>}
-                      {(() => { const c = countForTab(row.tab.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{c} 条</span> : null; })()}
+                      {TAB_LABEL_MAP[row.tab.key] ?? row.tab.label}
+                      {isCustom && <span style={{fontSize:"0.65rem",color:"#5a7898",marginLeft:"0.3rem"}}>{t.customLabel}</span>}
+                      {(() => { const c = countForTab(row.tab.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
                     </span>
                     <button type="button" disabled={idx === 0}
                       onClick={() => moveTab(idx, -1)}
                       style={{appearance:"none",background:"none",border:"none",color: idx===0?"#2a4060":"#7aaad0",cursor:idx===0?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
-                      title="上移"
+                      title={t.moveUp}
                     >▲</button>
                     <button type="button" disabled={idx === tabRows.length - 1}
                       onClick={() => moveTab(idx, 1)}
                       style={{appearance:"none",background:"none",border:"none",color: idx===tabRows.length-1?"#2a4060":"#7aaad0",cursor:idx===tabRows.length-1?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
-                      title="下移"
+                      title={t.moveDown}
                     >▼</button>
                     {isCustom && (
                       <button type="button" onClick={() => removeCustomTab(row.tab.key)}
                         style={{appearance:"none",background:"none",border:"none",color:"#f08080",cursor:"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.85rem"}}
-                        title="删除自定义 Tab"
+                        title={t.deleteCustomTab}
                       >×</button>
                     )}
                   </div>
@@ -235,19 +244,19 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
               <input className="note-input" style={{flex:1}} value={newTabLabel}
                 onChange={e => setNewTabLabel(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomTab(); } }}
-                placeholder="新增自定义 Tab 名称，回车确认" />
-              <button type="button" className="section-add-btn" onClick={addCustomTab}><Plus size={12}/> 添加</button>
+                placeholder={t.customTabPlaceholder} />
+              <button type="button" className="section-add-btn" onClick={addCustomTab}><Plus size={12}/> {t.addCustomTab}</button>
             </div>
             <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.3rem",display:"block"}}>
-              未勾选的 Tab 不在导航栏显示，顺序即为导航栏排列顺序
+              {t.tabFooterHint}
             </span>
           </div>
         </div>
 
         <div className="note-modal-footer">
-          <span className="note-hint">{isNew ? "新模块将添加到模块列表末尾" : "修改立即生效"}</span>
+          <span className="note-hint">{isNew ? t.newModuleHint : t.editModuleHint}</span>
           <button type="button" className="note-save-btn note-save-btn-active" onClick={handleSave}>
-            <Save size={13} /> {isNew ? "创建模块" : "保存修改"}
+            <Save size={13} /> {isNew ? t.createModule : t.saveChanges}
           </button>
         </div>
 

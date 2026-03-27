@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
 import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
+import { useI18n } from "@/lib/i18n";
 
 const LEVELS: KnowledgeLevel[] = ["基础", "进阶", "实战"];
 const COLORS = [
@@ -23,6 +24,7 @@ interface NodeEditorModalProps {
 }
 
 export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: NodeEditorModalProps) {
+  const { t } = useI18n();
   const isNew = node === null;
   const [title, setTitle] = useState(node?.title ?? "");
   const [summary, setSummary] = useState(node?.summary ?? "");
@@ -52,7 +54,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
     // 本地预览
     const previewUrl = getImagePreviewUrl(file);
     setImagePreview(previewUrl);
-    setUploadMsg("上传中…");
+    setUploadMsg(t.nodeImageUploading);
     setUploading(true);
 
     const result = await uploadImageToGitHub(file);
@@ -95,7 +97,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
   };
 
   const handleDelete = () => {
-    if (!confirm(`确定删除「${node?.title}」卡片？此操作不可直接撤销。`)) return;
+    if (!confirm(t.deleteCardConfirm(node?.title ?? ""))) return;
     onDelete?.();
     onClose();
   };
@@ -105,11 +107,11 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
 
         <div className="note-modal-header">
-          <span><PenLine size={14} /> {isNew ? "新增知识点卡片" : `编辑：${node.title}`}</span>
+          <span><PenLine size={14} /> {isNew ? t.addKnowledgeCard : t.editKnowledgeCard(node.title)}</span>
           <div style={{ display: "flex", gap: "0.3rem" }}>
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}>
-                <Trash2 size={13} /> 删除卡片
+                <Trash2 size={13} /> {t.deleteCard}
               </button>
             )}
             <button type="button" className="note-close" onClick={onClose}><X size={14} /></button>
@@ -119,20 +121,20 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
         <div className="note-edit-body">
           {/* Title */}
           <div className="note-field">
-            <label className="note-label">标题 <span style={{color:"#f06060"}}>*</span></label>
-            <input ref={titleRef} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="知识点标题" />
+            <label className="note-label">{t.nodeTitle} <span style={{color:"#f06060"}}>*</span></label>
+            <input ref={titleRef} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t.nodeTitlePlaceholder} />
           </div>
 
           {/* Summary */}
           <div className="note-field">
-            <label className="note-label">摘要</label>
-            <textarea className="note-textarea" value={summary} onChange={e => setSummary(e.target.value)} rows={2} placeholder="一句话解释这个概念" />
+            <label className="note-label">{t.nodeSummary}</label>
+            <textarea className="note-textarea" value={summary} onChange={e => setSummary(e.target.value)} rows={2} placeholder={t.nodeSummaryPlaceholder} />
           </div>
 
           {/* Level + Metaphor */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
             <div className="note-field">
-              <label className="note-label">难度级别</label>
+              <label className="note-label">{t.nodeDifficulty}</label>
               <div className="node-level-btns">
                 {LEVELS.map(l => (
                   <button key={l} type="button"
@@ -142,14 +144,14 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
               </div>
             </div>
             <div className="note-field">
-              <label className="note-label">类比/比喻</label>
-              <input className="note-input" value={metaphor} onChange={e => setMetaphor(e.target.value)} placeholder="如：像GPS导航" />
+              <label className="note-label">{t.nodeMetaphor}</label>
+              <input className="note-input" value={metaphor} onChange={e => setMetaphor(e.target.value)} placeholder={t.nodeMetaphorPlaceholder} />
             </div>
           </div>
 
           {/* Color */}
           <div className="note-field">
-            <label className="note-label">卡片颜色</label>
+            <label className="note-label">{t.nodeColor}</label>
             <div className="node-color-picker">
               {COLORS.map(c => (
                 <button key={c} type="button"
@@ -164,10 +166,10 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
           {/* Image Upload */}
           <div className="note-field">
             <div className="note-label-row">
-              <label className="note-label">卡片图片</label>
+              <label className="note-label">{t.nodeImage}</label>
               {imagePreview && (
                 <button type="button" className="note-remove-point" onClick={handleRemoveImage}>
-                  <X size={11} /> 移除
+                  <X size={11} /> {t.deleteNode}
                 </button>
               )}
             </div>
@@ -179,7 +181,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
             ) : (
               <button type="button" className="node-img-upload-btn" onClick={() => fileRef.current?.click()}>
                 <ImagePlus size={16} />
-                <span>点击上传图片</span>
+                <span>{t.nodeImageUpload}</span>
                 <span style={{fontSize:"0.65rem",color:"#3a5070"}}>JPG / PNG / GIF / WebP</span>
               </button>
             )}
@@ -196,13 +198,13 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
           {/* Points */}
           <div className="note-field">
             <div className="note-label-row">
-              <label className="note-label">知识要点</label>
-              <button type="button" className="note-add-point" onClick={addPoint}><Plus size={12} /> 添加要点</button>
+              <label className="note-label">{t.addKnowledge}</label>
+              <button type="button" className="note-add-point" onClick={addPoint}><Plus size={12} /> {t.addKnowledgeBtn}</button>
             </div>
             <ul className="note-points-list">
               {points.map((pt, i) => (
                 <li key={i} className="note-point-item">
-                  <input className="note-input" value={pt} onChange={e => updatePoint(i, e.target.value)} placeholder={`要点 ${i + 1}`} />
+                  <input className="note-input" value={pt} onChange={e => updatePoint(i, e.target.value)} placeholder={`${t.addKnowledge} ${i + 1}`} />
                   <button type="button" className="note-remove-point" onClick={() => removePoint(i)}><X size={11} /></button>
                 </li>
               ))}
@@ -211,9 +213,9 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
         </div>
 
         <div className="note-modal-footer">
-          <span className="note-hint">保存后立即生效，同时同步到 GitHub 仓库</span>
+          <span className="note-hint">{t.nodeSaveHint}</span>
           <button type="button" className="note-save-btn note-save-btn-active" onClick={handleSave} disabled={uploading}>
-            <Save size={13} /> {isNew ? "创建卡片" : "保存修改"}
+            <Save size={13} /> {isNew ? t.createCard : t.saveChanges}
           </button>
         </div>
 
@@ -224,9 +226,10 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
 
 // ── Add Node Button ──
 export function AddNodeButton({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button type="button" className="add-node-btn" onClick={onClick}>
-      <Plus size={14} /> 新增知识点
+      <Plus size={14} /> {t.addKnowledgeBtn}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import type {
   OperationStep, CaseStudy, SkillItem,
   LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem,
@@ -11,22 +12,25 @@ function genId(prefix = "item") {
   return prefix + "-" + Math.random().toString(36).slice(2, 8);
 }
 
-function ListEditor({ label, items, onChange, placeholder }: {
+type T = ReturnType<typeof useI18n>["t"];
+
+function ListEditor({ label, items, onChange, placeholder, t }: {
   label: string;
   items: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
+  t: T;
 }) {
   return (
     <div className="note-field">
       <div className="note-label-row">
         <label className="note-label">{label}</label>
-        <button type="button" className="note-add-point" onClick={() => onChange([...items, ""])} ><Plus size={12}/> 添加</button>
+        <button type="button" className="note-add-point" onClick={() => onChange([...items, ""])} ><Plus size={12}/> {t.fieldAdd}</button>
       </div>
       <ul className="note-points-list">
         {items.map((v, i) => (
           <li key={i} className="note-point-item">
-            <input className="note-input" value={v} placeholder={placeholder ?? `第 ${i+1} 项`}
+            <input className="note-input" value={v} placeholder={placeholder ?? t.fieldItemN(i + 1)}
               onChange={e => { const a = [...items]; a[i] = e.target.value; onChange(a); }} />
             <button type="button" className="note-remove-point" onClick={() => onChange(items.filter((_,j) => j!==i))} ><X size={11}/></button>
           </li>
@@ -39,7 +43,7 @@ function ListEditor({ label, items, onChange, placeholder }: {
 // ─────────────────────────────────────────────
 // OperationStep editor
 // ─────────────────────────────────────────────
-function OperationForm({ init, onSave }: { init: OperationStep | null; onSave: (v: OperationStep) => void }) {
+function OperationForm({ init, onSave, t }: { init: OperationStep | null; onSave: (v: OperationStep) => void; t: T }) {
   const [title, setTitle] = useState(init?.title ?? "");
   const [target, setTarget] = useState(init?.target ?? "");
   const [detail, setDetail] = useState(init?.detail ?? "");
@@ -52,11 +56,11 @@ function OperationForm({ init, onSave }: { init: OperationStep | null; onSave: (
   };
   return (
     <>
-      <div className="note-field"><label className="note-label">标题 *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="操作步骤标题" /></div>
-      <div className="note-field"><label className="note-label">目标</label><input className="note-input" value={target} onChange={e => setTarget(e.target.value)} placeholder="本步骤目标" /></div>
-      <div className="note-field"><label className="note-label">详情</label><textarea className="note-textarea" value={detail} onChange={e => setDetail(e.target.value)} rows={3} placeholder="具体操作说明" /></div>
-      <ListEditor label="工具" items={tools} onChange={setTools} placeholder="工具名" />
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.opTitle} *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t.opTitlePh} /></div>
+      <div className="note-field"><label className="note-label">{t.opTarget}</label><input className="note-input" value={target} onChange={e => setTarget(e.target.value)} placeholder={t.opTargetPh} /></div>
+      <div className="note-field"><label className="note-label">{t.opDetail}</label><textarea className="note-textarea" value={detail} onChange={e => setDetail(e.target.value)} rows={3} placeholder={t.opDetailPh} /></div>
+      <ListEditor label={t.opTools} items={tools} onChange={setTools} placeholder={t.opToolPh} t={t} />
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -64,7 +68,7 @@ function OperationForm({ init, onSave }: { init: OperationStep | null; onSave: (
 // ─────────────────────────────────────────────
 // CaseStudy editor
 // ─────────────────────────────────────────────
-function CaseForm({ init, onSave }: { init: CaseStudy | null; onSave: (v: CaseStudy) => void }) {
+function CaseForm({ init, onSave, t }: { init: CaseStudy | null; onSave: (v: CaseStudy) => void; t: T }) {
   const [title, setTitle] = useState(init?.title ?? "");
   const [scene, setScene] = useState(init?.scene ?? "");
   const [problem, setProblem] = useState(init?.problem ?? "");
@@ -79,15 +83,15 @@ function CaseForm({ init, onSave }: { init: CaseStudy | null; onSave: (v: CaseSt
   };
   return (
     <>
-      <div className="note-field"><label className="note-label">标题 *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="案例标题" /></div>
-      <div className="note-field"><label className="note-label">场景</label><input className="note-input" value={scene} onChange={e => setScene(e.target.value)} placeholder="业务场景" /></div>
+      <div className="note-field"><label className="note-label">{t.caseTitle} *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t.caseTitlePh} /></div>
+      <div className="note-field"><label className="note-label">{t.caseScene}</label><input className="note-input" value={scene} onChange={e => setScene(e.target.value)} placeholder={t.caseScenePh} /></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
-        <div className="note-field"><label className="note-label">问题</label><textarea className="note-textarea" value={problem} onChange={e => setProblem(e.target.value)} rows={2} placeholder="遇到的问题" /></div>
-        <div className="note-field"><label className="note-label">方案</label><textarea className="note-textarea" value={solution} onChange={e => setSolution(e.target.value)} rows={2} placeholder="解决方案" /></div>
+        <div className="note-field"><label className="note-label">{t.caseProblem}</label><textarea className="note-textarea" value={problem} onChange={e => setProblem(e.target.value)} rows={2} placeholder={t.caseProblemPh} /></div>
+        <div className="note-field"><label className="note-label">{t.caseSolution}</label><textarea className="note-textarea" value={solution} onChange={e => setSolution(e.target.value)} rows={2} placeholder={t.caseSolutionPh} /></div>
       </div>
-      <div className="note-field"><label className="note-label">结果</label><input className="note-input" value={result} onChange={e => setResult(e.target.value)} placeholder="最终结果" /></div>
-      <ListEditor label="标签" items={tags} onChange={setTags} placeholder="标签" />
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.caseResult}</label><input className="note-input" value={result} onChange={e => setResult(e.target.value)} placeholder={t.caseResultPh} /></div>
+      <ListEditor label={t.caseTags} items={tags} onChange={setTags} placeholder={t.caseTagPh} t={t} />
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -96,7 +100,7 @@ function CaseForm({ init, onSave }: { init: CaseStudy | null; onSave: (v: CaseSt
 // SkillItem editor
 // ─────────────────────────────────────────────
 const SKILL_LEVELS = [1,2,3,4,5] as const;
-function SkillForm({ init, onSave }: { init: SkillItem | null; onSave: (v: SkillItem) => void }) {
+function SkillForm({ init, onSave, t }: { init: SkillItem | null; onSave: (v: SkillItem) => void; t: T }) {
   const [name, setName] = useState(init?.name ?? "");
   const [dimension, setDimension] = useState(init?.dimension ?? "");
   const [level, setLevel] = useState<1|2|3|4|5>(init?.level ?? 3);
@@ -111,20 +115,20 @@ function SkillForm({ init, onSave }: { init: SkillItem | null; onSave: (v: Skill
   return (
     <>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
-        <div className="note-field"><label className="note-label">技能名 *</label><input ref={ref} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder="技能名称" /></div>
-        <div className="note-field"><label className="note-label">维度</label><input className="note-input" value={dimension} onChange={e => setDimension(e.target.value)} placeholder="如：技术深度" /></div>
+        <div className="note-field"><label className="note-label">{t.skillName} *</label><input ref={ref} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder={t.skillNamePh} /></div>
+        <div className="note-field"><label className="note-label">{t.skillDimension}</label><input className="note-input" value={dimension} onChange={e => setDimension(e.target.value)} placeholder={t.skillDimensionPh} /></div>
       </div>
       <div className="note-field">
-        <label className="note-label">熟练度</label>
+        <label className="note-label">{t.skillLevel}</label>
         <div className="node-level-btns">
           {SKILL_LEVELS.map(l => (
             <button key={l} type="button" className={`node-level-btn ${level===l?"active":""}`} onClick={()=>setLevel(l)}>{"★".repeat(l)}</button>
           ))}
         </div>
       </div>
-      <div className="note-field"><label className="note-label">描述</label><textarea className="note-textarea" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="技能描述" /></div>
-      <ListEditor label="提升方法" items={howTo} onChange={setHowTo} placeholder="如：做一个项目" />
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.skillDesc}</label><textarea className="note-textarea" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder={t.skillDescPh} /></div>
+      <ListEditor label={t.skillHowTo} items={howTo} onChange={setHowTo} placeholder={t.skillHowToPh} t={t} />
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -133,7 +137,7 @@ function SkillForm({ init, onSave }: { init: SkillItem | null; onSave: (v: Skill
 // LearningPathNode editor
 // ─────────────────────────────────────────────
 const PATH_LEVELS: KnowledgeLevel[] = ["基础","进阶","实战"];
-function PathForm({ init, onSave }: { init: LearningPathNode | null; onSave: (v: LearningPathNode) => void }) {
+function PathForm({ init, onSave, t }: { init: LearningPathNode | null; onSave: (v: LearningPathNode) => void; t: T }) {
   const [title, setTitle] = useState(init?.title ?? "");
   const [level, setLevel] = useState<KnowledgeLevel>(init?.level ?? "基础");
   const [hours, setHours] = useState(String(init?.estimatedHours ?? ""));
@@ -146,16 +150,16 @@ function PathForm({ init, onSave }: { init: LearningPathNode | null; onSave: (v:
   };
   return (
     <>
-      <div className="note-field"><label className="note-label">标题 *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="路径节点标题" /></div>
+      <div className="note-field"><label className="note-label">{t.pathTitle} *</label><input ref={ref} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t.pathTitlePh} /></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
         <div className="note-field">
-          <label className="note-label">难度</label>
+          <label className="note-label">{t.pathDifficulty}</label>
           <div className="node-level-btns">{PATH_LEVELS.map(l => <button key={l} type="button" className={`node-level-btn ${level===l?"active":""}`} onClick={()=>setLevel(l)}>{l}</button>)}</div>
         </div>
-        <div className="note-field"><label className="note-label">预计时长（小时）</label><input className="note-input" type="number" value={hours} onChange={e => setHours(e.target.value)} placeholder="如：4" /></div>
+        <div className="note-field"><label className="note-label">{t.pathHours}</label><input className="note-input" type="number" value={hours} onChange={e => setHours(e.target.value)} placeholder={t.pathHoursPh} /></div>
       </div>
-      <div className="note-field"><label className="note-label">提示</label><input className="note-input" value={tip} onChange={e => setTip(e.target.value)} placeholder="学习建议" /></div>
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.pathTip}</label><input className="note-input" value={tip} onChange={e => setTip(e.target.value)} placeholder={t.pathTipPh} /></div>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -165,7 +169,7 @@ function PathForm({ init, onSave }: { init: LearningPathNode | null; onSave: (v:
 // ─────────────────────────────────────────────
 const IQ_DIFFICULTIES = ["初级","中级","高级"] as const;
 const IQ_CATEGORIES = ["技术理解","产品设计","商业判断","行为面试"];
-function InterviewForm({ init, onSave }: { init: InterviewQuestion | null; onSave: (v: InterviewQuestion) => void }) {
+function InterviewForm({ init, onSave, t }: { init: InterviewQuestion | null; onSave: (v: InterviewQuestion) => void; t: T }) {
   const [question, setQuestion] = useState(init?.question ?? "");
   const [category, setCategory] = useState(init?.category ?? IQ_CATEGORIES[0]);
   const [difficulty, setDifficulty] = useState<"初级"|"中级"|"高级">(init?.difficulty ?? "初级");
@@ -181,22 +185,22 @@ function InterviewForm({ init, onSave }: { init: InterviewQuestion | null; onSav
   };
   return (
     <>
-      <div className="note-field"><label className="note-label">问题 *</label><textarea ref={ref} className="note-textarea" value={question} onChange={e => setQuestion(e.target.value)} rows={2} placeholder="面试题内容" /></div>
+      <div className="note-field"><label className="note-label">{t.iqQuestion} *</label><textarea ref={ref} className="note-textarea" value={question} onChange={e => setQuestion(e.target.value)} rows={2} placeholder={t.iqQuestionPh} /></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
         <div className="note-field">
-          <label className="note-label">分类</label>
+          <label className="note-label">{t.iqCategory}</label>
           <div className="node-level-btns" style={{flexWrap:"wrap"}}>{IQ_CATEGORIES.map(c => <button key={c} type="button" className={`node-level-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{c}</button>)}</div>
         </div>
         <div className="note-field">
-          <label className="note-label">难度</label>
+          <label className="note-label">{t.iqDifficulty}</label>
           <div className="node-level-btns">{IQ_DIFFICULTIES.map(d => <button key={d} type="button" className={`node-level-btn ${difficulty===d?"active":""}`} onClick={()=>setDifficulty(d)}>{d}</button>)}</div>
         </div>
       </div>
-      <div className="note-field"><label className="note-label">答题框架</label><input className="note-input" value={framework} onChange={e => setFramework(e.target.value)} placeholder="一句话答题框架" /></div>
-      <ListEditor label="核心要点" items={keyPoints} onChange={setKeyPoints} placeholder="答题要点" />
-      <div className="note-field"><label className="note-label">参考答案</label><textarea className="note-textarea" value={sampleAnswer} onChange={e => setSampleAnswer(e.target.value)} rows={3} placeholder="简洁版参考答案" /></div>
-      <div className="note-field"><label className="note-label">常见坑</label><input className="note-input" value={pitfall} onChange={e => setPitfall(e.target.value)} placeholder="回答时常见误区" /></div>
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.iqFramework}</label><input className="note-input" value={framework} onChange={e => setFramework(e.target.value)} placeholder={t.iqFrameworkPh} /></div>
+      <ListEditor label={t.iqKeyPoints} items={keyPoints} onChange={setKeyPoints} placeholder={t.iqKeyPointPh} t={t} />
+      <div className="note-field"><label className="note-label">{t.iqSampleAnswer}</label><textarea className="note-textarea" value={sampleAnswer} onChange={e => setSampleAnswer(e.target.value)} rows={3} placeholder={t.iqSampleAnswerPh} /></div>
+      <div className="note-field"><label className="note-label">{t.iqPitfall}</label><input className="note-input" value={pitfall} onChange={e => setPitfall(e.target.value)} placeholder={t.iqPitfallPh} /></div>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -204,7 +208,7 @@ function InterviewForm({ init, onSave }: { init: InterviewQuestion | null; onSav
 // ─────────────────────────────────────────────
 // CareerMilestone editor
 // ─────────────────────────────────────────────
-function CareerForm({ init, onSave }: { init: CareerMilestone | null; onSave: (v: CareerMilestone) => void }) {
+function CareerForm({ init, onSave, t }: { init: CareerMilestone | null; onSave: (v: CareerMilestone) => void; t: T }) {
   const [week, setWeek] = useState(init?.week ?? "");
   const [phase, setPhase] = useState(init?.phase ?? "");
   const [goal, setGoal] = useState(init?.goal ?? "");
@@ -221,15 +225,15 @@ function CareerForm({ init, onSave }: { init: CareerMilestone | null; onSave: (v
   return (
     <>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
-        <div className="note-field"><label className="note-label">时间段 *</label><input ref={ref} className="note-input" value={week} onChange={e => setWeek(e.target.value)} placeholder="如：第1-2天" /></div>
-        <div className="note-field"><label className="note-label">阶段名</label><input className="note-input" value={phase} onChange={e => setPhase(e.target.value)} placeholder="阶段名称" /></div>
+        <div className="note-field"><label className="note-label">{t.careerWeek} *</label><input ref={ref} className="note-input" value={week} onChange={e => setWeek(e.target.value)} placeholder={t.careerWeekPh} /></div>
+        <div className="note-field"><label className="note-label">{t.careerPhase}</label><input className="note-input" value={phase} onChange={e => setPhase(e.target.value)} placeholder={t.careerPhasePh} /></div>
       </div>
-      <div className="note-field"><label className="note-label">目标</label><input className="note-input" value={goal} onChange={e => setGoal(e.target.value)} placeholder="本阶段目标" /></div>
-      <ListEditor label="行动清单" items={actions} onChange={setActions} placeholder="具体行动" />
-      <div className="note-field"><label className="note-label">交付物</label><input className="note-input" value={deliverable} onChange={e => setDeliverable(e.target.value)} placeholder="可交付产物" /></div>
-      <ListEditor label="推荐资源" items={resources} onChange={setResources} placeholder="资源链接或名称" />
-      <div className="note-field"><label className="note-label">验收标准</label><input className="note-input" value={checkPoint} onChange={e => setCheckPoint(e.target.value)} placeholder="如何验证完成了" /></div>
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <div className="note-field"><label className="note-label">{t.careerGoal}</label><input className="note-input" value={goal} onChange={e => setGoal(e.target.value)} placeholder={t.careerGoalPh} /></div>
+      <ListEditor label={t.careerActions} items={actions} onChange={setActions} placeholder={t.careerActionPh} t={t} />
+      <div className="note-field"><label className="note-label">{t.careerDeliverable}</label><input className="note-input" value={deliverable} onChange={e => setDeliverable(e.target.value)} placeholder={t.careerDeliverablePh} /></div>
+      <ListEditor label={t.careerResources} items={resources} onChange={setResources} placeholder={t.careerResourcePh} t={t} />
+      <div className="note-field"><label className="note-label">{t.careerCheckPoint}</label><input className="note-input" value={checkPoint} onChange={e => setCheckPoint(e.target.value)} placeholder={t.careerCheckPointPh} /></div>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
@@ -238,7 +242,10 @@ function CareerForm({ init, onSave }: { init: CareerMilestone | null; onSave: (v
 // ToolItem editor
 // ─────────────────────────────────────────────
 const TOOL_CATEGORIES = ["AI写作","AI绘图","AI编程","AI搜索","AI视频","AI音频","开发工具","效率工具","其他"];
-function ToolForm({ init, onSave }: { init: ToolItem | null; onSave: (v: ToolItem) => void }) {
+const TOOL_CATEGORIES_EN = ["AI Writing","AI Image","AI Coding","AI Search","AI Video","AI Audio","Dev Tools","Productivity","Other"];
+function ToolForm({ init, onSave, t }: { init: ToolItem | null; onSave: (v: ToolItem) => void; t: T }) {
+  const { locale } = useI18n();
+  const isEn = locale === "en";
   const [name, setName] = useState(init?.name ?? "");
   const [category, setCategory] = useState(init?.category ?? TOOL_CATEGORIES[0]);
   const [url, setUrl] = useState(init?.url ?? "");
@@ -254,31 +261,31 @@ function ToolForm({ init, onSave }: { init: ToolItem | null; onSave: (v: ToolIte
   return (
     <>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.7rem"}}>
-        <div className="note-field"><label className="note-label">工具名 *</label><input ref={ref} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder="如：ChatGPT" /></div>
-        <div className="note-field"><label className="note-label">官网链接</label><input className="note-input" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." /></div>
+        <div className="note-field"><label className="note-label">{t.toolName} *</label><input ref={ref} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder={t.toolNamePh} /></div>
+        <div className="note-field"><label className="note-label">{t.toolUrl}</label><input className="note-input" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." /></div>
       </div>
       <div className="note-field">
-        <label className="note-label">分类</label>
+        <label className="note-label">{t.toolCategory}</label>
         <div className="node-level-btns" style={{flexWrap:"wrap"}}>
-          {TOOL_CATEGORIES.map(c => <button key={c} type="button" className={`node-level-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{c}</button>)}
+          {TOOL_CATEGORIES.map((c, i) => <button key={c} type="button" className={`node-level-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{isEn ? TOOL_CATEGORIES_EN[i] : c}</button>)}
         </div>
       </div>
-      <div className="note-field"><label className="note-label">描述</label><textarea className="note-textarea" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="一句话介绍这个工具" /></div>
-      <ListEditor label="标签" items={tags} onChange={setTags} placeholder="如：免费、GPT-4" />
+      <div className="note-field"><label className="note-label">{t.toolDesc}</label><textarea className="note-textarea" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder={t.toolDescPh} /></div>
+      <ListEditor label={t.toolTags} items={tags} onChange={setTags} placeholder={t.toolTagPh} t={t} />
       <div className="note-field">
         <label className="note-label">
           <input type="checkbox" checked={isPaid} onChange={e => setIsPaid(e.target.checked)} style={{marginRight:"0.4rem"}} />
-          付费工具
+          {t.toolIsPaid}
         </label>
       </div>
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.saveChanges}</button>
     </>
   );
 }
 
 export type TabItemType = "operation" | "cases" | "skills" | "path" | "interview" | "career" | "tools";
 
-const TAB_LABELS: Record<TabItemType, string> = {
+const TAB_LABELS_ZH: Record<TabItemType, string> = {
   operation: "操作步骤",
   cases: "案例",
   skills: "技能",
@@ -286,6 +293,16 @@ const TAB_LABELS: Record<TabItemType, string> = {
   interview: "面试题",
   career: "职业规划条目",
   tools: "工具",
+};
+
+const TAB_LABELS_EN: Record<TabItemType, string> = {
+  operation: "Operation Step",
+  cases: "Case Study",
+  skills: "Skill",
+  path: "Path Node",
+  interview: "Interview Q",
+  career: "Career Milestone",
+  tools: "Tool",
 };
 
 type AnyItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
@@ -300,7 +317,9 @@ interface TabItemEditorProps {
 
 export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemEditorProps) {
   const isNew = item === null;
-  const label = TAB_LABELS[tab];
+  const { locale, t } = useI18n();
+  const isEn = locale === "en";
+  const label = (isEn ? TAB_LABELS_EN : TAB_LABELS_ZH)[tab];
 
   const handleSave = (saved: AnyItem) => {
     onSave(saved);
@@ -308,7 +327,7 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
   };
 
   const handleDelete = () => {
-    if (!confirm(`确定删除这条${label}？`)) return;
+    if (!confirm(isEn ? `Delete this ${label}?` : `确定删除这条${label}？`)) return;
     onDelete?.();
     onClose();
   };
@@ -317,22 +336,22 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
     <div className="note-overlay" onClick={onClose}>
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="note-modal-header">
-          <span>{isNew ? `新增${label}` : `编辑：${label}`}</span>
+          <span>{isNew ? (isEn ? `Add ${label}` : `新增${label}`) : (isEn ? `Edit: ${label}` : `编辑：${label}`)}</span>
           <div style={{display:"flex",gap:"0.3rem"}}>
             {!isNew && onDelete && (
-              <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13}/> 删除</button>
+              <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13}/> {t.deleteNode}</button>
             )}
             <button type="button" className="note-close" onClick={onClose}><X size={14}/></button>
           </div>
         </div>
         <div className="note-edit-body">
-          {tab === "operation" && <OperationForm init={item as OperationStep | null} onSave={handleSave} />}
-          {tab === "cases"     && <CaseForm      init={item as CaseStudy | null}      onSave={handleSave} />}
-          {tab === "skills"    && <SkillForm     init={item as SkillItem | null}      onSave={handleSave} />}
-          {tab === "path"      && <PathForm      init={item as LearningPathNode | null} onSave={handleSave} />}
-          {tab === "interview" && <InterviewForm init={item as InterviewQuestion | null} onSave={handleSave} />}
-          {tab === "career"    && <CareerForm    init={item as CareerMilestone | null}   onSave={handleSave} />}
-          {tab === "tools"     && <ToolForm      init={item as ToolItem | null}         onSave={handleSave} />}
+          {tab === "operation" && <OperationForm init={item as OperationStep | null} onSave={handleSave} t={t} />}
+          {tab === "cases"     && <CaseForm      init={item as CaseStudy | null}      onSave={handleSave} t={t} />}
+          {tab === "skills"    && <SkillForm     init={item as SkillItem | null}      onSave={handleSave} t={t} />}
+          {tab === "path"      && <PathForm      init={item as LearningPathNode | null} onSave={handleSave} t={t} />}
+          {tab === "interview" && <InterviewForm init={item as InterviewQuestion | null} onSave={handleSave} t={t} />}
+          {tab === "career"    && <CareerForm    init={item as CareerMilestone | null}   onSave={handleSave} t={t} />}
+          {tab === "tools"     && <ToolForm      init={item as ToolItem | null}         onSave={handleSave} t={t} />}
         </div>
       </div>
     </div>

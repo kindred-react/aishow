@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Trash2, X, ImageOff, Loader, CheckCircle } from "lucide-react";
 import { learningModules } from "@/data/knowledge";
+import { useI18n } from "@/lib/i18n";
 
 const REPO = "kindred-react/aishow";
 const BRANCH = "main";
@@ -56,6 +57,7 @@ interface OrphanImage {
 }
 
 export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [orphans, setOrphans] = useState<OrphanImage[]>([]);
@@ -64,7 +66,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
 
   const handleScan = async () => {
     const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-    if (!token) { setMsg("未配置 GitHub Token"); return; }
+    if (!token) { setMsg(t.noGithubToken); return; }
     setLoading(true);
     setMsg("");
     try {
@@ -84,9 +86,9 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
         }));
       setOrphans(orphanFiles);
       setScanned(true);
-      if (orphanFiles.length === 0) setMsg("没有发现孤立图片，仓库很干净 ✓");
+      if (orphanFiles.length === 0) setMsg(t.imageCleanupNone);
     } catch (e) {
-      setMsg(`扫描失败: ${String(e)}`);
+      setMsg(t.imageCleanupFailed(String(e)));
     }
     setLoading(false);
   };
@@ -99,7 +101,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
     if (!token) return;
     const toDelete = orphans.filter(o => o.selected);
     if (!toDelete.length) return;
-    if (!confirm(`确定删除 ${toDelete.length} 张未引用的图片？此操作不可撤销。`)) return;
+    if (!confirm(t.imageCleanupDeleteConfirm(toDelete.length))) return;
     setDeleting(true);
     setMsg("");
     let success = 0;
@@ -110,7 +112,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
         setOrphans(prev => prev.filter(o => o.name !== img.name));
       }
     }
-    setMsg(`已删除 ${success} / ${toDelete.length} 张图片`);
+    setMsg(t.imageCleanupDeleted(success, toDelete.length));
     setDeleting(false);
   };
 
@@ -120,7 +122,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
     <div className="note-overlay" onClick={onClose}>
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="note-modal-header">
-          <span><ImageOff size={14} /> 孤立图片清理</span>
+          <span><ImageOff size={14} /> {t.imageCleanupTitle}</span>
           <button type="button" className="note-close" onClick={onClose}><X size={14} /></button>
         </div>
 
@@ -128,10 +130,10 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
           {!scanned && (
             <div style={{ textAlign: "center", padding: "1rem 0" }}>
               <p style={{ fontSize: "0.8rem", color: "#5a7090", marginBottom: "1rem" }}>
-                扫描 GitHub 仓库 <code>public/uploads/</code> 目录，找出未被任何知识点卡片引用的图片
+                {t.imageCleanupDesc}<code>public/uploads/</code>{t.imageCleanupDescSuffix}
               </p>
               <button type="button" className="note-save-btn note-save-btn-active" onClick={handleScan} disabled={loading}>
-                {loading ? <><Loader size={13} className="note-spin" /> 扫描中…</> : <><CheckCircle size={13} /> 开始扫描</>}
+                {loading ? <><Loader size={13} className="note-spin" /> {t.imageCleanupScanning}</> : <><CheckCircle size={13} /> {t.imageCleanupStartScan}</>}
               </button>
             </div>
           )}
@@ -139,7 +141,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
           {scanned && orphans.length > 0 && (
             <>
               <p style={{ fontSize: "0.75rem", color: "#5a7090", marginBottom: "0.5rem" }}>
-                发现 <strong style={{ color: "#f06060" }}>{orphans.length}</strong> 张未引用图片，勾选后可批量删除：
+                {t.imageCleanupFound()}<strong style={{ color: "#f06060" }}>{orphans.length}</strong>{t.imageCleanupFoundSuffix}
               </p>
               <div className="orphan-img-grid">
                 {orphans.map(img => (
@@ -156,14 +158,14 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
             </>
           )}
 
-          {msg && <p style={{ fontSize: "0.75rem", color: msg.includes("✓") || msg.includes("已删除") ? "var(--c-neon)" : "#f06060", marginTop: "0.5rem" }}>{msg}</p>}
+          {msg && <p style={{ fontSize: "0.75rem", color: msg.includes("✓") || msg.startsWith(t.imageCleanupDeleted(0,0).slice(0,2)) ? "var(--c-neon)" : "#f06060", marginTop: "0.5rem" }}>{msg}</p>}
         </div>
 
         {scanned && orphans.length > 0 && (
           <div className="note-modal-footer">
-            <span className="note-hint">已选 {selectedCount} / {orphans.length} 张</span>
+            <span className="note-hint">{t.imageCleanupSelected(selectedCount, orphans.length)}</span>
             <button type="button" className="note-delete-btn" onClick={handleDelete} disabled={deleting || selectedCount === 0}>
-              {deleting ? <><Loader size={13} className="note-spin" /> 删除中…</> : <><Trash2 size={13} /> 删除选中 ({selectedCount})</>}
+              {deleting ? <><Loader size={13} className="note-spin" /> {t.imageCleanupDeleting}</> : <><Trash2 size={13} /> {t.imageCleanupDeleteSelected(selectedCount)}</>}
             </button>
           </div>
         )}

@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useEffect, useState, useCallback } from "react";
+import { useI18n } from "@/lib/i18n";
 
 interface TocItem {
   id: string;
@@ -15,6 +16,7 @@ interface TocPickerProps {
 const ITEM_HEIGHT = 40;
 
 export function TocPicker({ items, onSelect, activeId }: TocPickerProps) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -59,7 +61,7 @@ export function TocPicker({ items, onSelect, activeId }: TocPickerProps) {
 
   return (
     <div ref={containerRef} className="toc-picker-wrap">
-      <p className="toc-title" style={{ margin: "0 0 0.4rem", padding: "0 0.5rem" }}>目录</p>
+      <p className="toc-title" style={{ margin: "0 0 0.4rem", padding: "0 0.5rem" }}>{t.tocTitle}</p>
       <div className="toc-picker" style={{ height: pickerHeight }}>
         <div className="toc-picker-fade toc-picker-fade-top" />
         <div className="toc-picker-fade toc-picker-fade-bottom" />

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { PenLine, Trash2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import type { InterviewQuestion } from "@/data/types";
 
 const DIFFICULTIES = ["全部", "初级", "中级", "高级"] as const;
@@ -16,6 +17,7 @@ export function InterviewPanel({
   onEdit?: (q: InterviewQuestion) => void;
   onDelete?: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const categories = useMemo(() => [
     "全部",
     ...Array.from(new Set(questions.map((q) => q.category))),
@@ -66,8 +68,8 @@ export function InterviewPanel({
           ))}
         </div>
         <div className="interview-count">
-          共 <strong>{filtered.length}</strong> 题
-          {(cat !== "全部" || diff !== "全部" || search) && ` (筛选自 ${questions.length} 题)`}
+          {t.interviewTotal(filtered.length)}
+          {(cat !== "全部" || diff !== "全部" || search) && t.interviewFiltered(filtered.length, questions.length)}
         </div>
       </div>
 
@@ -81,7 +83,7 @@ export function InterviewPanel({
               {isEditMode && (
                 <div className="card-edit-btns" style={{ marginLeft: "auto" }}>
                   <button type="button" className="cb-action-btn" onClick={() => onEdit?.(q)}><PenLine size={11}/></button>
-                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此面试题？")) onDelete?.(q.id); }}><Trash2 size={11}/></button>
+                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteInterviewQ)) onDelete?.(q.id); }}><Trash2 size={11}/></button>
                 </div>
               )}
             </div>

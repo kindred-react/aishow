@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 import {
   ChevronUp, ChevronDown, X, Save, Trash2,
   Plus, Pencil, BarChart2, GripVertical, Minus,
@@ -31,6 +32,7 @@ interface CompareBlockViewProps {
 }
 
 export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewProps) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -43,13 +45,13 @@ export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewPr
         {(onEdit || onDelete) && (
           <div className="cb-header-actions">
             {onEdit && (
-              <button type="button" className="cb-action-btn" title="编辑" onClick={onEdit}>
+              <button type="button" className="cb-action-btn" title={t.editCompareHeaderTitle} onClick={onEdit}>
                 <Pencil size={12} />
               </button>
             )}
             {onDelete && (
-              <button type="button" className="cb-action-btn cb-action-del" title="删除"
-                onClick={() => { if (confirm(`确定删除「${block.title}」？`)) onDelete(); }}>
+              <button type="button" className="cb-action-btn cb-action-del" title={t.deleteCompareHeaderTitle}
+                onClick={() => { if (confirm(t.deleteCompareBlockConfirm(block.title))) onDelete(); }}>
                 <Trash2 size={12} />
               </button>
             )}
@@ -148,6 +150,7 @@ interface CompareBlockEditorProps {
 }
 
 export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDelete, onClose }: CompareBlockEditorProps) {
+  const { t } = useI18n();
   const isNew = block === null;
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -202,7 +205,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
   };
 
   const handleDelete = () => {
-    if (!confirm(`确定删除对比组件「${block?.title}」？`)) return;
+    if (!confirm(t.deleteCompareBlockFullConfirm(block?.title ?? ""))) return;
     onDelete?.(); onClose();
   };
 
@@ -213,10 +216,10 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
       <div className="note-modal cb-editor-modal" onClick={e => e.stopPropagation()}>
 
         <div className="note-modal-header">
-          <span><BarChart2 size={14} /> {isNew ? "新增对比组件" : `编辑：${block.title}`}</span>
+          <span><BarChart2 size={14} /> {isNew ? t.addCompareBtn : t.editCompareTitle(block.title)}</span>
           <div style={{ display: "flex", gap: "0.3rem" }}>
             {!isNew && onDelete && (
-              <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13} /> 删除</button>
+              <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13} /> {t.deleteCompareBtn}</button>
             )}
             <button type="button" className="note-close" onClick={onClose}><X size={14} /></button>
           </div>
@@ -236,8 +239,8 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
 
             <div className="note-field">
               <div className="note-label-row">
-                <label className="note-label">对比维度（表格行）</label>
-                <button type="button" className="note-add-point" onClick={addRow}><Plus size={11} /> 添加</button>
+                <label className="note-label">{t.compareDimensions}</label>
+                <button type="button" className="note-add-point" onClick={addRow}><Plus size={11} /> {t.fieldAdd}</button>
               </div>
               <div className="cb-rows-list">
                 {rows.map((row, idx) => (
@@ -256,7 +259,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
             <div className="note-field">
               <div className="note-label-row">
                 <label className="note-label">对比项（卡片列）</label>
-                <button type="button" className="note-add-point" onClick={addItem}><Plus size={11} /> 添加</button>
+                <button type="button" className="note-add-point" onClick={addItem}><Plus size={11} /> {t.fieldAdd}</button>
               </div>
               <div className="cb-item-tabs">
                 {items.map((item, idx) => (
@@ -270,7 +273,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                       {item.name || `项目 ${idx + 1}`}
                     </button>
                     {items.length > 1 && (
-                      <button type="button" className="cb-item-tab-del" onClick={() => removeItem(idx)} title="删除">
+                      <button type="button" className="cb-item-tab-del" onClick={() => removeItem(idx)} title={t.deleteCompareBtn}>
                         <X size={10} />
                       </button>
                     )}
@@ -341,9 +344,9 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
         </div>
 
         <div className="note-modal-footer">
-          <span className="note-hint">{isNew ? `将添加到模块「${moduleId}」` : "修改立即生效"}</span>
+          <span className="note-hint">{isNew ? t.addToModule(moduleId) : t.editTakesEffect}</span>
           <button type="button" className="note-save-btn note-save-btn-active" onClick={handleSave}>
-            <Save size={13} /> {isNew ? "创建对比组件" : "保存修改"}
+            <Save size={13} /> {isNew ? t.createCompare : t.saveChanges}
           </button>
         </div>
 

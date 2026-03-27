@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { PenLine, Trash2, ArrowRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, OperationStep } from "@/data/types";
 
 // ── Read nodeEdits from unified content store ──
@@ -56,6 +57,7 @@ export function KnowledgeCard({
   onEdit?: (node: KnowledgeNode) => void;
   onDelete?: (nodeId: string) => void;
 }) {
+  const { t } = useI18n();
   const node = useMergedNode(rawNode);
   return (
     <article id={`item-${node.id}`} className="concept-card">
@@ -64,14 +66,14 @@ export function KnowledgeCard({
         <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
           <span>{node.level} · {node.metaphor}</span>
           {onEdit && (
-            <button type="button" className="note-btn" title="编辑卡片" onClick={() => onEdit(node)}>
+            <button type="button" className="note-btn" title={t.editCard} onClick={() => onEdit(node)}>
               <PenLine size={12} />
             </button>
           )}
           {onDelete && (
-            <button type="button" className="note-btn note-btn-danger" title="删除卡片"
+            <button type="button" className="note-btn note-btn-danger" title={t.deleteCard2}
               onClick={() => {
-                if (confirm(`确定删除「${node.title}」？`)) onDelete(rawNode.id);
+                if (confirm(t.deleteCardConfirm2(node.title))) onDelete(rawNode.id);
               }}
             >
               <Trash2 size={12} />

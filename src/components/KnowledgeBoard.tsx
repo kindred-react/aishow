@@ -18,6 +18,9 @@ import {
   X,
   Plus,
   RefreshCw,
+  Search,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { KnowledgeCard } from "@/components/NoteEditor";
@@ -33,6 +36,7 @@ import { TabItemEditor } from "@/components/TabItemEditor";
 import type { TabItemType } from "@/components/TabItemEditor";
 import { useContentStore } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
+import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem, DimensionTab, TabConfig, TabWidget } from "@/data/types";
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
@@ -44,6 +48,7 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
   onClose: () => void;
   moduleData?: import("@/data/types").LearningModule;
 }) {
+  const { t } = useI18n();
   // Count items for a given widget type in the merged module
   const countForWidget = (key: string): number => {
     if (!moduleData) return 0;
@@ -106,13 +111,13 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
   return (
     <>
       <div className="note-field">
-        <label className="note-label">Tab 名称{isBuiltin && <span style={{color:"#5a7898",marginLeft:"0.3rem",fontWeight:400}}>（内置 Tab，仅可改名）</span>}</label>
+        <label className="note-label">{t.tabName}{isBuiltin && <span style={{color:"#5a7898",marginLeft:"0.3rem",fontWeight:400}}>{t.tabNameBuiltinHint}</span>}</label>
         <input ref={ref} className="note-input" value={label} onChange={e => setLabel(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); save(); } }}
-          placeholder="Tab 显示名称" />
+          placeholder={t.tabName} />
       </div>
       <div className="note-field">
-        <label className="note-label">可新增的组件类型 <span style={{color:"#5a7898",fontWeight:400}}>（勾选启用，箭头调整顺序）</span></label>
+        <label className="note-label">{t.tabWidgetLabel} <span style={{color:"#5a7898",fontWeight:400}}>{t.tabWidgetHint}</span></label>
         <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
           {widgetRows.map((row, idx) => {
             const meta = ALL_WIDGETS.find(w => w.key === row.key);
@@ -131,8 +136,13 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
                 />
                 <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={meta?.desc}>
                   <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
-                  {meta?.label ?? row.key}
-                  {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{c} 条</span> : null; })()}
+                  {({
+                    knowledge: t.widgetKnowledge, operation: t.widgetOperation,
+                    case: t.widgetCase, skill: t.widgetSkill, path: t.widgetPath,
+                    interview: t.widgetInterview, career: t.widgetCareer,
+                    tool: t.widgetTool, compare: t.widgetCompare,
+                  } as Record<string,string>)[row.key] ?? meta?.label ?? row.key}
+                  {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
                 </span>
                 <button type="button" disabled={idx === 0}
                   onClick={() => moveWidget(idx, -1)}
@@ -195,6 +205,7 @@ type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 export function KnowledgeBoard() {
   const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt, registerOnBeforeExit } = useEditMode();
+  const { t, locale, setLocale } = useI18n();
 
   // Save/discard confirmation dialog state
   const [savePrompt, setSavePrompt] = useState<{ resolve: (v: boolean) => void } | null>(null);
@@ -221,6 +232,88 @@ export function KnowledgeBoard() {
   const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
   const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
   const [isMounted, setIsMounted] = useState(false);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("kb-theme") !== "light";
+  });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const closeSearch = () => { setSearchOpen(false); setSearchQuery(""); };
+
+  // Theme toggle with persistence
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    localStorage.setItem("kb-theme", isDark ? "dark" : "light");
+  }, [isDark]);
+
+  // Search keyboard shortcut (Cmd/Ctrl+K)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(o => !o);
+      }
+      if (e.key === "Escape") closeSearch();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 60);
+  }, [searchOpen]);
+
+  // Build search index from all merged modules
+  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; }
+  const searchResults = useMemo<SearchResult[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    const results: SearchResult[] = [];
+    for (const m of mergedModules) {
+      const dims = m.enabledTabs ?? ALL_TABS;
+      const getTab = (key: string) => dims.find(t => t.key === key)?.label ?? key;
+      m.knowledgeNodes.forEach(n => {
+        if (n.title.toLowerCase().includes(q) || n.summary?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: n.dimensionTab ?? "knowledge", tabLabel: getTab(n.dimensionTab ?? "knowledge"), title: n.title, subtitle: n.summary?.slice(0,60) });
+      });
+      m.operationSteps.forEach(s => {
+        if (s.title.toLowerCase().includes(q) || s.detail?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "operation", tabLabel: getTab(s.dimensionTab ?? "operation"), title: s.title, subtitle: s.target });
+      });
+      (m.cases ?? []).forEach(c => {
+        if (c.title.toLowerCase().includes(q) || c.scene?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "cases", tabLabel: getTab(c.dimensionTab ?? "cases"), title: c.title, subtitle: c.scene });
+      });
+      (m.tools ?? []).forEach(t => {
+        if (t.name.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: t.dimensionTab ?? "tools", tabLabel: getTab(t.dimensionTab ?? "tools"), title: t.name, subtitle: t.description });
+      });
+      (m.skills ?? []).forEach(s => {
+        if (s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "skills", tabLabel: getTab(s.dimensionTab ?? "skills"), title: s.name, subtitle: s.description });
+      });
+      (m.interviewQuestions ?? []).forEach(q2 => {
+        if (q2.question.toLowerCase().includes(q) || q2.sampleAnswer?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: q2.dimensionTab ?? "interview", tabLabel: getTab(q2.dimensionTab ?? "interview"), title: q2.question.slice(0,60), subtitle: q2.category });
+      });
+      (m.learningPath ?? []).forEach(p => {
+        if (p.title.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: p.dimensionTab ?? "path", tabLabel: getTab(p.dimensionTab ?? "path"), title: p.title, subtitle: p.tip });
+      });
+      (m.careerPlan ?? []).forEach(c => {
+        if (c.phase.toLowerCase().includes(q) || c.goal?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "career", tabLabel: getTab(c.dimensionTab ?? "career"), title: c.phase, subtitle: c.goal });
+      });
+    }
+    return results.slice(0, 40);
+  }, [searchQuery, mergedModules]);
+
+  const jumpToResult = (r: SearchResult) => {
+    setActiveModuleId(r.moduleId);
+    setActiveDimension(r.tabKey);
+    closeSearch();
+  };
 
   // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
   useEffect(() => {
@@ -363,11 +456,13 @@ export function KnowledgeBoard() {
   }, [activeModule, levelFilter, activeDimension]);
 
   // Compute active widgets early so tocItems can use it
-  const _dims = activeModule.enabledTabs ?? ALL_TABS;
-  const _activeTabCfg = _dims.find(d => d.key === activeDimension);
-  const activeWidgets: TabWidget[] = _activeTabCfg?.widgets
-    ?? ALL_TABS.find(t => t.key === activeDimension)?.widgets
-    ?? ["compare"];
+  const activeWidgets = useMemo<TabWidget[]>(() => {
+    const _dims = activeModule.enabledTabs ?? ALL_TABS;
+    const _activeTabCfg = _dims.find(d => d.key === activeDimension);
+    return _activeTabCfg?.widgets
+      ?? ALL_TABS.find(t => t.key === activeDimension)?.widgets
+      ?? ["compare"];
+  }, [activeModule, activeDimension]);
   const hasWidget = (w: TabWidget) => activeWidgets.includes(w);
 
   const tocItems = useMemo(() => {
@@ -385,7 +480,7 @@ export function KnowledgeBoard() {
       else if (w === "career") (activeModule.careerPlan ?? []).forEach(c => items.push({ id: c.id, label: c.week + " " + c.phase }));
     }
     return items;
-  }, [activeDimension, activeModule, activeWidgets, visibleKnowledge]);
+  }, [activeModule, activeWidgets, visibleKnowledge]);
 
   function scrollToId(id: string) {
     const el = document.getElementById(`item-${id}`);
@@ -420,7 +515,7 @@ export function KnowledgeBoard() {
       </header>
 
       <section className="content-shell">
-        <nav className="module-menu" aria-label="学习模块菜单">
+        <nav className="module-menu" aria-label={t.moduleMenu}>
           {sortedModules.map((module) => (
             <div key={module.id} className="module-btn-wrap">
               <button type="button"
@@ -442,7 +537,7 @@ export function KnowledgeBoard() {
             <span className="module-summary-divider">·</span>
             <span className="module-summary-intro">{activeModule.intro}</span>
           </div>
-          <div className="dimension-menu" aria-label="维度切换">
+          <div className="dimension-menu" aria-label={t.dimensionNav}>
             {dimensions.map((d) => {
               // Count items belonging to this tab
               const tabCount = (() => {
@@ -470,7 +565,7 @@ export function KnowledgeBoard() {
               );
             })}
             {isEditMode && (
-              <button type="button" className="dimension-btn" title="新增 Tab"
+              <button type="button" className="dimension-btn" title={t.addTab}
                 style={{opacity:0.5,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 0.6rem"}}
                 onClick={() => setTabEditModal({ open: true, tab: null })}>
                 <Plus size={13}/>
@@ -504,20 +599,20 @@ export function KnowledgeBoard() {
                     <button key={item} type="button"
                       className={`sub-filter-btn ${levelFilter === item ? "active" : ""}`}
                       onClick={() => setLevelFilter(item)}
-                    >{item}</button>
+                    >{item === "全部" ? t.filterAll : item}</button>
                   ))}
                 </div>
                 {activeModule.id === "agent" && (
                   <div style={{ marginBottom: "1.2rem" }}>
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>5种Agent模式对比</p>
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>{t.agentPatternLabel}</p>
                     <AgentPatternCompare />
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-neon)", marginBottom: "0.5rem", marginTop: "1rem", fontWeight: 600 }}>8种主流Agent框架 + MCP集成代码</p>
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-neon)", marginBottom: "0.5rem", marginTop: "1rem", fontWeight: 600 }}>{t.agentFrameworkLabel}</p>
                     <AgentFrameworkCompare />
                   </div>
                 )}
                 {activeModule.id === "foundations" && (
                   <div style={{ marginBottom: "1.2rem" }}>
-                    <p style={{ fontSize: "0.8rem", color: "var(--c-cyan)", marginBottom: "0.5rem", fontWeight: 600 }}>6个机器学习核心算法对比</p>
+                    <p style={{ fontSize: "0.8rem", color: "var(--c-cyan)", marginBottom: "0.5rem", fontWeight: 600 }}>{t.mlAlgorithmLabel}</p>
                     <MLAlgorithmCompare />
                   </div>
                 )}
@@ -572,7 +667,7 @@ export function KnowledgeBoard() {
                           {isEditMode && (
                             <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("operation", step)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此操作步骤？")) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
                             </div>
                           )}
                         </div>
@@ -605,7 +700,7 @@ export function KnowledgeBoard() {
                 </div>
                 <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                 {(activeModule.tools ?? []).length === 0 && (
-                  <p className="empty-hint">本模块暂未配置工具，点击「新增工具」添加</p>
+                  <p className="empty-hint">{t.emptyToolsModule}</p>
                 )}
                 <div className="tool-heat-grid">
                   {(activeModule.tools ?? []).filter(t => (t.dimensionTab ?? "tools") === activeDimension).map((tool) => (
@@ -615,7 +710,7 @@ export function KnowledgeBoard() {
                         {isEditMode && (
                           <div className="card-edit-btns">
                             <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("tools", tool)}><PenLine size={11}/></button>
-                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此工具？")) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
                           </div>
                         )}
                       </div>
@@ -655,7 +750,7 @@ export function KnowledgeBoard() {
                         {isEditMode && (
                           <div className="card-edit-btns">
                             <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("cases", c)}><PenLine size={11}/></button>
-                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此案例？")) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
                           </div>
                         )}
                       </div>
@@ -688,7 +783,7 @@ export function KnowledgeBoard() {
                   )}
                 </div>
                 {(activeModule.skills ?? []).length === 0 && (
-                  <p className="empty-hint">本模块暂未配置能力要求</p>
+                  <p className="empty-hint">{t.emptySkillsModule}</p>
                 )}
                 <div className="skills-grid">
                   {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).map((skill) => (
@@ -704,7 +799,7 @@ export function KnowledgeBoard() {
                         {isEditMode && (
                           <div className="card-edit-btns">
                             <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("skills", skill)}><PenLine size={11}/></button>
-                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此技能？")) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
                           </div>
                         )}
                       </div>
@@ -737,7 +832,7 @@ export function KnowledgeBoard() {
                   )}
                 </div>
                 {(activeModule.learningPath ?? []).length === 0 && (
-                  <p className="empty-hint">本模块暂未配置学习路径</p>
+                  <p className="empty-hint">{t.emptyPathModule}</p>
                 )}
                 <div className="learning-path">
                   {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).map((node, idx) => (
@@ -753,7 +848,7 @@ export function KnowledgeBoard() {
                           {isEditMode && (
                             <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("path", node)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此路径节点？")) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
                             </div>
                           )}
                         </div>
@@ -774,7 +869,7 @@ export function KnowledgeBoard() {
             {activeDimension === "interview" && (
               <section className="section-block in-shell">
                 <div className="section-title-row">
-                  <FileText size={17} /><h2>面试准备 <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{activeModule.interviewQuestions?.length ?? 0} 题</span></h2>
+                  <FileText size={17} /><h2>{t.interviewSectionTitle} <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{t.questionsCount(activeModule.interviewQuestions?.length ?? 0)}</span></h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
                       {hasWidget("interview") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
@@ -792,7 +887,7 @@ export function KnowledgeBoard() {
                 {(() => {
                   const filtered = (activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension);
                   return filtered.length === 0
-                    ? <p className="empty-hint">本模块暂未配置面试题</p>
+                    ? <p className="empty-hint">{t.emptyInterviewModule}</p>
                     : <InterviewPanel
                         questions={filtered}
                         isEditMode={isEditMode}
@@ -821,7 +916,7 @@ export function KnowledgeBoard() {
                   )}
                 </div>
                 {(activeModule.careerPlan ?? []).length === 0 && (
-                  <p className="empty-hint">本模块暂未配置职业规划</p>
+                  <p className="empty-hint">{t.emptyCareerModule}</p>
                 )}
                 <div className="career-timeline">
                   {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).map((m) => (
@@ -832,7 +927,7 @@ export function KnowledgeBoard() {
                         {isEditMode && (
                           <div className="card-edit-btns">
                             <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("career", m)}><PenLine size={11}/></button>
-                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此职业规划条目？")) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
                           </div>
                         )}
                       </div>
@@ -873,32 +968,37 @@ export function KnowledgeBoard() {
               return extras.map(widget => (
                 <section key={widget} className="section-block in-shell">
                   <div className="section-title-row">
-                    <FileText size={17}/><h2>{ALL_WIDGETS.find(w => w.key === widget)?.label ?? widget}</h2>
+                    <FileText size={17}/><h2>{({
+                      knowledge: t.widgetKnowledge, operation: t.widgetOperation,
+                      case: t.widgetCase, skill: t.widgetSkill, path: t.widgetPath,
+                      interview: t.widgetInterview, career: t.widgetCareer,
+                      tool: t.widgetTool, compare: t.widgetCompare,
+                    } as Record<string,string>)[widget] ?? ALL_WIDGETS.find(w => w.key === widget)?.label ?? widget}</h2>
                     {isEditMode && (
                       <div style={{marginLeft:"auto",display:"flex",gap:"0.35rem"}}>
                         {widget === "knowledge" && <button type="button" className="section-add-btn"
-                          onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> 新增知识点</button>}
+                          onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> {t.addKnowledgeNode}</button>}
                         {widget === "operation" && <button type="button" className="section-add-btn"
                           onClick={() => openTabItemModal("operation")}><Plus size={13}/> 新增操作步骤</button>}
                         {widget === "case" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("cases")}><Plus size={13}/> 新增案例</button>}
+                          onClick={() => openTabItemModal("cases")}><Plus size={13}/> {t.addCase}</button>}
                         {widget === "skill" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("skills")}><Plus size={13}/> 新增技能</button>}
+                          onClick={() => openTabItemModal("skills")}><Plus size={13}/> {t.addSkill}</button>}
                         {widget === "path" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("path")}><Plus size={13}/> 新增路径节点</button>}
+                          onClick={() => openTabItemModal("path")}><Plus size={13}/> {t.addPathNode}</button>}
                         {widget === "interview" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("interview")}><Plus size={13}/> 新增面试题</button>}
+                          onClick={() => openTabItemModal("interview")}><Plus size={13}/> {t.addInterview}</button>}
                         {widget === "career" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("career")}><Plus size={13}/> 新增职业规划</button>}
+                          onClick={() => openTabItemModal("career")}><Plus size={13}/> {t.addCareer}</button>}
                         {widget === "tool" && <button type="button" className="section-add-btn"
-                          onClick={() => openTabItemModal("tools")}><Plus size={13}/> 新增工具</button>}
+                          onClick={() => openTabItemModal("tools")}><Plus size={13}/> {t.addTool}</button>}
                       </div>
                     )}
                   </div>
                   {/* Render the widget's content list */}
                   {widget === "knowledge" && (
                     <div className="cards knowledge-dense-grid">
-                      {activeModule.knowledgeNodes.length === 0 && <p className="empty-hint">暂无知识点</p>}
+                      {activeModule.knowledgeNodes.length === 0 && <p className="empty-hint">{t.emptyKnowledge}</p>}
                       {activeModule.knowledgeNodes.filter(n => (n.dimensionTab ?? "knowledge") === activeDimension).map(rawNode => (
                         <KnowledgeCard key={rawNode.id} rawNode={rawNode}
                           operationSteps={activeModule.operationSteps} onJumpToOp={jumpToOp}
@@ -910,7 +1010,7 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "operation" && (
                     <div className="timeline">
-                      {activeModule.operationSteps.length === 0 && <p className="empty-hint">暂无操作步骤</p>}
+                      {activeModule.operationSteps.length === 0 && <p className="empty-hint">{t.emptyOperation}</p>}
                       {activeModule.operationSteps.filter(s => (s.dimensionTab ?? "operation") === activeDimension).map((step, idx) => (
                         <article key={step.id} id={`item-${step.id}`} className="timeline-card">
                           <div className="timeline-idx">{String(idx+1).padStart(2,"0")}</div>
@@ -918,7 +1018,7 @@ export function KnowledgeBoard() {
                             <div className="card-edit-row"><strong>{step.title}</strong>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("operation", step)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <p className="timeline-target">{step.target}</p>
@@ -931,17 +1031,17 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "case" && (
                     <div className="cases-grid">
-                      {(activeModule.cases ?? []).length === 0 && <p className="empty-hint">暂无案例</p>}
+                      {(activeModule.cases ?? []).length === 0 && <p className="empty-hint">{t.emptyCase}</p>}
                       {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? "cases") === activeDimension).map(c => (
                         <article key={c.id} id={`item-${c.id}`} className="case-card">
                           <div className="card-edit-row"><h4>{c.title}</h4>
                             {isEditMode && <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("cases", c)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
                             </div>}
                           </div>
                           <div className="case-row"><em>场景</em><span>{c.scene}</span></div>
-                          <div className="case-row"><em>问题</em><span>{c.problem}</span></div>
+                          <div className="case-row"><em>{t.problemLabel}</em><span>{c.problem}</span></div>
                           <div className="case-row"><em>方案</em><span>{c.solution}</span></div>
                           <div className="case-row result"><em>结果</em><span>{c.result}</span></div>
                           <div className="tool-tags">{c.tags.map(t => <span key={t}>{t}</span>)}</div>
@@ -951,7 +1051,7 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "skill" && (
                     <div className="skills-grid">
-                      {(activeModule.skills ?? []).length === 0 && <p className="empty-hint">暂无技能</p>}
+                      {(activeModule.skills ?? []).length === 0 && <p className="empty-hint">{t.emptySkill}</p>}
                       {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).map(skill => (
                         <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
                           <div className="skill-header">
@@ -959,7 +1059,7 @@ export function KnowledgeBoard() {
                             <div className="skill-level-bar">{[1,2,3,4,5].map(n => <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`}/>)}</div>
                             {isEditMode && <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("skills", skill)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
                             </div>}
                           </div>
                           <p className="skill-desc">{skill.description}</p>
@@ -969,13 +1069,13 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "tool" && (
                     <div className="tool-heat-grid">
-                      {(activeModule.tools ?? []).length === 0 && <p className="empty-hint">暂无工具</p>}
+                      {(activeModule.tools ?? []).length === 0 && <p className="empty-hint">{t.emptyTool}</p>}
                       {(activeModule.tools ?? []).filter(t => (t.dimensionTab ?? "tools") === activeDimension).map(tool => (
                         <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
                           <div className="card-edit-row"><strong>{tool.name}</strong>
                             {isEditMode && <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("tools", tool)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
                             </div>}
                           </div>
                           <span className="tool-category">{tool.category}{tool.isPaid ? " · 付费" : " · 免费"}</span>
@@ -988,20 +1088,20 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "interview" && (
                     <>
-                      {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension).length === 0 && <p className="empty-hint">暂无面试题</p>}
+                      {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyInterview}</p>}
                       <InterviewPanel questions={(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension)} isEditMode={isEditMode}
                         onEdit={q => openTabItemModal("interview", q)} onDelete={id => deleteInterview(activeModule.id, id)}/>
                     </>
                   )}
                   {widget === "career" && (
                     <div className="career-timeline">
-                      {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).length === 0 && <p className="empty-hint">暂无职业规划</p>}
+                      {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCareer}</p>}
                       {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).map(m => (
                         <article key={m.id} id={`item-${m.id}`} className="career-card">
                           <div className="career-week"><span className="career-week-label">{m.week}</span><span className="career-phase">{m.phase}</span>
                             {isEditMode && <div className="card-edit-btns">
                               <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("career", m)}><PenLine size={11}/></button>
-                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
                             </div>}
                           </div>
                           <div className="career-body"><p className="career-goal">🎯 {m.goal}</p></div>
@@ -1011,7 +1111,7 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "path" && (
                     <div className="learning-path">
-                      {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).length === 0 && <p className="empty-hint">暂无路径节点</p>}
+                      {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyPath}</p>}
                       {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).map((node, idx) => (
                         <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
                           <div className="path-index">{String(idx+1).padStart(2,"0")}</div>
@@ -1019,7 +1119,7 @@ export function KnowledgeBoard() {
                             <div className="path-header"><strong>{node.title}</strong><span className="path-level-badge">{node.level}</span>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("path", node)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除？")) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             {node.tip && <p className="path-tip">💡 {node.tip}</p>}
@@ -1045,7 +1145,7 @@ export function KnowledgeBoard() {
                   )}
                 </div>
                 {store.compareBlocks.filter(b => b.moduleId === activeModule.id && b.dimensionTab === activeDimension).length === 0 && (
-                  <p className="empty-hint">自定义 Tab — 可通过「新增对比组件」添加内容</p>
+                  <p className="empty-hint">{t.emptyCustomTab}</p>
                 )}
                 {store.compareBlocks
                   .filter(b => b.moduleId === activeModule.id && b.dimensionTab === activeDimension)
@@ -1055,7 +1155,7 @@ export function KnowledgeBoard() {
                       {isEditMode && (
                         <div className="card-edit-btns">
                           <button type="button" className="cb-action-btn" onClick={() => openCompareModal(activeDimension, block)}><PenLine size={11}/></button>
-                          <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此对比组件？")) deleteCompareBlock(block.id); }}><Trash2 size={11}/></button>
+                          <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCompareBlock(block.id); }}><Trash2 size={11}/></button>
                         </div>
                       )}
                     </div>
@@ -1128,15 +1228,40 @@ export function KnowledgeBoard() {
 
       <footer className="footer-note compact">
         <Compass size={15} />
-        知识可持续沉淀：新增 PPT/PDF 经 AI 分析后按模块写入，支持去重、补充、更新三种合并策略。
+        {t.footerNote}
       </footer>
 
       {/* ── Edit controls (fixed top-right) ── */}
       <div className="edit-controls-stack">
         <button
           type="button"
+          className="edit-mode-lock-btn"
+          title={t.searchShortcut}
+          onClick={() => setSearchOpen(true)}
+        >
+          <Search size={14} />
+        </button>
+        <button
+          type="button"
+          className="edit-mode-lock-btn"
+          title={isMounted ? t.langToggle : ""}
+          onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+          style={{fontSize:"0.65rem",fontWeight:600,letterSpacing:"0.02em"}}
+        >
+          {isMounted ? (locale === "zh" ? "EN" : "中") : "EN"}
+        </button>
+        <button
+          type="button"
+          className="edit-mode-lock-btn"
+          title={isMounted ? (isDark ? t.themeLight : t.themeDark) : ""}
+          onClick={() => setIsDark(d => !d)}
+        >
+          {isMounted ? (isDark ? <Sun size={14} /> : <Moon size={14} />) : <Sun size={14} />}
+        </button>
+        <button
+          type="button"
           className={`edit-mode-lock-btn ${isEditMode ? "active" : ""}`}
-          title={isEditMode ? "退出编辑模式" : "进入编辑模式"}
+          title={isEditMode ? t.exitEditMode : t.enterEditMode}
           onClick={requestEdit}
         >
           {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
@@ -1146,7 +1271,7 @@ export function KnowledgeBoard() {
           <button
             type="button"
             className="edit-mode-lock-btn"
-            title="扫描并删除未引用的图片"
+            title={t.cleanImages}
             onClick={() => setShowImageCleanup(true)}
           >
             <Trash2 size={14} />
@@ -1215,7 +1340,7 @@ export function KnowledgeBoard() {
         <div className="note-overlay" onClick={cancelPrompt}>
           <div className="note-modal" style={{maxWidth:320}} onClick={e => e.stopPropagation()}>
             <div className="note-modal-header">
-              <span><Lock size={14}/> 请输入编辑密码</span>
+              <span><Lock size={14}/> {t.passwordPromptTitle}</span>
               <button type="button" className="note-close" onClick={cancelPrompt}><X size={14}/></button>
             </div>
             <div className="note-edit-body">
@@ -1226,16 +1351,16 @@ export function KnowledgeBoard() {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && submitPassword()}
-                  placeholder="请输入密码"
+                  placeholder={t.passwordPlaceholder}
                   autoFocus
                 />
-                {error && <p style={{color:"#f06060",fontSize:"0.72rem",margin:"0.2rem 0 0"}}>密码错误，请重试</p>}
+                {error && <p style={{color:"#f06060",fontSize:"0.72rem",margin:"0.2rem 0 0"}}>{t.passwordError}</p>}
               </div>
             </div>
             <div className="note-modal-footer">
               <span />
               <button type="button" className="note-save-btn note-save-btn-active" onClick={submitPassword}>
-                <LockOpen size={13}/> 进入编辑模式
+                <LockOpen size={13}/> {t.enterEditModeBtn}
               </button>
             </div>
           </div>
@@ -1247,20 +1372,20 @@ export function KnowledgeBoard() {
         <div className="note-overlay" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}>
           <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
             <div className="note-modal-header">
-              <span>退出编辑模式</span>
+              <span>{t.exitEditModeTitle}</span>
               <button type="button" className="note-close" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}><X size={14}/></button>
             </div>
             <div style={{ padding: "1.2rem 1rem", color: "#a0b8d8", fontSize: "0.85rem", lineHeight: 1.6 }}>
-              你有未保存的修改。是否保存后退出？
+              {t.unsavedChanges}
             </div>
             <div className="note-modal-footer" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", padding: "0 1rem 1rem" }}>
               <button type="button" className="note-save-btn" style={{ background: "rgba(180,40,40,0.15)", borderColor: "rgba(220,80,80,0.3)", color: "#f08080" }}
                 onClick={() => { discardDraft(); savePrompt.resolve(true); setSavePrompt(null); }}>
-                放弃修改
+                {t.discardAndExit}
               </button>
               <button type="button" className="note-save-btn note-save-btn-active"
                 onClick={() => { commitDraft(mergedModules); savePrompt.resolve(true); setSavePrompt(null); }}>
-                保存并退出
+                {t.saveAndExit}
               </button>
             </div>
           </div>
@@ -1283,10 +1408,10 @@ export function KnowledgeBoard() {
           onClick={e => e.stopPropagation()}>
           <button type="button" className="module-ctx-item" onClick={() => {
             setTabCtxMenu(null); setTabEditModal({ open: true, tab: tabCtxMenu.tab });
-          }}><PenLine size={12}/> 编辑 Tab</button>
+          }}><PenLine size={12}/> {t.ctxEditTab}</button>
           <button type="button" className="module-ctx-item module-ctx-delete" onClick={() => {
             setTabCtxMenu(null);
-            if (!confirm(`确定删除 Tab「${tabCtxMenu.tab.label}」？`)) return;
+            if (!confirm(t.ctxDeleteTabConfirm(tabCtxMenu.tab.label))) return;
             const next = (activeModule.enabledTabs ?? ALL_TABS).filter(t => t.key !== tabCtxMenu.tab.key);
             editModule(activeModule.id, { enabledTabs: next });
             if (activeDimension === tabCtxMenu.tab.key) setActiveDimension(next[0]?.key ?? "knowledge");
@@ -1300,7 +1425,7 @@ export function KnowledgeBoard() {
         <div className="note-overlay" onClick={() => setTabEditModal({ open: false, tab: null })}>
           <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
             <div className="note-modal-header">
-              <span>{tabEditModal.tab ? "编辑 Tab" : "新增 Tab"}</span>
+              <span>{tabEditModal.tab ? t.editTab : t.newTab}</span>
               <button type="button" className="note-close" onClick={() => setTabEditModal({ open: false, tab: null })}><X size={14}/></button>
             </div>
             <div className="note-edit-body">
@@ -1334,7 +1459,7 @@ export function KnowledgeBoard() {
           <button type="button" className="module-ctx-item module-ctx-delete" onClick={() => {
             const mod = sortedModules.find(m => m.id === ctxMenu.moduleId)!;
             setCtxMenu(null);
-            if (confirm(`确定删除模块「${mod.name}」？`)) {
+            if (confirm(t.deleteModuleConfirm(mod.name))) {
               deleteModule(mod.id);
               if (activeModuleId === mod.id) {
                 const next = sortedModules.find(m => m.id !== mod.id);
@@ -1349,9 +1474,9 @@ export function KnowledgeBoard() {
       {/* ── 清除缓存 悬浮按钮（右下角）── */}
       <button
         type="button"
-        title="清除本地缓存，回归原始数据"
+        title={t.clearCache}
         onClick={() => {
-          if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
+          if (confirm(t.clearCacheConfirm)) {
             localStorage.removeItem("aishow_content_store");
             location.reload();
           }
@@ -1361,25 +1486,51 @@ export function KnowledgeBoard() {
           bottom: "1.5rem",
           right: "1.5rem",
           zIndex: 999,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "2.2rem",
-          height: "2.2rem",
-          padding: 0,
-          background: "rgba(10,20,40,0.82)",
-          border: "1px solid rgba(80,130,220,0.25)",
-          borderRadius: "50%",
-          color: "#7aaad0",
-          cursor: "pointer",
-          backdropFilter: "blur(8px)",
-          transition: "border-color 0.18s, color 0.18s",
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(120,180,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.color = "#a8d0f8"; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(80,130,220,0.25)"; (e.currentTarget as HTMLButtonElement).style.color = "#7aaad0"; }}
+        className="refresh-fab"
       >
         <RefreshCw size={14} />
       </button>
+
+      {/* ── Global Search Overlay ── */}
+      {searchOpen && createPortal(
+        <div className="search-overlay" onClick={closeSearch}>
+          <div className="search-panel" onClick={e => e.stopPropagation()}>
+            <div className="search-input-row">
+              <Search size={16} style={{color:"var(--muted)",flexShrink:0}} />
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t.searchPlaceholder}
+              />
+              {searchQuery && <button type="button" onClick={() => setSearchQuery("")} style={{appearance:"none",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",padding:0}}><X size={14}/></button>}
+            </div>
+            <div className="search-results">
+              {searchQuery.trim() === "" && (
+                <div className="search-empty">{t.searchEmpty}<br/><span style={{fontSize:"0.7rem",opacity:0.5}}>{t.searchShortcutHint}</span></div>
+              )}
+              {searchQuery.trim() !== "" && searchResults.length === 0 && (
+                <div className="search-empty">{t.searchNoResult(searchQuery)}</div>
+              )}
+              {searchResults.map((r, i) => {
+                const hi = (s: string) => {
+                  const idx = s.toLowerCase().indexOf(searchQuery.toLowerCase());
+                  if (idx === -1) return s;
+                  return <>{s.slice(0, idx)}<mark>{s.slice(idx, idx + searchQuery.length)}</mark>{s.slice(idx + searchQuery.length)}</>;
+                };
+                return (
+                  <div key={i} className="search-result-item" onClick={() => jumpToResult(r)}>
+                    <div className="search-result-title">{hi(r.title)}</div>
+                    <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? ` · ${r.subtitle.slice(0,40)}` : ""}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </main>
   );
 }
