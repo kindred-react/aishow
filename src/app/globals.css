@@ -2479,3 +2479,43 @@ body {
     rgba(8, 12, 30, 0) 100%
   );
 }
+
+/* ── Edit mode lock button (fixed top-right) ── */
+.edit-mode-lock-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1.2rem;
+  z-index: 200;
+  appearance: none;
+  background: rgba(10, 15, 35, 0.85);
+  border: 1px solid rgba(50, 70, 130, 0.4);
+  border-radius: 20px;
+  color: #4a6090;
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  backdrop-filter: blur(8px);
+  transition: color 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.edit-mode-lock-btn:hover {
+  color: #a0c0e0;
+  border-color: rgba(100, 150, 255, 0.5);
+}
+
+.edit-mode-lock-btn.active {
+  background: rgba(30, 60, 120, 0.85);
+  border-color: var(--c-neon);
+  color: var(--c-neon);
+  box-shadow: 0 2px 16px rgba(60, 180, 255, 0.25);
+}
+
+/* ── note-input error state ── */
+.note-input-error {
+  border-color: rgba(240, 80, 80, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(240, 80, 80, 0.15);
+}

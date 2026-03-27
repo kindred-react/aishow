@@ -10,6 +10,9 @@ import {
   Wrench,
   PenLine,
   Trash2,
+  Lock,
+  LockOpen,
+  X,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { KnowledgeCard } from "@/components/NoteEditor";
@@ -20,6 +23,7 @@ import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
 import { InterviewPanel } from "@/components/InterviewPanel";
 import { useContentStore } from "@/lib/useContentStore";
+import { useEditMode } from "@/lib/useEditMode";
 import type { KnowledgeNode, LearningModule } from "@/data/types";
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
@@ -29,6 +33,7 @@ type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
   const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, syncStatus, syncMsg } = useContentStore();
+  const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt } = useEditMode();
 
   const sortedModules = useMemo(
     () => [...mergedModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -147,6 +152,7 @@ export function KnowledgeBoard() {
                 <span className="module-icon">{module.icon}</span>{module.name}
               </button>
               <div className="module-btn-actions">
+                {isEditMode && (<>
                 <button type="button" className="module-action-btn" title="编辑模块"
                   onClick={(e) => { e.stopPropagation(); setModuleModal({ open: true, module }); }}>
                   <PenLine size={11} />
@@ -164,10 +170,11 @@ export function KnowledgeBoard() {
                   }}>
                   <Trash2 size={11} />
                 </button>
+                </>)}
               </div>
             </div>
           ))}
-          <AddModuleButton onClick={() => setModuleModal({ open: true, module: null })} />
+          {isEditMode && <AddModuleButton onClick={() => setModuleModal({ open: true, module: null })} />}
         </nav>
 
         <div className="content-toolbar">
@@ -228,12 +235,12 @@ export function KnowledgeBoard() {
                       rawNode={rawNode}
                       operationSteps={activeModule.operationSteps}
                       onJumpToOp={jumpToOp}
-                      onEdit={(node) => setNodeModal({ open: true, node, moduleId: activeModule.id })}
-                      onDelete={(nodeId) => deleteNode(nodeId)}
+                      onEdit={isEditMode ? (node) => setNodeModal({ open: true, node, moduleId: activeModule.id }) : undefined}
+                      onDelete={isEditMode ? (nodeId) => deleteNode(nodeId) : undefined}
                     />
                   ))}
                 </div>
-                <AddNodeButton onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })} />
+                {isEditMode && <AddNodeButton onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })} />}
               </section>
             )}
 
@@ -467,6 +474,49 @@ export function KnowledgeBoard() {
           {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> 同步到 GitHub…</span>}
           {syncStatus === "done" && <span className="note-ok">☁ {syncMsg}</span>}
           {syncStatus === "error" && <span className="note-err">✗ {syncMsg}</span>}
+        </div>
+      )}
+
+      {/* ── Edit mode lock button ── */}
+      <button
+        type="button"
+        className={`edit-mode-lock-btn ${isEditMode ? "active" : ""}`}
+        title={isEditMode ? "退出编辑模式" : "进入编辑模式"}
+        onClick={requestEdit}
+      >
+        {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
+        {isEditMode && <span>编辑中</span>}
+      </button>
+
+      {/* ── Password prompt modal ── */}
+      {showPrompt && (
+        <div className="note-overlay" onClick={cancelPrompt}>
+          <div className="note-modal" style={{maxWidth:320}} onClick={e => e.stopPropagation()}>
+            <div className="note-modal-header">
+              <span><Lock size={14}/> 请输入编辑密码</span>
+              <button type="button" className="note-close" onClick={cancelPrompt}><X size={14}/></button>
+            </div>
+            <div className="note-edit-body">
+              <div className="note-field">
+                <input
+                  className={`note-input ${error ? "note-input-error" : ""}`}
+                  type="password"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && submitPassword()}
+                  placeholder="请输入密码"
+                  autoFocus
+                />
+                {error && <p style={{color:"#f06060",fontSize:"0.72rem",margin:"0.2rem 0 0"}}>密码错误，请重试</p>}
+              </div>
+            </div>
+            <div className="note-modal-footer">
+              <span />
+              <button type="button" className="note-save-btn note-save-btn-active" onClick={submitPassword}>
+                <LockOpen size={13}/> 进入编辑模式
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
