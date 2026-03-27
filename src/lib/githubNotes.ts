@@ -120,9 +120,11 @@ function generateModuleTs(module: LearningModule): string {
     fields.push(`  careerPlan: ${serialize(module.careerPlan, 2)},`);
   if (module.tools && module.tools.length > 0)
     fields.push(`  tools: ${serialize(module.tools, 2)},`);
+  if (module.enabledTabs && module.enabledTabs.length > 0)
+    fields.push(`  enabledTabs: ${serialize(module.enabledTabs, 2)},`);
 
   return [
-    `import type { LearningModule } from "../knowledge";`,
+    `import type { LearningModule } from "@/data/types";`,
     ``,
     `export const ${exportName}: LearningModule = {`,
     ...fields,

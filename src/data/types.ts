@@ -9,10 +9,11 @@ export interface KnowledgeNode {
   points: string[];
   color: string;
   relatedOps: string[];
-  source?: string;    // 来源文件，如 "RAG精讲.pdf"
-  updatedAt?: string; // 最后更新日期 ISO格式
-  version?: number;   // 内容版本号，更新时递增
-  imageUrl?: string;  // 配图路径（/public 相对路径）
+  dimensionTab?: string;  // 所属 Tab，不填则显示在默认 knowledge tab
+  source?: string;
+  updatedAt?: string;
+  version?: number;
+  imageUrl?: string;
 }
 
 export interface CaseStudy {
@@ -23,6 +24,7 @@ export interface CaseStudy {
   solution: string;
   result: string;
   tags: string[];
+  dimensionTab?: string;
   source?: string;
 }
 
@@ -32,6 +34,7 @@ export interface OperationStep {
   target: string;
   detail: string;
   tools: string[];
+  dimensionTab?: string;
 }
 
 export interface SkillItem {
@@ -41,6 +44,7 @@ export interface SkillItem {
   level: 1 | 2 | 3 | 4 | 5;
   description: string;
   howTo: string[];
+  dimensionTab?: string;
 }
 
 export interface LearningPathNode {
@@ -50,28 +54,31 @@ export interface LearningPathNode {
   prerequisite?: string[];
   estimatedHours?: number;
   tip?: string;
+  dimensionTab?: string;
 }
 
 export interface InterviewQuestion {
   id: string;
   question: string;
-  category: string;       // 「技术理解」「产品设计」「商业判断」「行为面试」
+  category: string;
   difficulty: "初级" | "中级" | "高级";
-  framework: string;     // 答题框架，一句话
-  keyPoints: string[];   // 核心答题要点
-  sampleAnswer: string;  // 参考答案（简洁版）
-  pitfall?: string;      // 常见坑
+  framework: string;
+  keyPoints: string[];
+  sampleAnswer: string;
+  pitfall?: string;
+  dimensionTab?: string;
 }
 
 export interface CareerMilestone {
   id: string;
-  week: string;          // 如「第1-2天」「第1周」
-  phase: string;         // 阶段名称
-  goal: string;          // 本阶段目标
-  actions: string[];     // 具体行动清单
-  deliverable: string;   // 可交付产物（证明你完成了）
-  resources?: string[];  // 推荐资源
-  checkPoint: string;    // 验收标准
+  week: string;
+  phase: string;
+  goal: string;
+  actions: string[];
+  deliverable: string;
+  resources?: string[];
+  checkPoint: string;
+  dimensionTab?: string;
 }
 
 export type DimensionTab = string; // built-in: "knowledge"|"operation"|"skills"|"path"|"interview"|"career"|"tools"|"cases" — or any custom key
@@ -115,11 +122,12 @@ export interface LearningModule {
 export interface ToolItem {
   id: string;
   name: string;
-  category: string;   // 如「AI写作」「AI绘图」「开发工具」
-  url?: string;       // 官网链接
+  category: string;
+  url?: string;
   description: string;
   tags: string[];
   isPaid?: boolean;
+  dimensionTab?: string;
 }
 
 // ── Compare Block ─────────────────────────────────────────────────────────

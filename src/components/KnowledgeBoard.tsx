@@ -53,6 +53,16 @@ function TabLabelEditor({ init, isBuiltin, onSave }: {
   const toggleWidget = (key: TabWidget) =>
     setWidgets(prev => prev.includes(key) ? prev.filter(w => w !== key) : [...prev, key]);
 
+  const moveWidget = (idx: number, dir: -1 | 1) => {
+    setWidgets(prev => {
+      const next = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  };
+
   const save = () => {
     if (!label.trim()) return;
     const key = init?.key ?? ("custom-" + label.trim().replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5));
@@ -68,7 +78,7 @@ function TabLabelEditor({ init, isBuiltin, onSave }: {
       </div>
       <div className="note-field">
         <label className="note-label">可新增的组件类型</label>
-        <div className="node-level-btns" style={{flexWrap:"wrap",gap:"0.35rem"}}>
+        <div className="node-level-btns" style={{flexWrap:"wrap",gap:"0.35rem",marginBottom:"0.5rem"}}>
           {ALL_WIDGETS.map(w => (
             <button key={w.key} type="button"
               className={`node-level-btn ${widgets.includes(w.key) ? "active" : ""}`}
@@ -77,8 +87,37 @@ function TabLabelEditor({ init, isBuiltin, onSave }: {
             >{w.label}</button>
           ))}
         </div>
-        <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.25rem",display:"block"}}>
-          勾选后，该 Tab 内容区会显示对应的「新增」按钮
+        {/* Ordered list of selected widgets — drag/reorder with arrows */}
+        {widgets.length > 0 && (
+          <>
+            <label className="note-label" style={{marginTop:"0.4rem"}}>显示顺序 <span style={{color:"#5a7898",fontWeight:400}}>（拖动箭头调整）</span></label>
+            <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+              {widgets.map((key, idx) => {
+                const meta = ALL_WIDGETS.find(w => w.key === key);
+                return (
+                  <div key={key} style={{display:"flex",alignItems:"center",gap:"0.35rem",background:"rgba(40,70,120,0.18)",border:"1px solid rgba(80,130,220,0.2)",borderRadius:"6px",padding:"0.22rem 0.5rem"}}>
+                    <span style={{flex:1,fontSize:"0.78rem",color:"#a0c4f0"}}>
+                      <span style={{color:"#5a7898",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums"}}>{idx + 1}.</span>
+                      {meta?.label ?? key}
+                    </span>
+                    <button type="button" disabled={idx === 0}
+                      onClick={() => moveWidget(idx, -1)}
+                      style={{appearance:"none",background:"none",border:"none",color: idx === 0 ? "#2a4060" : "#7aaad0",cursor: idx === 0 ? "default" : "pointer",padding:"0 0.15rem",lineHeight:1,fontSize:"0.85rem"}}
+                      title="上移"
+                    >▲</button>
+                    <button type="button" disabled={idx === widgets.length - 1}
+                      onClick={() => moveWidget(idx, 1)}
+                      style={{appearance:"none",background:"none",border:"none",color: idx === widgets.length - 1 ? "#2a4060" : "#7aaad0",cursor: idx === widgets.length - 1 ? "default" : "pointer",padding:"0 0.15rem",lineHeight:1,fontSize:"0.85rem"}}
+                      title="下移"
+                    >▼</button>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.4rem",display:"block"}}>
+          勾选组件后在此调整显示顺序，内容区按此顺序渲染
         </span>
       </div>
       <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
@@ -234,13 +273,14 @@ export function KnowledgeBoard() {
   const handleTabItemSave = (tab: TabItemType, saved: AnyTabItem) => {
     const mid = activeModule.id;
     const isNew = !tabItemModal.item;
-    if (tab === "operation") { if (isNew) addOperation(mid, saved as OperationStep); else editOperation(saved.id, saved as OperationStep); }
-    else if (tab === "cases")     { if (isNew) addCase(mid, saved as CaseStudy);          else editCase(saved.id, saved as CaseStudy); }
-    else if (tab === "skills")    { if (isNew) addSkill(mid, saved as SkillItem);         else editSkill(saved.id, saved as SkillItem); }
-    else if (tab === "path")      { if (isNew) addPathNode(mid, saved as LearningPathNode); else editPathNode(saved.id, saved as LearningPathNode); }
-    else if (tab === "interview") { if (isNew) addInterview(mid, saved as InterviewQuestion); else editInterview(saved.id, saved as InterviewQuestion); }
-    else if (tab === "career")    { if (isNew) addCareer(mid, saved as CareerMilestone);   else editCareer(saved.id, saved as CareerMilestone); }
-    else if (tab === "tools")     { if (isNew) addTool(mid, saved as ToolItem);            else editTool(saved.id, saved as ToolItem); }
+    const withTab = isNew ? { ...saved, dimensionTab: activeDimension } : saved;
+    if (tab === "operation") { if (isNew) addOperation(mid, withTab as OperationStep); else editOperation(saved.id, saved as OperationStep); }
+    else if (tab === "cases")     { if (isNew) addCase(mid, withTab as CaseStudy);          else editCase(saved.id, saved as CaseStudy); }
+    else if (tab === "skills")    { if (isNew) addSkill(mid, withTab as SkillItem);         else editSkill(saved.id, saved as SkillItem); }
+    else if (tab === "path")      { if (isNew) addPathNode(mid, withTab as LearningPathNode); else editPathNode(saved.id, saved as LearningPathNode); }
+    else if (tab === "interview") { if (isNew) addInterview(mid, withTab as InterviewQuestion); else editInterview(saved.id, saved as InterviewQuestion); }
+    else if (tab === "career")    { if (isNew) addCareer(mid, withTab as CareerMilestone);   else editCareer(saved.id, saved as CareerMilestone); }
+    else if (tab === "tools")     { if (isNew) addTool(mid, withTab as ToolItem);            else editTool(saved.id, saved as ToolItem); }
   };
 
   const handleTabItemDelete = (tab: TabItemType, id: string) => {
@@ -282,9 +322,13 @@ export function KnowledgeBoard() {
     }
   }, [activeModule, activeDimension]);
   const visibleKnowledge = useMemo(() => {
-    if (levelFilter === "全部") return activeModule.knowledgeNodes;
-    return activeModule.knowledgeNodes.filter((item) => item.level === levelFilter);
-  }, [activeModule, levelFilter]);
+    // Items with dimensionTab only show on their own tab; items without show on "knowledge"
+    const forThisTab = activeModule.knowledgeNodes.filter(n =>
+      (n.dimensionTab ?? "knowledge") === activeDimension
+    );
+    if (levelFilter === "全部") return forThisTab;
+    return forThisTab.filter((item) => item.level === levelFilter);
+  }, [activeModule, levelFilter, activeDimension]);
 
   // Compute active widgets early so tocItems can use it
   const _dims = activeModule.enabledTabs ?? ALL_TABS;
@@ -473,7 +517,7 @@ export function KnowledgeBoard() {
                 </div>
                 <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                 <div className="timeline">
-                  {activeModule.operationSteps.map((step, idx) => (
+                  {activeModule.operationSteps.filter(s => (s.dimensionTab ?? "operation") === activeDimension).map((step, idx) => (
                     <article key={step.id} id={`item-${step.id}`}
                       ref={(el) => { opRefs.current[step.id] = el; }}
                       className={`timeline-item ${highlightOpId === step.id ? "highlighted" : ""}`}
@@ -521,7 +565,7 @@ export function KnowledgeBoard() {
                   <p className="empty-hint">本模块暂未配置工具，点击「新增工具」添加</p>
                 )}
                 <div className="tool-heat-grid">
-                  {(activeModule.tools ?? []).map((tool) => (
+                  {(activeModule.tools ?? []).filter(t => (t.dimensionTab ?? "tools") === activeDimension).map((tool) => (
                     <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
                       <div className="card-edit-row">
                         <strong>{tool.name}</strong>
@@ -561,7 +605,7 @@ export function KnowledgeBoard() {
                 </div>
                 <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                 <div className="cases-grid">
-                  {(activeModule.cases ?? []).map((c) => (
+                  {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? "cases") === activeDimension).map((c) => (
                     <article key={c.id} id={`item-${c.id}`} className="case-card">
                       <div className="card-edit-row">
                         <h4>{c.title}</h4>
@@ -604,7 +648,7 @@ export function KnowledgeBoard() {
                   <p className="empty-hint">本模块暂未配置能力要求</p>
                 )}
                 <div className="skills-grid">
-                  {(activeModule.skills ?? []).map((skill) => (
+                  {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).map((skill) => (
                     <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
                       <div className="skill-header">
                         <span className="skill-dimension">{skill.dimension}</span>
@@ -653,7 +697,7 @@ export function KnowledgeBoard() {
                   <p className="empty-hint">本模块暂未配置学习路径</p>
                 )}
                 <div className="learning-path">
-                  {(activeModule.learningPath ?? []).map((node, idx) => (
+                  {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).map((node, idx) => (
                     <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
                       <div className="path-index">{String(idx + 1).padStart(2, "0")}</div>
                       <div className="path-content">
@@ -702,15 +746,17 @@ export function KnowledgeBoard() {
                   )}
                 </div>
                 <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
-                {(activeModule.interviewQuestions ?? []).length === 0
-                  ? <p className="empty-hint">本模块暂未配置面试题</p>
-                  : <InterviewPanel
-                      questions={activeModule.interviewQuestions ?? []}
-                      isEditMode={isEditMode}
-                      onEdit={(q) => openTabItemModal("interview", q)}
-                      onDelete={(id) => deleteInterview(activeModule.id, id)}
-                    />
-                }
+                {(() => {
+                  const filtered = (activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension);
+                  return filtered.length === 0
+                    ? <p className="empty-hint">本模块暂未配置面试题</p>
+                    : <InterviewPanel
+                        questions={filtered}
+                        isEditMode={isEditMode}
+                        onEdit={(q) => openTabItemModal("interview", q)}
+                        onDelete={(id) => deleteInterview(activeModule.id, id)}
+                      />;
+                })()}
               </section>
             )}
 
@@ -735,7 +781,7 @@ export function KnowledgeBoard() {
                   <p className="empty-hint">本模块暂未配置职业规划</p>
                 )}
                 <div className="career-timeline">
-                  {(activeModule.careerPlan ?? []).map((m) => (
+                  {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).map((m) => (
                     <article key={m.id} id={`item-${m.id}`} className="career-card">
                       <div className="career-week">
                         <span className="career-week-label">{m.week}</span>
@@ -810,7 +856,7 @@ export function KnowledgeBoard() {
                   {widget === "knowledge" && (
                     <div className="cards knowledge-dense-grid">
                       {activeModule.knowledgeNodes.length === 0 && <p className="empty-hint">暂无知识点</p>}
-                      {activeModule.knowledgeNodes.map(rawNode => (
+                      {activeModule.knowledgeNodes.filter(n => (n.dimensionTab ?? "knowledge") === activeDimension).map(rawNode => (
                         <KnowledgeCard key={rawNode.id} rawNode={rawNode}
                           operationSteps={activeModule.operationSteps} onJumpToOp={jumpToOp}
                           onEdit={isEditMode ? (node) => setNodeModal({ open: true, node, moduleId: activeModule.id }) : undefined}
@@ -822,7 +868,7 @@ export function KnowledgeBoard() {
                   {widget === "operation" && (
                     <div className="timeline">
                       {activeModule.operationSteps.length === 0 && <p className="empty-hint">暂无操作步骤</p>}
-                      {activeModule.operationSteps.map((step, idx) => (
+                      {activeModule.operationSteps.filter(s => (s.dimensionTab ?? "operation") === activeDimension).map((step, idx) => (
                         <article key={step.id} id={`item-${step.id}`} className="timeline-card">
                           <div className="timeline-idx">{String(idx+1).padStart(2,"0")}</div>
                           <div className="timeline-content">
@@ -843,7 +889,7 @@ export function KnowledgeBoard() {
                   {widget === "case" && (
                     <div className="cases-grid">
                       {(activeModule.cases ?? []).length === 0 && <p className="empty-hint">暂无案例</p>}
-                      {(activeModule.cases ?? []).map(c => (
+                      {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? "cases") === activeDimension).map(c => (
                         <article key={c.id} id={`item-${c.id}`} className="case-card">
                           <div className="card-edit-row"><h4>{c.title}</h4>
                             {isEditMode && <div className="card-edit-btns">
@@ -863,7 +909,7 @@ export function KnowledgeBoard() {
                   {widget === "skill" && (
                     <div className="skills-grid">
                       {(activeModule.skills ?? []).length === 0 && <p className="empty-hint">暂无技能</p>}
-                      {(activeModule.skills ?? []).map(skill => (
+                      {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).map(skill => (
                         <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
                           <div className="skill-header">
                             <span className="skill-dimension">{skill.dimension}</span><strong>{skill.name}</strong>
@@ -881,7 +927,7 @@ export function KnowledgeBoard() {
                   {widget === "tool" && (
                     <div className="tool-heat-grid">
                       {(activeModule.tools ?? []).length === 0 && <p className="empty-hint">暂无工具</p>}
-                      {(activeModule.tools ?? []).map(tool => (
+                      {(activeModule.tools ?? []).filter(t => (t.dimensionTab ?? "tools") === activeDimension).map(tool => (
                         <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
                           <div className="card-edit-row"><strong>{tool.name}</strong>
                             {isEditMode && <div className="card-edit-btns">
@@ -899,15 +945,15 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "interview" && (
                     <>
-                      {(activeModule.interviewQuestions ?? []).length === 0 && <p className="empty-hint">暂无面试题</p>}
-                      <InterviewPanel questions={activeModule.interviewQuestions ?? []} isEditMode={isEditMode}
+                      {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension).length === 0 && <p className="empty-hint">暂无面试题</p>}
+                      <InterviewPanel questions={(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension)} isEditMode={isEditMode}
                         onEdit={q => openTabItemModal("interview", q)} onDelete={id => deleteInterview(activeModule.id, id)}/>
                     </>
                   )}
                   {widget === "career" && (
                     <div className="career-timeline">
-                      {(activeModule.careerPlan ?? []).length === 0 && <p className="empty-hint">暂无职业规划</p>}
-                      {(activeModule.careerPlan ?? []).map(m => (
+                      {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).length === 0 && <p className="empty-hint">暂无职业规划</p>}
+                      {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).map(m => (
                         <article key={m.id} id={`item-${m.id}`} className="career-card">
                           <div className="career-week"><span className="career-week-label">{m.week}</span><span className="career-phase">{m.phase}</span>
                             {isEditMode && <div className="card-edit-btns">
@@ -922,8 +968,8 @@ export function KnowledgeBoard() {
                   )}
                   {widget === "path" && (
                     <div className="learning-path">
-                      {(activeModule.learningPath ?? []).length === 0 && <p className="empty-hint">暂无路径节点</p>}
-                      {(activeModule.learningPath ?? []).map((node, idx) => (
+                      {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).length === 0 && <p className="empty-hint">暂无路径节点</p>}
+                      {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).map((node, idx) => (
                         <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
                           <div className="path-index">{String(idx+1).padStart(2,"0")}</div>
                           <div className="path-content">
@@ -998,7 +1044,7 @@ export function KnowledgeBoard() {
             if (nodeModal.node) {
               editNode(nodeModal.moduleId, node.id, node);
             } else {
-              addNode(nodeModal.moduleId, node);
+              addNode(nodeModal.moduleId, { ...node, dimensionTab: activeDimension });
             }
           }}
           onDelete={nodeModal.node ? () => deleteNode(nodeModal.moduleId, nodeModal.node!.id) : undefined}

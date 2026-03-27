@@ -11,7 +11,7 @@ export interface UserContentStore {
   deletedNodes: string[];
   addedModules: LearningModule[];
   deletedModules: string[];
-  moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro">>>;
+  moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro" | "enabledTabs">>>;
   lastUpdated?: string;
 }
 
