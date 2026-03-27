@@ -262,6 +262,19 @@ export const aipmModule: LearningModule = {
         updatedAt: "2025-03-26",
         version: 1,
       },
+      {
+        id: "node-lqx5v1",
+        title: "测试",
+        level: "基础",
+        metaphor: "",
+        summary: "",
+        points: [
+        ],
+        color: "var(--c-neon)",
+        relatedOps: [],
+        updatedAt: "2026-03-27",
+        version: 1,
+      },
     ],
 
     operationSteps: [
