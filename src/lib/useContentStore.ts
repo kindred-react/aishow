@@ -10,7 +10,7 @@ import type {
   LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem,
 } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
-import { saveModuleNodesToGitHub } from "@/lib/githubNotes";
+import { pushChangesToGitHub } from "@/lib/githubNotes";
 
 const LS_KEY = "aishow_content_store";
 
@@ -25,7 +25,7 @@ export interface ContentStore {
   // ── Modules ──
   addedModules: LearningModule[];
   deletedModules: string[];
-  moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro">>>;
+  moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro" | "enabledTabs">>>;
   // ── Compare blocks ──
   compareBlocks: CompareBlock[];
   // ── Tab-specific items ──
@@ -123,171 +123,196 @@ function getMergedModule(m: LearningModule, store: ContentStore): LearningModule
 }
 
 export function useContentStore() {
-  const [store, setStore] = useState<ContentStore>(DEFAULT_STORE);
+  // savedStore = persisted to localStorage; draftStore = in-memory edits during edit mode
+  const [savedStore, setSavedStore] = useState<ContentStore>(DEFAULT_STORE);
+  const [draftStore, setDraftStore] = useState<ContentStore | null>(null);
+
+  // The active store for rendering: draft when editing, saved otherwise
+  const store = draftStore ?? savedStore;
+
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
     // Restore from localStorage after mount (avoids SSR hydration mismatch)
     /* eslint-disable react-hooks/set-state-in-effect */
-    setStore(loadLocal());
+    setSavedStore(loadLocal());
     /* eslint-enable react-hooks/set-state-in-effect */
-    const handler = (e: Event) => setStore((e as CustomEvent).detail as ContentStore);
+    const handler = (e: Event) => setSavedStore((e as CustomEvent).detail as ContentStore);
     window.addEventListener("content-store-updated", handler);
-    window.addEventListener("storage", () => setStore(loadLocal()));
+    window.addEventListener("storage", () => setSavedStore(loadLocal()));
     return () => window.removeEventListener("content-store-updated", handler);
   }, []);
 
-  const syncToGitHub = useCallback((moduleId: string, nextStore: ContentStore) => {
-    const nodes = getMergedNodes(moduleId, nextStore);
-    setSyncStatus("syncing");
-    saveModuleNodesToGitHub(moduleId, nodes).then(result => {
-      setSyncStatus(result.ok ? "done" : "error");
-      setSyncMsg(result.message);
-      setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); }, 4000);
+  // Call when entering edit mode — fork a draft from the current saved state
+  const beginDraft = useCallback(() => {
+    setSavedStore(prev => { setDraftStore(loadLocal()); return prev; });
+  }, []);
+
+  // Commit draft to localStorage and trigger GitHub push
+  const commitDraft = useCallback((mergedModules: LearningModule[]) => {
+    setDraftStore(prev => {
+      if (!prev) return null;
+      saveLocal(prev);
+      setSavedStore(prev);
+
+      // Determine which module IDs have changes
+      const changedIds = new Set<string>([
+        ...Object.keys(prev.nodeEdits).flatMap(nodeId =>
+          mergedModules.filter(m => m.knowledgeNodes.some(n => n.id === nodeId)).map(m => m.id)
+        ),
+        ...Object.keys(prev.addedNodes),
+        ...Object.keys(prev.addedOperations),
+        ...Object.keys(prev.editedOperations).flatMap(id =>
+          mergedModules.filter(m => m.operationSteps.some(s => s.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.addedCases),
+        ...Object.keys(prev.addedSkills),
+        ...Object.keys(prev.addedPathNodes),
+        ...Object.keys(prev.addedInterviews),
+        ...Object.keys(prev.addedCareer),
+        ...Object.keys(prev.addedTools),
+        ...Object.keys(prev.moduleEdits),
+      ]);
+
+      const ids = [...changedIds].filter(id => id);
+      if (ids.length > 0) {
+        setSyncStatus("syncing");
+        setSyncMsg("正在推送到 GitHub…");
+        pushChangesToGitHub(ids, mergedModules).then(result => {
+          setSyncStatus(result.ok ? "done" : "error");
+          setSyncMsg(result.message);
+          setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); }, 6000);
+        });
+      }
+      return null;
     });
   }, []);
 
-  const update = useCallback((moduleId: string, fn: (s: ContentStore) => ContentStore) => {
-    setStore(prev => {
-      const next = fn(prev);
-      saveLocal(next);
-      syncToGitHub(moduleId, next);
-      return next;
-    });
-  }, [syncToGitHub]);
+  // Discard draft — revert to saved state
+  const discardDraft = useCallback(() => {
+    setDraftStore(null);
+  }, []);
+
+  // Whether there are unsaved changes in the draft
+  const hasDraftChanges = draftStore !== null && JSON.stringify(draftStore) !== JSON.stringify(savedStore);
+
+  // All mutations write to draftStore only (not localStorage)
+  const updateDraft = useCallback((fn: (s: ContentStore) => ContentStore) => {
+    setDraftStore(prev => fn(prev ?? savedStore));
+  }, [savedStore]);
 
   // ── Node operations ──
   const editNode = useCallback((moduleId: string, nodeId: string, fields: Partial<KnowledgeNode>) => {
-    update(moduleId, s => ({
+    updateDraft(s => ({
       ...s,
       nodeEdits: { ...s.nodeEdits, [nodeId]: { ...s.nodeEdits[nodeId], ...fields } },
-      // 防止重复：从 addedNodes 里移除同 id
       addedNodes: Object.fromEntries(
-        Object.entries(s.addedNodes).map(([mid, nodes]) =>
-          [mid, nodes.filter(n => n.id !== nodeId)]
-        )
+        Object.entries(s.addedNodes).map(([mid, nodes]) => [mid, nodes.filter(n => n.id !== nodeId)])
       ),
     }));
-  }, [update]);
+  }, [updateDraft]);
 
   const addNode = useCallback((moduleId: string, node: KnowledgeNode) => {
-    update(moduleId, s => ({
-      ...s,
-      addedNodes: { ...s.addedNodes, [moduleId]: [...(s.addedNodes[moduleId] ?? []), node] },
-    }));
-  }, [update]);
+    updateDraft(s => ({ ...s, addedNodes: { ...s.addedNodes, [moduleId]: [...(s.addedNodes[moduleId] ?? []), node] } }));
+  }, [updateDraft]);
 
   const deleteNode = useCallback((moduleId: string, nodeId: string) => {
-    update(moduleId, s => ({
+    updateDraft(s => ({
       ...s,
       deletedNodes: [...s.deletedNodes.filter(id => id !== nodeId), nodeId],
       addedNodes: Object.fromEntries(
-        Object.entries(s.addedNodes).map(([mid, nodes]) =>
-          [mid, nodes.filter(n => n.id !== nodeId)]
-        )
+        Object.entries(s.addedNodes).map(([mid, nodes]) => [mid, nodes.filter(n => n.id !== nodeId)])
       ),
     }));
-  }, [update]);
+  }, [updateDraft]);
 
   const restoreNode = useCallback((moduleId: string, nodeId: string) => {
-    update(moduleId, s => ({
+    updateDraft(s => ({
       ...s,
       deletedNodes: s.deletedNodes.filter(id => id !== nodeId),
       nodeEdits: Object.fromEntries(Object.entries(s.nodeEdits).filter(([id]) => id !== nodeId)),
     }));
-  }, [update]);
+  }, [updateDraft]);
 
   // ── Compare Block operations ──
-  const addCompareBlock = useCallback((block: CompareBlock) => {
-    setStore(prev => {
-      const next = { ...prev, compareBlocks: [...prev.compareBlocks, block] };
-      saveLocal(next);
-      return next;
+  const addCompareBlock    = useCallback((block: CompareBlock) =>
+    updateDraft(s => ({ ...s, compareBlocks: [...s.compareBlocks, block] })), [updateDraft]);
+  const editCompareBlock   = useCallback((blockId: string, fields: Partial<CompareBlock>) =>
+    updateDraft(s => ({ ...s, compareBlocks: s.compareBlocks.map(b => b.id === blockId ? { ...b, ...fields } : b) })), [updateDraft]);
+  const deleteCompareBlock = useCallback((blockId: string) =>
+    updateDraft(s => ({ ...s, compareBlocks: s.compareBlocks.filter(b => b.id !== blockId) })), [updateDraft]);
+
+  // ── Module operations ──
+  const addModule    = useCallback((module: LearningModule) =>
+    updateDraft(s => ({ ...s, addedModules: [...s.addedModules, module] })), [updateDraft]);
+  const deleteModule = useCallback((moduleId: string) =>
+    updateDraft(s => ({
+      ...s,
+      deletedModules: [...s.deletedModules.filter(id => id !== moduleId), moduleId],
+      addedModules: s.addedModules.filter(m => m.id !== moduleId),
+    })), [updateDraft]);
+  const editModule   = useCallback((moduleId: string, fields: Partial<Pick<LearningModule, "name" | "icon" | "intro" | "enabledTabs">>) =>
+    updateDraft(s => ({ ...s, moduleEdits: { ...s.moduleEdits, [moduleId]: { ...s.moduleEdits[moduleId], ...fields } } })), [updateDraft]);
+
+  // ── Tab-item ops factory ──
+  // Each tab type follows the same add/edit/delete pattern.
+  // makeTabOps generates the three callbacks to avoid repeating the same setStore shape 7 times.
+  function makeTabOps<T extends { id: string }>(
+    getAdded: (s: ContentStore) => ModuleList<T>,
+    getEdited: (s: ContentStore) => Record<string, Partial<T>>,
+    getDeleted: (s: ContentStore) => string[],
+    setAdded: (s: ContentStore, v: ModuleList<T>) => ContentStore,
+    setEdited: (s: ContentStore, v: Record<string, Partial<T>>) => ContentStore,
+    setDeleted: (s: ContentStore, v: string[]) => ContentStore,
+  ) {
+    const add = (mid: string, item: T) => updateDraft(s => {
+      const l = getAdded(s);
+      return setAdded(s, { ...l, [mid]: [...(l[mid] ?? []), item] });
     });
-  }, []);
-
-  const editCompareBlock = useCallback((blockId: string, fields: Partial<CompareBlock>) => {
-    setStore(prev => {
-      const next = {
-        ...prev,
-        compareBlocks: prev.compareBlocks.map(b =>
-          b.id === blockId ? { ...b, ...fields } : b
-        ),
-      };
-      saveLocal(next);
-      return next;
+    const edit = (id: string, f: Partial<T>) => updateDraft(s => {
+      const e = getEdited(s);
+      return setEdited(s, { ...e, [id]: { ...e[id], ...f } });
     });
-  }, []);
-
-  const deleteCompareBlock = useCallback((blockId: string) => {
-    setStore(prev => {
-      const next = { ...prev, compareBlocks: prev.compareBlocks.filter(b => b.id !== blockId) };
-      saveLocal(next);
-      return next;
+    const del = (mid: string, id: string) => updateDraft(s => {
+      const l = getAdded(s);
+      return setDeleted(
+        setAdded(s, { ...l, [mid]: (l[mid] ?? []).filter(i => i.id !== id) }),
+        [...getDeleted(s).filter(x => x !== id), id],
+      );
     });
-  }, []);
+    return { add, edit, del };
+  }
 
-  // ── Module operations (no GitHub sync for now) ──
-  const addModule = useCallback((module: LearningModule) => {
-    setStore(prev => {
-      const next = { ...prev, addedModules: [...prev.addedModules, module] };
-      saveLocal(next);
-      return next;
-    });
-  }, []);
+  const opOps       = makeTabOps<OperationStep>(s => s.addedOperations, s => s.editedOperations, s => s.deletedOperations, (s,v) => ({...s,addedOperations:v}), (s,v) => ({...s,editedOperations:v}), (s,v) => ({...s,deletedOperations:v}));
+  const caseOps     = makeTabOps<CaseStudy>(s => s.addedCases, s => s.editedCases, s => s.deletedCases, (s,v) => ({...s,addedCases:v}), (s,v) => ({...s,editedCases:v}), (s,v) => ({...s,deletedCases:v}));
+  const skillOps    = makeTabOps<SkillItem>(s => s.addedSkills, s => s.editedSkills, s => s.deletedSkills, (s,v) => ({...s,addedSkills:v}), (s,v) => ({...s,editedSkills:v}), (s,v) => ({...s,deletedSkills:v}));
+  const pathOps     = makeTabOps<LearningPathNode>(s => s.addedPathNodes, s => s.editedPathNodes, s => s.deletedPathNodes, (s,v) => ({...s,addedPathNodes:v}), (s,v) => ({...s,editedPathNodes:v}), (s,v) => ({...s,deletedPathNodes:v}));
+  const interviewOps= makeTabOps<InterviewQuestion>(s => s.addedInterviews, s => s.editedInterviews, s => s.deletedInterviews, (s,v) => ({...s,addedInterviews:v}), (s,v) => ({...s,editedInterviews:v}), (s,v) => ({...s,deletedInterviews:v}));
+  const careerOps   = makeTabOps<CareerMilestone>(s => s.addedCareer, s => s.editedCareer, s => s.deletedCareer, (s,v) => ({...s,addedCareer:v}), (s,v) => ({...s,editedCareer:v}), (s,v) => ({...s,deletedCareer:v}));
+  const toolOps     = makeTabOps<ToolItem>(s => s.addedTools, s => s.editedTools, s => s.deletedTools, (s,v) => ({...s,addedTools:v}), (s,v) => ({...s,editedTools:v}), (s,v) => ({...s,deletedTools:v}));
 
-  const deleteModule = useCallback((moduleId: string) => {
-    setStore(prev => {
-      const next = {
-        ...prev,
-        deletedModules: [...prev.deletedModules.filter(id => id !== moduleId), moduleId],
-        addedModules: prev.addedModules.filter(m => m.id !== moduleId),
-      };
-      saveLocal(next);
-      return next;
-    });
-  }, []);
-
-  const editModule = useCallback((moduleId: string, fields: Partial<Pick<LearningModule, "name" | "icon" | "intro">>) => {
-    setStore(prev => {
-      const next = {
-        ...prev,
-        moduleEdits: { ...prev.moduleEdits, [moduleId]: { ...prev.moduleEdits[moduleId], ...fields } },
-      };
-      saveLocal(next);
-      return next;
-    });
-  }, []);
-
-  // ── Tab-item ops (operation / cases / skills / path / interview / career) ──
-  const addOperation    = useCallback((mid: string, item: OperationStep)      => { setStore(prev => { const l = prev.addedOperations; const n = {...prev, addedOperations: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editOperation   = useCallback((id: string,  f: Partial<OperationStep>)   => { setStore(prev => { const e = prev.editedOperations; const n = {...prev, editedOperations: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteOperation = useCallback((mid: string, id: string)                => { setStore(prev => { const l = prev.addedOperations; const n = {...prev, deletedOperations: [...prev.deletedOperations.filter(x=>x!==id), id], addedOperations: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addCase    = useCallback((mid: string, item: CaseStudy)           => { setStore(prev => { const l = prev.addedCases; const n = {...prev, addedCases: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editCase   = useCallback((id: string,  f: Partial<CaseStudy>)      => { setStore(prev => { const e = prev.editedCases; const n = {...prev, editedCases: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteCase = useCallback((mid: string, id: string)                => { setStore(prev => { const l = prev.addedCases; const n = {...prev, deletedCases: [...prev.deletedCases.filter(x=>x!==id), id], addedCases: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addSkill    = useCallback((mid: string, item: SkillItem)          => { setStore(prev => { const l = prev.addedSkills; const n = {...prev, addedSkills: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editSkill   = useCallback((id: string,  f: Partial<SkillItem>)     => { setStore(prev => { const e = prev.editedSkills; const n = {...prev, editedSkills: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteSkill = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedSkills; const n = {...prev, deletedSkills: [...prev.deletedSkills.filter(x=>x!==id), id], addedSkills: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addPathNode    = useCallback((mid: string, item: LearningPathNode)     => { setStore(prev => { const l = prev.addedPathNodes; const n = {...prev, addedPathNodes: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editPathNode   = useCallback((id: string,  f: Partial<LearningPathNode>) => { setStore(prev => { const e = prev.editedPathNodes; const n = {...prev, editedPathNodes: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deletePathNode = useCallback((mid: string, id: string)                 => { setStore(prev => { const l = prev.addedPathNodes; const n = {...prev, deletedPathNodes: [...prev.deletedPathNodes.filter(x=>x!==id), id], addedPathNodes: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addInterview    = useCallback((mid: string, item: InterviewQuestion)     => { setStore(prev => { const l = prev.addedInterviews; const n = {...prev, addedInterviews: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editInterview   = useCallback((id: string,  f: Partial<InterviewQuestion>) => { setStore(prev => { const e = prev.editedInterviews; const n = {...prev, editedInterviews: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteInterview = useCallback((mid: string, id: string)                  => { setStore(prev => { const l = prev.addedInterviews; const n = {...prev, deletedInterviews: [...prev.deletedInterviews.filter(x=>x!==id), id], addedInterviews: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addCareer    = useCallback((mid: string, item: CareerMilestone)    => { setStore(prev => { const l = prev.addedCareer; const n = {...prev, addedCareer: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editCareer   = useCallback((id: string,  f: Partial<CareerMilestone>) => { setStore(prev => { const e = prev.editedCareer; const n = {...prev, editedCareer: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteCareer = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedCareer; const n = {...prev, deletedCareer: [...prev.deletedCareer.filter(x=>x!==id), id], addedCareer: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
-
-  const addTool    = useCallback((mid: string, item: ToolItem)    => { setStore(prev => { const l = prev.addedTools; const n = {...prev, addedTools: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
-  const editTool   = useCallback((id: string,  f: Partial<ToolItem>) => { setStore(prev => { const e = prev.editedTools; const n = {...prev, editedTools: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
-  const deleteTool = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedTools; const n = {...prev, deletedTools: [...prev.deletedTools.filter(x=>x!==id), id], addedTools: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+  const addOperation    = opOps.add;
+  const editOperation   = opOps.edit;
+  const deleteOperation = opOps.del;
+  const addCase         = caseOps.add;
+  const editCase        = caseOps.edit;
+  const deleteCase      = caseOps.del;
+  const addSkill        = skillOps.add;
+  const editSkill       = skillOps.edit;
+  const deleteSkill     = skillOps.del;
+  const addPathNode     = pathOps.add;
+  const editPathNode    = pathOps.edit;
+  const deletePathNode  = pathOps.del;
+  const addInterview    = interviewOps.add;
+  const editInterview   = interviewOps.edit;
+  const deleteInterview = interviewOps.del;
+  const addCareer       = careerOps.add;
+  const editCareer      = careerOps.edit;
+  const deleteCareer    = careerOps.del;
+  const addTool         = toolOps.add;
+  const editTool        = toolOps.edit;
+  const deleteTool      = toolOps.del;
 
   // ── Computed: merged modules list ──
   const mergedModules: LearningModule[] = [
@@ -299,6 +324,7 @@ export function useContentStore() {
 
   return {
     store, mergedModules, syncStatus, syncMsg,
+    hasDraftChanges, beginDraft, commitDraft, discardDraft,
     editNode, addNode, deleteNode, restoreNode,
     addModule, deleteModule, editModule,
     addCompareBlock, editCompareBlock, deleteCompareBlock,

@@ -235,9 +235,6 @@ function CareerForm({ init, onSave }: { init: CareerMilestone | null; onSave: (v
 }
 
 // ─────────────────────────────────────────────
-// Main export: TabItemEditor
-// ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
 // ToolItem editor
 // ─────────────────────────────────────────────
 const TOOL_CATEGORIES = ["AI写作","AI绘图","AI编程","AI搜索","AI视频","AI音频","开发工具","效率工具","其他"];

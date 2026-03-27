@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 const EDIT_PASSWORD = "1111";
 const SESSION_KEY = "aishow_edit_mode";
@@ -10,15 +10,26 @@ export function useEditMode() {
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
 
-  // Restore edit mode from sessionStorage on mount
-  useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === "1") {
-      setIsEditMode(true);
-    }
+  // External callback called before exiting edit mode; return false to cancel exit
+  const onBeforeExitRef = useRef<(() => Promise<boolean>) | null>(null);
+  const registerOnBeforeExit = useCallback((fn: () => Promise<boolean>) => {
+    onBeforeExitRef.current = fn;
   }, []);
 
-  const requestEdit = useCallback(() => {
+  // Restore edit mode from sessionStorage on mount
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (sessionStorage.getItem(SESSION_KEY) === "1") setIsEditMode(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  const requestEdit = useCallback(async () => {
     if (isEditMode) {
+      // Ask external handler if we can exit (e.g. save/discard prompt)
+      if (onBeforeExitRef.current) {
+        const canExit = await onBeforeExitRef.current();
+        if (!canExit) return;
+      }
       setIsEditMode(false);
       sessionStorage.removeItem(SESSION_KEY);
       return;
@@ -55,5 +66,6 @@ export function useEditMode() {
     requestEdit,
     submitPassword,
     cancelPrompt,
+    registerOnBeforeExit,
   };
 }

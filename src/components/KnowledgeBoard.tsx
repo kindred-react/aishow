@@ -8,6 +8,7 @@ import {
   Compass,
   FileText,
   Rocket,
+  Save,
   Sparkles,
   Wrench,
   PenLine,
@@ -31,7 +32,59 @@ import { TabItemEditor } from "@/components/TabItemEditor";
 import type { TabItemType } from "@/components/TabItemEditor";
 import { useContentStore } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
-import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem } from "@/data/types";
+import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem, DimensionTab, TabConfig, TabWidget } from "@/data/types";
+import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
+
+// ── Standalone compare block list (avoids React Compiler memoization issue) ──
+function TabLabelEditor({ init, isBuiltin, onSave }: {
+  init: TabConfig | null;
+  isBuiltin: boolean;
+  onSave: (tab: TabConfig) => void;
+  onClose: () => void;
+}) {
+  const [label, setLabel] = useState(init?.label ?? "");
+  const defaultWidgets = isBuiltin
+    ? (ALL_TABS.find(t => t.key === init?.key)?.widgets ?? ["compare"])
+    : ["compare" as TabWidget];
+  const [widgets, setWidgets] = useState<TabWidget[]>(init?.widgets ?? defaultWidgets);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { setTimeout(() => ref.current?.focus(), 60); }, []);
+
+  const toggleWidget = (key: TabWidget) =>
+    setWidgets(prev => prev.includes(key) ? prev.filter(w => w !== key) : [...prev, key]);
+
+  const save = () => {
+    if (!label.trim()) return;
+    const key = init?.key ?? ("custom-" + label.trim().replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 5));
+    onSave({ key, label: label.trim(), widgets });
+  };
+  return (
+    <>
+      <div className="note-field">
+        <label className="note-label">Tab 名称{isBuiltin && <span style={{color:"#5a7898",marginLeft:"0.3rem",fontWeight:400}}>（内置 Tab，仅可改名）</span>}</label>
+        <input ref={ref} className="note-input" value={label} onChange={e => setLabel(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); save(); } }}
+          placeholder="Tab 显示名称" />
+      </div>
+      <div className="note-field">
+        <label className="note-label">可新增的组件类型</label>
+        <div className="node-level-btns" style={{flexWrap:"wrap",gap:"0.35rem"}}>
+          {ALL_WIDGETS.map(w => (
+            <button key={w.key} type="button"
+              className={`node-level-btn ${widgets.includes(w.key) ? "active" : ""}`}
+              title={w.desc}
+              onClick={() => toggleWidget(w.key)}
+            >{w.label}</button>
+          ))}
+        </div>
+        <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.25rem",display:"block"}}>
+          勾选后，该 Tab 内容区会显示对应的「新增」按钮
+        </span>
+      </div>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+    </>
+  );
+}
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
 function CompareBlockList({
@@ -66,12 +119,27 @@ function CompareBlockList({
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
 
-type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" | "career" | "tools" | "cases";
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg } = useContentStore();
-  const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt } = useEditMode();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
+  const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt, registerOnBeforeExit } = useEditMode();
+
+  // Save/discard confirmation dialog state
+  const [savePrompt, setSavePrompt] = useState<{ resolve: (v: boolean) => void } | null>(null);
+
+  // Register the before-exit handler once
+  useEffect(() => {
+    registerOnBeforeExit(async () => {
+      if (!hasDraftChanges) { discardDraft(); return true; }
+      return new Promise<boolean>(resolve => setSavePrompt({ resolve }));
+    });
+  }, [registerOnBeforeExit, hasDraftChanges, discardDraft]);
+
+  // Start a draft whenever edit mode is entered
+  useEffect(() => {
+    if (isEditMode) beginDraft();
+  }, [isEditMode, beginDraft]);
 
   const sortedModules = useMemo(
     () => [...mergedModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
@@ -102,39 +170,51 @@ export function KnowledgeBoard() {
   const [showImageCleanup, setShowImageCleanup] = useState(false);
   const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: "knowledge" });
   const [ctxMenu, setCtxMenu] = useState<{ moduleId: string; x: number; y: number } | null>(null);
+  const [tabCtxMenu, setTabCtxMenu] = useState<{ tab: TabConfig; x: number; y: number } | null>(null);
+  const [tabEditModal, setTabEditModal] = useState<{ open: boolean; tab: TabConfig | null }>({ open: false, tab: null });
 
   // Block page refresh/close when in edit mode with unsaved local changes
   useEffect(() => {
-    const hasChanges = (
-      Object.keys(store.nodeEdits).length > 0 ||
-      Object.values(store.addedNodes).some(a => a.length > 0) ||
-      store.deletedNodes.length > 0 ||
-      Object.values(store.addedOperations).some(a => a.length > 0) ||
-      Object.keys(store.editedOperations).length > 0 ||
-      Object.values(store.addedCases).some(a => a.length > 0) ||
-      Object.keys(store.editedCases).length > 0 ||
-      Object.values(store.addedSkills).some(a => a.length > 0) ||
-      Object.values(store.addedPathNodes).some(a => a.length > 0) ||
-      Object.values(store.addedInterviews).some(a => a.length > 0) ||
-      Object.values(store.addedCareer).some(a => a.length > 0) ||
-      Object.values(store.addedTools).some(a => a.length > 0) ||
-      store.addedModules.length > 0 ||
-      store.deletedModules.length > 0 ||
-      store.compareBlocks.length > 0
-    );
+    const s = store;
+    const hasChanges =
+      Object.keys(s.nodeEdits).length > 0 ||
+      Object.values(s.addedNodes).some(a => a.length > 0) ||
+      s.deletedNodes.length > 0 ||
+      Object.values(s.addedOperations).some(a => a.length > 0) ||
+      Object.keys(s.editedOperations).length > 0 ||
+      s.deletedOperations.length > 0 ||
+      Object.values(s.addedCases).some(a => a.length > 0) ||
+      Object.keys(s.editedCases).length > 0 ||
+      s.deletedCases.length > 0 ||
+      Object.values(s.addedSkills).some(a => a.length > 0) ||
+      Object.keys(s.editedSkills).length > 0 ||
+      s.deletedSkills.length > 0 ||
+      Object.values(s.addedPathNodes).some(a => a.length > 0) ||
+      Object.keys(s.editedPathNodes).length > 0 ||
+      s.deletedPathNodes.length > 0 ||
+      Object.values(s.addedInterviews).some(a => a.length > 0) ||
+      Object.keys(s.editedInterviews).length > 0 ||
+      s.deletedInterviews.length > 0 ||
+      Object.values(s.addedCareer).some(a => a.length > 0) ||
+      Object.keys(s.editedCareer).length > 0 ||
+      s.deletedCareer.length > 0 ||
+      Object.values(s.addedTools).some(a => a.length > 0) ||
+      Object.keys(s.editedTools).length > 0 ||
+      s.deletedTools.length > 0 ||
+      s.addedModules.length > 0 ||
+      s.deletedModules.length > 0 ||
+      Object.keys(s.moduleEdits).length > 0 ||
+      s.compareBlocks.length > 0;
     if (!isEditMode || !hasChanges) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [isEditMode, store]);
 
   // Close context menu on outside click — delayed to avoid same-event close
   useEffect(() => {
-    if (!ctxMenu) return;
-    const close = () => setCtxMenu(null);
+    if (!ctxMenu && !tabCtxMenu) return;
+    const close = () => { setCtxMenu(null); setTabCtxMenu(null); };
     const timer = setTimeout(() => {
       window.addEventListener("click", close, { once: true });
       window.addEventListener("contextmenu", close, { once: true });
@@ -144,7 +224,7 @@ export function KnowledgeBoard() {
       window.removeEventListener("click", close);
       window.removeEventListener("contextmenu", close);
     };
-  }, [ctxMenu]);
+  }, [ctxMenu, tabCtxMenu]);
 
   type AnyTabItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
   const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: TabItemType; item: AnyTabItem | null }>({ open: false, tab: "operation", item: null });
@@ -191,19 +271,17 @@ export function KnowledgeBoard() {
     [activeModuleId, sortedModules]
   );
 
-   
-  const moduleTools = useMemo(() => {
-    if (!activeModule) return [];
-    const counter = new Map<string, number>();
-    activeModule.operationSteps.forEach((step) => {
-      step.tools.forEach((tool) => { counter.set(tool, (counter.get(tool) ?? 0) + 1); });
-    });
-    return [...counter.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
-  }, [activeModule]);
-
-   
+  // If the active dimension is not enabled for this module, reset to first enabled tab
+  useEffect(() => {
+    if (!activeModule) return;
+    const enabled = activeModule.enabledTabs;
+    if (enabled && !enabled.some(t => t.key === activeDimension)) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setActiveDimension(enabled[0]?.key ?? "knowledge");
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
+  }, [activeModule, activeDimension]);
   const visibleKnowledge = useMemo(() => {
-    if (!activeModule) return [];
     if (levelFilter === "全部") return activeModule.knowledgeNodes;
     return activeModule.knowledgeNodes.filter((item) => item.level === levelFilter);
   }, [activeModule, levelFilter]);
@@ -214,13 +292,13 @@ export function KnowledgeBoard() {
     if (activeDimension === "knowledge") return visibleKnowledge.map((n) => ({ id: n.id, label: n.title }));
     if (activeDimension === "operation") return activeModule.operationSteps.map((s) => ({ id: s.id, label: s.title }));
     if (activeDimension === "cases") return (activeModule.cases ?? []).map((c) => ({ id: c.id, label: c.title }));
-    if (activeDimension === "tools") return moduleTools.map((t) => ({ id: t.name, label: t.name }));
+    if (activeDimension === "tools") return (activeModule.tools ?? []).map((t) => ({ id: t.id, label: t.name }));
     if (activeDimension === "skills") return (activeModule.skills ?? []).map((s) => ({ id: s.id, label: s.name }));
     if (activeDimension === "path") return (activeModule.learningPath ?? []).map((p) => ({ id: p.id, label: p.title }));
     if (activeDimension === "interview") return (activeModule.interviewQuestions ?? []).map((q) => ({ id: q.id, label: q.question.slice(0, 18) + (q.question.length > 18 ? "…" : "") }));
     if (activeDimension === "career") return (activeModule.careerPlan ?? []).map((c) => ({ id: c.id, label: c.week + " " + c.phase }));
     return [];
-  }, [activeDimension, activeModule, visibleKnowledge, moduleTools]);
+  }, [activeDimension, activeModule, visibleKnowledge]);
 
   function scrollToId(id: string) {
     const el = document.getElementById(`item-${id}`);
@@ -239,16 +317,15 @@ export function KnowledgeBoard() {
 
   if (!activeModule) return null;
 
-  const dimensions: { key: DimensionTab; label: string }[] = [
-    { key: "knowledge", label: "知识点" },
-    { key: "operation", label: "操作点" },
-    { key: "skills", label: "能力雷达" },
-    { key: "path", label: "成长路径" },
-    { key: "interview", label: "面试准备" },
-    { key: "career", label: "职业规划" },
-    { key: "tools", label: "工具" },
-    { key: "cases", label: "案例" },
-  ];
+  const allDimensions: TabConfig[] = ALL_TABS;
+  const dimensions: TabConfig[] = activeModule.enabledTabs ?? allDimensions;
+
+  // Get widgets allowed for the current tab (falls back to builtin defaults)
+  const activeTabConfig = dimensions.find(d => d.key === activeDimension);
+  const activeWidgets: TabWidget[] = activeTabConfig?.widgets
+    ?? ALL_TABS.find(t => t.key === activeDimension)?.widgets
+    ?? ["compare"];
+  const hasWidget = (w: TabWidget) => activeWidgets.includes(w);
 
   return (
     <main className={`page-shell${isMounted ? " mounted" : ""}`}>
@@ -290,7 +367,7 @@ export function KnowledgeBoard() {
             <span className="module-summary-stats">
               {activeModule.knowledgeNodes.length} 知识点
               · {activeModule.operationSteps.length} 操作点
-              · {moduleTools.length} 工具
+              · {(activeModule.tools ?? []).length} 工具
               · {activeModule.cases?.length ?? 0} 案例
             </span>
           </div>
@@ -299,8 +376,15 @@ export function KnowledgeBoard() {
               <button key={d.key} type="button"
                 className={`dimension-btn ${activeDimension === d.key ? "active" : ""}`}
                 onClick={() => setActiveDimension(d.key)}
+                onContextMenu={isEditMode ? (e) => { e.preventDefault(); setTabCtxMenu({ tab: d, x: e.clientX, y: e.clientY }); } : undefined}
               >{d.label}</button>
             ))}
+            {isEditMode && (
+              <button type="button" className="dimension-btn" style={{opacity:0.5,fontSize:"0.72rem"}}
+                onClick={() => setTabEditModal({ open: true, tab: null })}>
+                <Plus size={11}/> 新增 Tab
+              </button>
+            )}
           </div>
         </div>
 
@@ -313,14 +397,14 @@ export function KnowledgeBoard() {
                   <BrainCircuit size={17} /><h2>知识点维度</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("knowledge") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}>
                         <Plus size={13} /> 新增知识点
-                      </button>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openCompareModal("knowledge")}>
                         <Plus size={13} /> 新增对比组件
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -372,14 +456,14 @@ export function KnowledgeBoard() {
                   <Rocket size={17} /><h2>操作点维度</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("operation") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("operation")}>
                         <Plus size={13} /> 新增操作步骤
-                      </button>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openCompareModal("operation")}>
                         <Plus size={13} /> 新增对比组件
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -417,14 +501,14 @@ export function KnowledgeBoard() {
                   <Wrench size={17} /><h2>工具维度</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("tool") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("tools")}>
                         <Plus size={13} /> 新增工具
-                      </button>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openCompareModal("tools")}>
                         <Plus size={13} /> 新增对比组件
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -460,14 +544,14 @@ export function KnowledgeBoard() {
                   <FileText size={17} /><h2>真实案例</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("case") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("cases")}>
                         <Plus size={13} /> 新增案例
-                      </button>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openCompareModal("cases")}>
                         <Plus size={13} /> 新增对比组件
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -501,10 +585,14 @@ export function KnowledgeBoard() {
                   <BrainCircuit size={17} /><h2>能力雷达</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("skill") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("skills")}>
                         <Plus size={13} /> 新增技能
-                      </button>
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("skills")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -546,10 +634,14 @@ export function KnowledgeBoard() {
                   <Rocket size={17} /><h2>成长路径</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("path") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("path")}>
                         <Plus size={13} /> 新增路径节点
-                      </button>
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("path")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -594,14 +686,14 @@ export function KnowledgeBoard() {
                   <FileText size={17} /><h2>面试准备 <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{activeModule.interviewQuestions?.length ?? 0} 题</span></h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("interview") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("interview")}>
                         <Plus size={13} /> 新增面试题
-                      </button>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openCompareModal("interview")}>
                         <Plus size={13} /> 新增对比组件
-                      </button>
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -624,10 +716,14 @@ export function KnowledgeBoard() {
                   <Compass size={17} /><h2>15天职业规划</h2>
                   {isEditMode && (
                     <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
-                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                      {hasWidget("career") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
                         onClick={() => openTabItemModal("career")}>
                         <Plus size={13} /> 新增职业规划
-                      </button>
+                      </button>}
+                      {hasWidget("compare") && <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("career")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>}
                     </div>
                   )}
                 </div>
@@ -665,6 +761,37 @@ export function KnowledgeBoard() {
                     </article>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {/* Custom tab — rendered for any non-builtin tab key */}
+            {!ALL_TABS.some(t => t.key === activeDimension) && (
+              <section className="section-block in-shell">
+                <div className="section-title-row">
+                  <FileText size={17}/><h2>{dimensions.find(d => d.key === activeDimension)?.label ?? activeDimension}</h2>
+                  {isEditMode && (
+                    <button type="button" className="section-add-btn" style={{marginLeft:"auto"}}
+                      onClick={() => openCompareModal(activeDimension)}>
+                      <Plus size={13}/> 新增对比组件
+                    </button>
+                  )}
+                </div>
+                {store.compareBlocks.filter(b => b.moduleId === activeModule.id && b.dimensionTab === activeDimension).length === 0 && (
+                  <p className="empty-hint">自定义 Tab — 可通过「新增对比组件」添加内容</p>
+                )}
+                {store.compareBlocks
+                  .filter(b => b.moduleId === activeModule.id && b.dimensionTab === activeDimension)
+                  .sort((a, b) => a.order - b.order)
+                  .map(block => (
+                    <div key={block.id} className="compare-block-wrap">
+                      {isEditMode && (
+                        <div className="card-edit-btns">
+                          <button type="button" className="cb-action-btn" onClick={() => openCompareModal(activeDimension, block)}><PenLine size={11}/></button>
+                          <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此对比组件？")) deleteCompareBlock(block.id); }}><Trash2 size={11}/></button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </section>
             )}
 
@@ -706,7 +833,7 @@ export function KnowledgeBoard() {
           module={moduleModal.module}
           onSave={(fields) => {
             if (moduleModal.module) {
-              editModule(fields.id, { name: fields.name, icon: fields.icon, intro: fields.intro });
+              editModule(fields.id, { name: fields.name, icon: fields.icon, intro: fields.intro, enabledTabs: fields.enabledTabs });
             } else {
               addModule({
                 id: fields.id,
@@ -734,13 +861,6 @@ export function KnowledgeBoard() {
         <Compass size={15} />
         知识可持续沉淀：新增 PPT/PDF 经 AI 分析后按模块写入，支持去重、补充、更新三种合并策略。
       </footer>
-      {syncStatus !== "idle" && (
-        <div className="note-toast">
-          {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> 同步到 GitHub…</span>}
-          {syncStatus === "done" && <span className="note-ok">☁ {syncMsg}</span>}
-          {syncStatus === "error" && <span className="note-err">✗ {syncMsg}</span>}
-        </div>
-      )}
 
       {/* ── Edit controls (fixed top-right) ── */}
       <div className="edit-controls-stack">
@@ -783,6 +903,30 @@ export function KnowledgeBoard() {
 
       {/* ── Image Cleanup Modal ── */}
       {showImageCleanup && <ImageCleanupModal onClose={() => setShowImageCleanup(false)} />}
+
+      {/* ── Module Editor Modal ── */}
+      {moduleModal.open && (
+        <ModuleEditorModal
+          module={moduleModal.module}
+          onSave={(fields) => {
+            if (!moduleModal.module) {
+              addModule({
+                ...fields,
+                order: (sortedModules[sortedModules.length - 1]?.order ?? 0) + 1,
+                knowledgeNodes: [], operationSteps: [], cases: [],
+              });
+            } else {
+              editModule(fields.id, { name: fields.name, icon: fields.icon, intro: fields.intro, enabledTabs: fields.enabledTabs });
+            }
+          }}
+          onDelete={moduleModal.module ? () => {
+            deleteModule(moduleModal.module!.id);
+            const next = sortedModules.find(m => m.id !== moduleModal.module!.id);
+            if (next) setActiveModuleId(next.id);
+          } : undefined}
+          onClose={() => setModuleModal({ open: false, module: null })}
+        />
+      )}
 
       {/* ── Compare Block Editor Modal ── */}
       {compareModal.open && (
@@ -839,6 +983,86 @@ export function KnowledgeBoard() {
               <button type="button" className="note-save-btn note-save-btn-active" onClick={submitPassword}>
                 <LockOpen size={13}/> 进入编辑模式
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save/discard confirmation when exiting edit mode */}
+      {savePrompt && (
+        <div className="note-overlay" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}>
+          <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <div className="note-modal-header">
+              <span>退出编辑模式</span>
+              <button type="button" className="note-close" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}><X size={14}/></button>
+            </div>
+            <div style={{ padding: "1.2rem 1rem", color: "#a0b8d8", fontSize: "0.85rem", lineHeight: 1.6 }}>
+              你有未保存的修改。是否保存后退出？
+            </div>
+            <div className="note-modal-footer" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", padding: "0 1rem 1rem" }}>
+              <button type="button" className="note-save-btn" style={{ background: "rgba(180,40,40,0.15)", borderColor: "rgba(220,80,80,0.3)", color: "#f08080" }}
+                onClick={() => { discardDraft(); savePrompt.resolve(true); setSavePrompt(null); }}>
+                放弃修改
+              </button>
+              <button type="button" className="note-save-btn note-save-btn-active"
+                onClick={() => { commitDraft(mergedModules); savePrompt.resolve(true); setSavePrompt(null); }}>
+                保存并退出
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub sync status toast */}
+      {syncStatus !== "idle" && typeof document !== "undefined" && createPortal(
+        <div className="note-toast">
+          {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> {syncMsg}</span>}
+          {syncStatus === "done"    && <span className="note-ok">☁ {syncMsg}</span>}
+          {syncStatus === "error"   && <span className="note-err">✗ {syncMsg}</span>}
+        </div>,
+        document.body
+      )}
+
+      {/* Tab right-click context menu */}
+      {tabCtxMenu && isEditMode && typeof document !== "undefined" && createPortal(
+        <div className="module-ctx-menu" style={{ top: tabCtxMenu.y, left: tabCtxMenu.x }}
+          onClick={e => e.stopPropagation()}>
+          <button type="button" className="module-ctx-item" onClick={() => {
+            setTabCtxMenu(null); setTabEditModal({ open: true, tab: tabCtxMenu.tab });
+          }}><PenLine size={12}/> 编辑 Tab</button>
+          <button type="button" className="module-ctx-item module-ctx-delete" onClick={() => {
+            setTabCtxMenu(null);
+            if (!confirm(`确定删除 Tab「${tabCtxMenu.tab.label}」？`)) return;
+            const next = (activeModule.enabledTabs ?? ALL_TABS).filter(t => t.key !== tabCtxMenu.tab.key);
+            editModule(activeModule.id, { enabledTabs: next });
+            if (activeDimension === tabCtxMenu.tab.key) setActiveDimension(next[0]?.key ?? "knowledge");
+          }}><Trash2 size={12}/> 删除 Tab</button>
+        </div>,
+        document.body
+      )}
+
+      {/* Tab edit/add modal */}
+      {tabEditModal.open && (
+        <div className="note-overlay" onClick={() => setTabEditModal({ open: false, tab: null })}>
+          <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+            <div className="note-modal-header">
+              <span>{tabEditModal.tab ? "编辑 Tab" : "新增 Tab"}</span>
+              <button type="button" className="note-close" onClick={() => setTabEditModal({ open: false, tab: null })}><X size={14}/></button>
+            </div>
+            <div className="note-edit-body">
+              <TabLabelEditor
+                init={tabEditModal.tab}
+                isBuiltin={tabEditModal.tab ? ALL_TABS.some(t => t.key === tabEditModal.tab!.key) : false}
+                onSave={(tab) => {
+                  const current = activeModule.enabledTabs ?? ALL_TABS;
+                  const next = tabEditModal.tab
+                    ? current.map(t => t.key === tabEditModal.tab!.key ? tab : t)
+                    : [...current, tab];
+                  editModule(activeModule.id, { enabledTabs: next });
+                  setTabEditModal({ open: false, tab: null });
+                }}
+                onClose={() => setTabEditModal({ open: false, tab: null })}
+              />
             </div>
           </div>
         </div>

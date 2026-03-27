@@ -74,12 +74,32 @@ export interface CareerMilestone {
   checkPoint: string;    // 验收标准
 }
 
+export type DimensionTab = string; // built-in: "knowledge"|"operation"|"skills"|"path"|"interview"|"career"|"tools"|"cases" — or any custom key
+
+export type TabWidget =
+  | "knowledge"   // 知识点卡片
+  | "operation"   // 操作步骤卡片
+  | "case"        // 案例卡片
+  | "skill"       // 能力雷达项
+  | "path"        // 成长路径节点
+  | "interview"   // 面试题
+  | "career"      // 职业规划里程碑
+  | "tool"        // 工具卡片
+  | "compare";    // 对比组件
+
+export interface TabConfig {
+  key: DimensionTab;
+  label: string;
+  widgets?: TabWidget[]; // 该 tab 下允许新增的组件，不配置则按内置 tab 默认行为
+}
+
 export interface LearningModule {
   id: string;
   name: string;
   icon: string;
   order: number;
   intro: string;
+  enabledTabs?: TabConfig[];  // 不配置则全部内置 tab 显示
   knowledgeNodes: KnowledgeNode[];
   operationSteps: OperationStep[];
   cases: CaseStudy[];
