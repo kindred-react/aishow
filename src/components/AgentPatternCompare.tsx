@@ -132,21 +132,21 @@ const compareRows = [
 ];
 
 export function AgentPatternCompare() {
-  const [showTable, setShowTable] = useState(true);
+  const [showAll, setShowAll] = useState(true);
   const [lightboxImg, setLightboxImg] = useState<{ src: string; name: string } | null>(null);
 
   return (
     <div className="apc-root">
       {/* ── 对比总表 ── */}
-      <div className="apc-table-header" onClick={() => setShowTable(v => !v)}>
+      <div className="apc-table-header" onClick={() => setShowAll(v => !v)}>
         <span>五种模式横向对比</span>
-        {showTable ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        {showAll ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </div>
 
       <AnimatePresence initial={false}>
-        {showTable && (
+        {showAll && (
           <motion.div
-            key="table"
+            key="all-content"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -178,61 +178,56 @@ export function AgentPatternCompare() {
                 </tbody>
               </table>
             </div>
+
+            {/* ── 五张对比卡片 ── */}
+            <div className="apc-cards">
+              {patterns.map((p, i) => (
+                <motion.article
+                  key={p.id}
+                  className="apc-card apc-card-open"
+                  style={{ borderColor: p.color, background: p.accent }}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
+                >
+                  <div className="apc-card-header">
+                    <div className="apc-card-title">
+                      <span className="apc-card-dot" style={{ background: p.color }} />
+                      <strong style={{ color: p.color }}>{p.name}</strong>
+                      <span className="apc-card-en">{p.nameEn}</span>
+                    </div>
+                    <span className="apc-complexity">{p.complexity}</span>
+                  </div>
+                  <div className="apc-flow">
+                    {p.flow.map((step, idx) => (
+                      <span key={idx} className="apc-flow-step">
+                        {step}
+                        {idx < p.flow.length - 1 && <span className="apc-flow-arrow">→</span>}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="apc-detail">
+                    <button
+                      type="button"
+                      className="apc-img-btn"
+                      onClick={() => setLightboxImg({ src: p.imageUrl, name: p.name })}
+                      title="点击查看大图"
+                    >
+                      <img src={p.imageUrl} alt={p.name} className="apc-detail-img" loading="lazy" />
+                      <span className="apc-img-hint"><ZoomIn size={12} /> 点击放大</span>
+                    </button>
+                    <ul className="apc-key-points">
+                      {p.keyPoints.map((pt, j) => (
+                        <li key={j}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── 五张对比卡片 ── */}
-      <div className="apc-cards">
-        {patterns.map((p, i) => (
-          <motion.article
-            key={p.id}
-            className="apc-card apc-card-open"
-            style={{ borderColor: p.color, background: p.accent }}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06, duration: 0.3 }}
-          >
-            {/* Card header - always shown */}
-            <div className="apc-card-header">
-              <div className="apc-card-title">
-                <span className="apc-card-dot" style={{ background: p.color }} />
-                <strong style={{ color: p.color }}>{p.name}</strong>
-                <span className="apc-card-en">{p.nameEn}</span>
-              </div>
-              <span className="apc-complexity">{p.complexity}</span>
-            </div>
-
-            {/* Flow steps */}
-            <div className="apc-flow">
-              {p.flow.map((step, idx) => (
-                <span key={idx} className="apc-flow-step">
-                  {step}
-                  {idx < p.flow.length - 1 && <span className="apc-flow-arrow">→</span>}
-                </span>
-              ))}
-            </div>
-
-            {/* Image + key points - always visible */}
-            <div className="apc-detail">
-              <button
-                type="button"
-                className="apc-img-btn"
-                onClick={() => setLightboxImg({ src: p.imageUrl, name: p.name })}
-                title="点击查看大图"
-              >
-                <img src={p.imageUrl} alt={p.name} className="apc-detail-img" loading="lazy" />
-                <span className="apc-img-hint"><ZoomIn size={12} /> 点击放大</span>
-              </button>
-              <ul className="apc-key-points">
-                {p.keyPoints.map((pt, j) => (
-                  <li key={j}>{pt}</li>
-                ))}
-              </ul>
-            </div>
-          </motion.article>
-        ))}
-      </div>
 
       {/* ── Lightbox ── */}
       <AnimatePresence>

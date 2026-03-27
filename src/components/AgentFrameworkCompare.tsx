@@ -351,7 +351,7 @@ const compareRows = [
 ];
 
 export function AgentFrameworkCompare() {
-  const [showTable, setShowTable] = useState(true);
+  const [showAll, setShowAll] = useState(true);
   const [activeId, setActiveId] = useState("openai-sdk");
 
   const active = frameworks.find(f => f.id === activeId) ?? frameworks[0];
@@ -359,14 +359,14 @@ export function AgentFrameworkCompare() {
   return (
     <div className="afc-root">
       {/* 对比总表 */}
-      <div className="apc-table-header" onClick={() => setShowTable(v => !v)}>
+      <div className="apc-table-header" onClick={() => setShowAll(v => !v)}>
         <span>8种主流Agent框架横向对比</span>
-        {showTable ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        {showAll ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </div>
 
       <AnimatePresence initial={false}>
-        {showTable && (
-          <motion.div key="table" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
+        {showAll && (
+          <motion.div key="all" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} style={{ overflow: "hidden" }}>
             <div className="apc-table-wrap">
               <table className="apc-table">
                 <thead>
@@ -392,65 +392,65 @@ export function AgentFrameworkCompare() {
                 </tbody>
               </table>
             </div>
+
+            {/* 框架选择标签 */}
+            <div className="afc-tabs">
+              {frameworks.map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={`afc-tab ${activeId === f.id ? "afc-tab-active" : ""}`}
+                  style={{ borderColor: activeId === f.id ? f.color : undefined, color: activeId === f.id ? f.color : undefined }}
+                  onClick={() => setActiveId(f.id)}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+
+            {/* 详情面板 */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active.id}
+                className="afc-panel"
+                style={{ borderColor: active.color, background: active.accent }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+              >
+                <div className="afc-panel-header">
+                  <div>
+                    <strong style={{ color: active.color }}>{active.name}</strong>
+                    <span className="afc-tag">{active.tag}</span>
+                  </div>
+                  <div className="afc-meta">
+                    <span>{active.complexity}</span>
+                    <span className="afc-mcp-mode"><Code2 size={11} /> {active.mcpMode}</span>
+                  </div>
+                </div>
+
+                <div className="afc-body">
+                  <ul className="apc-key-points">
+                    {active.keyPoints.map((pt, i) => <li key={i}>{pt}</li>)}
+                  </ul>
+
+                  <div className="afc-code-wrap">
+                    <div className="afc-code-label">集成 MCP Server 示例代码</div>
+                    <SyntaxHighlighter
+                      language="python"
+                      style={oneDark}
+                      customStyle={{ fontSize: "0.72rem", borderRadius: "7px", margin: 0, maxHeight: "320px" }}
+                      showLineNumbers
+                    >
+                      {active.code}
+                    </SyntaxHighlighter>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* 框架选择标签 */}
-      <div className="afc-tabs">
-        {frameworks.map(f => (
-          <button
-            key={f.id}
-            type="button"
-            className={`afc-tab ${activeId === f.id ? "afc-tab-active" : ""}`}
-            style={{ borderColor: activeId === f.id ? f.color : undefined, color: activeId === f.id ? f.color : undefined }}
-            onClick={() => setActiveId(f.id)}
-          >
-            {f.name}
-          </button>
-        ))}
-      </div>
-
-      {/* 详情面板 */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={active.id}
-          className="afc-panel"
-          style={{ borderColor: active.color, background: active.accent }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
-        >
-          <div className="afc-panel-header">
-            <div>
-              <strong style={{ color: active.color }}>{active.name}</strong>
-              <span className="afc-tag">{active.tag}</span>
-            </div>
-            <div className="afc-meta">
-              <span>{active.complexity}</span>
-              <span className="afc-mcp-mode"><Code2 size={11} /> {active.mcpMode}</span>
-            </div>
-          </div>
-
-          <div className="afc-body">
-            <ul className="apc-key-points">
-              {active.keyPoints.map((pt, i) => <li key={i}>{pt}</li>)}
-            </ul>
-
-            <div className="afc-code-wrap">
-              <div className="afc-code-label">集成 MCP Server 示例代码</div>
-              <SyntaxHighlighter
-                language="python"
-                style={oneDark}
-                customStyle={{ fontSize: "0.72rem", borderRadius: "7px", margin: 0, maxHeight: "320px" }}
-                showLineNumbers
-              >
-                {active.code}
-              </SyntaxHighlighter>
-            </div>
-          </div>
-        </motion.div>
       </AnimatePresence>
     </div>
   );

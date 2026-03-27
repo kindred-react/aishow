@@ -17,11 +17,12 @@ import { learningModules } from "@/data/knowledge";
 import { AgentPatternCompare } from "@/components/AgentPatternCompare";
 import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
+import { InterviewPanel } from "@/components/InterviewPanel";
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
 const sortedModules = [...learningModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-type DimensionTab = "overview" | "knowledge" | "operation" | "tools" | "cases";
+type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" | "career" | "tools" | "cases";
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
@@ -38,7 +39,7 @@ export function KnowledgeBoard() {
     const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
     const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
     if (savedModule && sortedModules.find((m) => m.id === savedModule)) setActiveModuleId(savedModule);
-    if (savedDimension && ["knowledge","operation","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
     if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
   }, []);
 
@@ -73,6 +74,10 @@ export function KnowledgeBoard() {
     if (activeDimension === "operation") return activeModule.operationSteps.map((s) => ({ id: s.id, label: s.title }));
     if (activeDimension === "cases") return (activeModule.cases ?? []).map((c) => ({ id: c.id, label: c.title }));
     if (activeDimension === "tools") return moduleTools.map((t) => ({ id: t.name, label: t.name }));
+    if (activeDimension === "skills") return (activeModule.skills ?? []).map((s) => ({ id: s.id, label: s.name }));
+    if (activeDimension === "path") return (activeModule.learningPath ?? []).map((p) => ({ id: p.id, label: p.title }));
+    if (activeDimension === "interview") return (activeModule.interviewQuestions ?? []).map((q) => ({ id: q.id, label: q.question.slice(0, 18) + (q.question.length > 18 ? "…" : "") }));
+    if (activeDimension === "career") return (activeModule.careerPlan ?? []).map((c) => ({ id: c.id, label: c.week + " " + c.phase }));
     return [];
   }, [activeDimension, activeModule, visibleKnowledge, moduleTools]);
 
@@ -96,6 +101,10 @@ export function KnowledgeBoard() {
   const dimensions: { key: DimensionTab; label: string }[] = [
     { key: "knowledge", label: "知识点" },
     { key: "operation", label: "操作点" },
+    { key: "skills", label: "能力雷达" },
+    { key: "path", label: "成长路径" },
+    { key: "interview", label: "面试准备" },
+    { key: "career", label: "职业规划" },
     { key: "tools", label: "工具" },
     { key: "cases", label: "案例" },
   ];
@@ -270,14 +279,119 @@ export function KnowledgeBoard() {
               </section>
             )}
 
+            {activeDimension === "skills" && (
+              <section className="section-block in-shell">
+                <div className="section-title-row"><BrainCircuit size={17} /><h2>能力雷达</h2></div>
+                {(activeModule.skills ?? []).length === 0 && (
+                  <p className="empty-hint">本模块暂未配置能力要求</p>
+                )}
+                <div className="skills-grid">
+                  {(activeModule.skills ?? []).map((skill) => (
+                    <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
+                      <div className="skill-header">
+                        <span className="skill-dimension">{skill.dimension}</span>
+                        <strong>{skill.name}</strong>
+                        <div className="skill-level-bar">
+                          {[1,2,3,4,5].map((n) => (
+                            <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="skill-desc">{skill.description}</p>
+                      <div className="skill-howto">
+                        <span className="skill-howto-label">如何提升</span>
+                        <ul>{skill.howTo.map((h) => <li key={h}>{h}</li>)}</ul>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {activeDimension === "path" && (
+              <section className="section-block in-shell">
+                <div className="section-title-row"><Rocket size={17} /><h2>成长路径</h2></div>
+                {(activeModule.learningPath ?? []).length === 0 && (
+                  <p className="empty-hint">本模块暂未配置学习路径</p>
+                )}
+                <div className="learning-path">
+                  {(activeModule.learningPath ?? []).map((node, idx) => (
+                    <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
+                      <div className="path-index">{String(idx + 1).padStart(2, "0")}</div>
+                      <div className="path-content">
+                        <div className="path-header">
+                          <strong>{node.title}</strong>
+                          <span className="path-level-badge">{node.level}</span>
+                          {node.estimatedHours && (
+                            <span className="path-hours">≈ {node.estimatedHours}h</span>
+                          )}
+                        </div>
+                        {node.prerequisite && node.prerequisite.length > 0 && (
+                          <span className="path-prereq">前置：{node.prerequisite.map(pid => {
+                            const found = activeModule.learningPath?.find(p => p.id === pid);
+                            return found?.title ?? pid;
+                          }).join(" / ")}</span>
+                        )}
+                        {node.tip && <p className="path-tip">💡 {node.tip}</p>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {activeDimension === "interview" && (
+              <section className="section-block in-shell">
+                <div className="section-title-row"><FileText size={17} /><h2>面试准备 <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{activeModule.interviewQuestions?.length ?? 0} 题</span></h2></div>
+                {(activeModule.interviewQuestions ?? []).length === 0
+                  ? <p className="empty-hint">本模块暂未配置面试题</p>
+                  : <InterviewPanel questions={activeModule.interviewQuestions ?? []} />
+                }
+              </section>
+            )}
+
+            {activeDimension === "career" && (
+              <section className="section-block in-shell">
+                <div className="section-title-row"><Compass size={17} /><h2>15天职业规划</h2></div>
+                {(activeModule.careerPlan ?? []).length === 0 && (
+                  <p className="empty-hint">本模块暂未配置职业规划</p>
+                )}
+                <div className="career-timeline">
+                  {(activeModule.careerPlan ?? []).map((m, idx) => (
+                    <article key={m.id} id={`item-${m.id}`} className="career-card">
+                      <div className="career-week">
+                        <span className="career-week-label">{m.week}</span>
+                        <span className="career-phase">{m.phase}</span>
+                      </div>
+                      <div className="career-body">
+                        <p className="career-goal">🎯 {m.goal}</p>
+                        <ul className="career-actions">
+                          {m.actions.map((a) => <li key={a}>{a}</li>)}
+                        </ul>
+                        <div className="career-footer">
+                          <span className="career-deliverable">📦 交付物：{m.deliverable}</span>
+                          <span className="career-check">✅ 验收：{m.checkPoint}</span>
+                        </div>
+                        {m.resources && m.resources.length > 0 && (
+                          <div className="career-resources">
+                            {m.resources.map((r) => <span key={r}>{r}</span>)}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
           </div>
 
           {tocItems.length > 0 && (
             <nav className="toc-sidebar" aria-label="目录导航">
               <p className="toc-title">目录</p>
-              {tocItems.map((item) => (
-                <button key={item.id} type="button" className="toc-btn" onClick={() => scrollToId(item.id)}>
-                  {item.label}
+              {tocItems.map((item, idx) => (
+                <button key={item.id} type="button" className="toc-btn" title={item.label} onClick={() => scrollToId(item.id)}>
+                  <span className="toc-btn-idx">{idx + 1}</span>{item.label}
                 </button>
               ))}
             </nav>
