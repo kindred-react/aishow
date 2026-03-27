@@ -236,7 +236,7 @@ export function KnowledgeBoard() {
                       operationSteps={activeModule.operationSteps}
                       onJumpToOp={jumpToOp}
                       onEdit={isEditMode ? (node) => setNodeModal({ open: true, node, moduleId: activeModule.id }) : undefined}
-                      onDelete={isEditMode ? (nodeId) => deleteNode(nodeId) : undefined}
+                      onDelete={isEditMode ? (nodeId) => deleteNode(activeModule.id, nodeId) : undefined}
                     />
                   ))}
                 </div>
@@ -425,12 +425,12 @@ export function KnowledgeBoard() {
           moduleId={nodeModal.moduleId}
           onSave={(node) => {
             if (nodeModal.node) {
-              editNode(node.id, node);
+              editNode(nodeModal.moduleId, node.id, node);
             } else {
               addNode(nodeModal.moduleId, node);
             }
           }}
-          onDelete={nodeModal.node ? () => deleteNode(nodeModal.node!.id) : undefined}
+          onDelete={nodeModal.node ? () => deleteNode(nodeModal.moduleId, nodeModal.node!.id) : undefined}
           onClose={() => setNodeModal({ open: false, node: null, moduleId: "" })}
         />
       )}
@@ -487,6 +487,24 @@ export function KnowledgeBoard() {
         {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
         {isEditMode && <span>编辑中</span>}
       </button>
+
+      {/* ── Clear cache button (only in edit mode) ── */}
+      {isEditMode && (
+        <button
+          type="button"
+          className="edit-mode-lock-btn"
+          style={{ top: "3.2rem", fontSize: "0.65rem" }}
+          title="清除本地缓存，回归原始数据"
+          onClick={() => {
+            if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
+              localStorage.removeItem("aishow_content_store");
+              location.reload();
+            }
+          }}
+        >
+          ⟳ 清除缓存
+        </button>
+      )}
 
       {/* ── Password prompt modal ── */}
       {showPrompt && (

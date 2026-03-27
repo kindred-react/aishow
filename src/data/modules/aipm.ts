@@ -376,17 +376,17 @@ export const aipmModule: LearningModule = {
 
     learningPath: [
       {
-        id: "aipm-industry",
+        id: "lp-aipm-industry",
         title: "AI产业结构与三类公司",
         level: "基础",
         estimatedHours: 1,
         tip: "先定位自己适合哪个层级，再有针对性地学习",
       },
       {
-        id: "aipm-classification",
+        id: "lp-aipm-classification",
         title: "AI PM分类：狭义 vs 广义",
         level: "基础",
-        prerequisite: ["aipm-industry"],
+        prerequisite: ["lp-aipm-industry"],
         estimatedHours: 1,
         tip: "明确自己是哪类AI PM，决定学习重点",
       },
@@ -394,7 +394,7 @@ export const aipmModule: LearningModule = {
         id: "aipm-ai-limitations",
         title: "理解AI技术的局限性",
         level: "基础",
-        prerequisite: ["aipm-classification"],
+        prerequisite: ["lp-aipm-classification"],
         estimatedHours: 1,
         tip: "最重要的认知校准，避免过度乐观",
       },
