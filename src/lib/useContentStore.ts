@@ -158,14 +158,9 @@ export function useContentStore() {
 
       // Determine which module IDs have changes
       const changedIds = new Set<string>([
-        ...Object.keys(prev.nodeEdits).flatMap(nodeId =>
-          mergedModules.filter(m => m.knowledgeNodes.some(n => n.id === nodeId)).map(m => m.id)
-        ),
+        // ── edits / adds (keyed by moduleId directly) ──
         ...Object.keys(prev.addedNodes),
         ...Object.keys(prev.addedOperations),
-        ...Object.keys(prev.editedOperations).flatMap(id =>
-          mergedModules.filter(m => m.operationSteps.some(s => s.id === id)).map(m => m.id)
-        ),
         ...Object.keys(prev.addedCases),
         ...Object.keys(prev.addedSkills),
         ...Object.keys(prev.addedPathNodes),
@@ -173,6 +168,73 @@ export function useContentStore() {
         ...Object.keys(prev.addedCareer),
         ...Object.keys(prev.addedTools),
         ...Object.keys(prev.moduleEdits),
+        // ── edits keyed by item id → reverse-lookup module ──
+        ...Object.keys(prev.nodeEdits).flatMap(nodeId =>
+          mergedModules.filter(m => m.knowledgeNodes.some(n => n.id === nodeId)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedOperations).flatMap(id =>
+          mergedModules.filter(m => m.operationSteps.some(s => s.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedCases).flatMap(id =>
+          mergedModules.filter(m => m.cases.some(c => c.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedSkills).flatMap(id =>
+          mergedModules.filter(m => m.skills?.some(s => s.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedPathNodes).flatMap(id =>
+          mergedModules.filter(m => m.learningPath?.some(p => p.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedInterviews).flatMap(id =>
+          mergedModules.filter(m => m.interviewQuestions?.some(q => q.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedCareer).flatMap(id =>
+          mergedModules.filter(m => m.careerPlan?.some(c => c.id === id)).map(m => m.id)
+        ),
+        ...Object.keys(prev.editedTools).flatMap(id =>
+          mergedModules.filter(m => m.tools?.some(t => t.id === id)).map(m => m.id)
+        ),
+        // ── deletes → reverse-lookup via savedStore (before merge) ──
+        ...prev.deletedNodes.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.knowledgeNodes.some(n => n.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedOperations.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.operationSteps.some(s => s.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedCases.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.cases.some(c => c.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedSkills.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.skills?.some(s => s.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedPathNodes.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.learningPath?.some(p => p.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedInterviews.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.interviewQuestions?.some(q => q.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedCareer.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.careerPlan?.some(c => c.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedTools.flatMap(id =>
+          mergedModules.filter(m =>
+            learningModules.find(b => b.id === m.id)?.tools?.some(t => t.id === id)
+          ).map(m => m.id)
+        ),
+        ...prev.deletedModules, // deleted modules still need to be pushed (handled as empty)
       ]);
 
       const ids = [...changedIds].filter(id => id);
