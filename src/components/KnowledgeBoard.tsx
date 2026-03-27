@@ -13,11 +13,13 @@ import {
   Lock,
   LockOpen,
   X,
+  Plus,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
 import { KnowledgeCard } from "@/components/NoteEditor";
 import { NodeEditorModal, AddNodeButton } from "@/components/NodeEditor";
 import { ModuleEditorModal, AddModuleButton } from "@/components/ModuleEditor";
+import { ImageCleanupModal } from "@/components/ImageCleanup";
 import { AgentPatternCompare } from "@/components/AgentPatternCompare";
 import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
@@ -46,6 +48,7 @@ export function KnowledgeBoard() {
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
+  const [showImageCleanup, setShowImageCleanup] = useState(false);
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -205,7 +208,15 @@ export function KnowledgeBoard() {
 
             {activeDimension === "knowledge" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><BrainCircuit size={17} /><h2>知识点维度</h2></div>
+                <div className="section-title-row">
+                  <BrainCircuit size={17} /><h2>知识点维度</h2>
+                  {isEditMode && (
+                    <button type="button" className="section-add-btn"
+                      onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}>
+                      <Plus size={13} /> 新增知识点
+                    </button>
+                  )}
+                </div>
                 <div className="sub-filter">
                   {(["全部", ...levelOrder] as const).map((item) => (
                     <button key={item} type="button"
@@ -240,7 +251,7 @@ export function KnowledgeBoard() {
                     />
                   ))}
                 </div>
-                {isEditMode && <AddNodeButton onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })} />}
+                {isEditMode && (<></>)}
               </section>
             )}
 
@@ -490,21 +501,35 @@ export function KnowledgeBoard() {
 
       {/* ── Clear cache button (only in edit mode) ── */}
       {isEditMode && (
-        <button
-          type="button"
-          className="edit-mode-lock-btn"
-          style={{ top: "3.2rem", fontSize: "0.65rem" }}
-          title="清除本地缓存，回归原始数据"
-          onClick={() => {
-            if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
-              localStorage.removeItem("aishow_content_store");
-              location.reload();
-            }
-          }}
-        >
-          ⟳ 清除缓存
-        </button>
+        <div className="edit-tools-stack">
+          <button
+            type="button"
+            className="edit-mode-lock-btn"
+            style={{ fontSize: "0.65rem" }}
+            title="清除本地缓存，回归原始数据"
+            onClick={() => {
+              if (confirm("清除所有本地缓存？页面将刷新，数据回归原始 .ts 文件。")) {
+                localStorage.removeItem("aishow_content_store");
+                location.reload();
+              }
+            }}
+          >
+            ⟳ 清除缓存
+          </button>
+          <button
+            type="button"
+            className="edit-mode-lock-btn"
+            style={{ fontSize: "0.65rem" }}
+            title="扫描并删除未引用的图片"
+            onClick={() => setShowImageCleanup(true)}
+          >
+            🗑 清理图片
+          </button>
+        </div>
       )}
+
+      {/* ── Image Cleanup Modal ── */}
+      {showImageCleanup && <ImageCleanupModal onClose={() => setShowImageCleanup(false)} />}
 
       {/* ── Password prompt modal ── */}
       {showPrompt && (
