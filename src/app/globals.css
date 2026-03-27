@@ -2482,9 +2482,6 @@ body {
 
 /* ── Edit mode lock button (fixed top-right) ── */
 .edit-mode-lock-btn {
-  position: fixed;
-  top: 1rem;
-  right: 1.2rem;
   z-index: 200;
   appearance: none;
   background: rgba(10, 15, 35, 0.85);
@@ -2585,16 +2582,7 @@ body {
   display: inline-block;
 }
 
-/* ── Edit tools stack (clear cache + image cleanup) ── */
-.edit-tools-stack {
-  position: fixed;
-  top: 3.2rem;
-  right: 1.2rem;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
+
 
 /* ── Section add button (inline with title) ── */
 .section-add-btn {
@@ -2681,4 +2669,16 @@ body {
   background: var(--c-neon);
   border-color: var(--c-neon);
   color: #000;
+}
+
+/* ── Edit controls stack (fixed top-right, all edit buttons) ── */
+.edit-controls-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1.2rem;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
 }

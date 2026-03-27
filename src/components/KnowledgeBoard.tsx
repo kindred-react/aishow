@@ -488,20 +488,19 @@ export function KnowledgeBoard() {
         </div>
       )}
 
-      {/* ── Edit mode lock button ── */}
-      <button
-        type="button"
-        className={`edit-mode-lock-btn ${isEditMode ? "active" : ""}`}
-        title={isEditMode ? "退出编辑模式" : "进入编辑模式"}
-        onClick={requestEdit}
-      >
-        {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
-        {isEditMode && <span>编辑中</span>}
-      </button>
+      {/* ── Edit controls (fixed top-right) ── */}
+      <div className="edit-controls-stack">
+        <button
+          type="button"
+          className={`edit-mode-lock-btn ${isEditMode ? "active" : ""}`}
+          title={isEditMode ? "退出编辑模式" : "进入编辑模式"}
+          onClick={requestEdit}
+        >
+          {isEditMode ? <LockOpen size={15} /> : <Lock size={15} />}
+          {isEditMode && <span>编辑中</span>}
+        </button>
 
-      {/* ── Clear cache button (only in edit mode) ── */}
-      {isEditMode && (
-        <div className="edit-tools-stack">
+        {isEditMode && (<>
           <button
             type="button"
             className="edit-mode-lock-btn"
@@ -525,8 +524,8 @@ export function KnowledgeBoard() {
           >
             🗑 清理图片
           </button>
-        </div>
-      )}
+        </>)}
+      </div>
 
       {/* ── Image Cleanup Modal ── */}
       {showImageCleanup && <ImageCleanupModal onClose={() => setShowImageCleanup(false)} />}
