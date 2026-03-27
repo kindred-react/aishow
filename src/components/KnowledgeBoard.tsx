@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/preserve-manual-memoization */
 
 import { motion } from "framer-motion";
 import {
@@ -25,9 +26,42 @@ import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
 import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
 import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockEditor";
 import { InterviewPanel } from "@/components/InterviewPanel";
+import { TabItemEditor } from "@/components/TabItemEditor";
+import type { TabItemType } from "@/components/TabItemEditor";
 import { useContentStore } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
-import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
+import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem } from "@/data/types";
+
+// ── Standalone compare block list (avoids React Compiler memoization issue) ──
+function CompareBlockList({
+  blocks, moduleId, dimensionTab, isEditMode,
+  onEdit, onDelete,
+}: {
+  blocks: CompareBlock[];
+  moduleId: string;
+  dimensionTab: string;
+  isEditMode: boolean;
+  onEdit: (block: CompareBlock) => void;
+  onDelete: (id: string) => void;
+}) {
+  const filtered = blocks
+    .filter(b => b.moduleId === moduleId && b.dimensionTab === dimensionTab)
+    .sort((a, b) => a.order - b.order);
+  if (filtered.length === 0) return null;
+  return (
+    <>
+      {filtered.map(block => (
+        <div key={block.id} style={{ marginBottom: "1rem" }}>
+          <CompareBlockView
+            block={block}
+            onEdit={isEditMode ? () => onEdit(block) : undefined}
+            onDelete={isEditMode ? () => onDelete(block.id) : undefined}
+          />
+        </div>
+      ))}
+    </>
+  );
+}
 
 const levelOrder = ["基础", "进阶", "实战"] as const;
 
@@ -35,7 +69,7 @@ type DimensionTab = "knowledge" | "operation" | "skills" | "path" | "interview" 
 type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, store, syncStatus, syncMsg } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt } = useEditMode();
 
   const sortedModules = useMemo(
@@ -43,27 +77,58 @@ export function KnowledgeBoard() {
     [mergedModules]
   );
 
-  const [activeModuleId, setActiveModuleId] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    const saved = localStorage.getItem("kb-module");
-    return saved ?? "";
-  });
-  const [activeDimension, setActiveDimension] = useState<DimensionTab>(() => {
-    if (typeof window === "undefined") return "knowledge";
-    const saved = localStorage.getItem("kb-dimension") as DimensionTab | null;
-    return saved && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(saved)
-      ? saved : "knowledge";
-  });
-  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(() => {
-    if (typeof window === "undefined") return "全部";
-    const saved = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
-    return saved && ["全部","基础","进阶","实战"].includes(saved) ? saved : "全部";
-  });
+  const [activeModuleId, setActiveModuleId] = useState<string>("");
+  const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
+  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
+
+  // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
+  useEffect(() => {
+    const savedModule = localStorage.getItem("kb-module");
+    const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
+    const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (savedModule) setActiveModuleId(savedModule);
+    if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const [showImageCleanup, setShowImageCleanup] = useState(false);
-  const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null }>({ open: false, block: null });
+  const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: "knowledge" });
+
+  type AnyTabItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
+  const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: TabItemType; item: AnyTabItem | null }>({ open: false, tab: "operation", item: null });
+  const openTabItemModal = (tab: TabItemType, item: AnyTabItem | null = null) => setTabItemModal({ open: true, tab, item });
+  const closeTabItemModal = () => setTabItemModal(prev => ({ ...prev, open: false }));
+
+  const handleTabItemSave = (tab: TabItemType, saved: AnyTabItem) => {
+    const mid = activeModule.id;
+    const isNew = !tabItemModal.item;
+    if (tab === "operation") { if (isNew) addOperation(mid, saved as OperationStep); else editOperation(saved.id, saved as OperationStep); }
+    else if (tab === "cases")     { if (isNew) addCase(mid, saved as CaseStudy);          else editCase(saved.id, saved as CaseStudy); }
+    else if (tab === "skills")    { if (isNew) addSkill(mid, saved as SkillItem);         else editSkill(saved.id, saved as SkillItem); }
+    else if (tab === "path")      { if (isNew) addPathNode(mid, saved as LearningPathNode); else editPathNode(saved.id, saved as LearningPathNode); }
+    else if (tab === "interview") { if (isNew) addInterview(mid, saved as InterviewQuestion); else editInterview(saved.id, saved as InterviewQuestion); }
+    else if (tab === "career")    { if (isNew) addCareer(mid, saved as CareerMilestone);   else editCareer(saved.id, saved as CareerMilestone); }
+    else if (tab === "tools")     { if (isNew) addTool(mid, saved as ToolItem);            else editTool(saved.id, saved as ToolItem); }
+  };
+
+  const handleTabItemDelete = (tab: TabItemType, id: string) => {
+    const mid = activeModule.id;
+    if (tab === "operation") deleteOperation(mid, id);
+    else if (tab === "cases")     deleteCase(mid, id);
+    else if (tab === "skills")    deleteSkill(mid, id);
+    else if (tab === "path")      deletePathNode(mid, id);
+    else if (tab === "interview") deleteInterview(mid, id);
+    else if (tab === "career")    deleteCareer(mid, id);
+    else if (tab === "tools")     deleteTool(mid, id);
+  };
+
+  // Helper: open compare modal for a given tab
+  const openCompareModal = (tab: string, block: CompareBlock | null = null) =>
+    setCompareModal({ open: true, block, dimensionTab: tab });
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,11 +137,13 @@ export function KnowledgeBoard() {
   useEffect(() => { localStorage.setItem("kb-dimension", activeDimension); }, [activeDimension]);
   useEffect(() => { localStorage.setItem("kb-level", levelFilter); }, [levelFilter]);
 
+   
   const activeModule = useMemo(
     () => sortedModules.find((m) => m.id === activeModuleId) ?? sortedModules[0],
     [activeModuleId, sortedModules]
   );
 
+   
   const moduleTools = useMemo(() => {
     if (!activeModule) return [];
     const counter = new Map<string, number>();
@@ -86,12 +153,14 @@ export function KnowledgeBoard() {
     return [...counter.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
   }, [activeModule]);
 
+   
   const visibleKnowledge = useMemo(() => {
     if (!activeModule) return [];
     if (levelFilter === "全部") return activeModule.knowledgeNodes;
     return activeModule.knowledgeNodes.filter((item) => item.level === levelFilter);
   }, [activeModule, levelFilter]);
 
+   
   const tocItems = useMemo(() => {
     if (!activeModule) return [];
     if (activeDimension === "knowledge") return visibleKnowledge.map((n) => ({ id: n.id, label: n.title }));
@@ -221,7 +290,7 @@ export function KnowledgeBoard() {
                         <Plus size={13} /> 新增知识点
                       </button>
                       <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
-                        onClick={() => setCompareModal({ open: true, block: null })}>
+                        onClick={() => openCompareModal("knowledge")}>
                         <Plus size={13} /> 新增对比组件
                       </button>
                     </div>
@@ -251,19 +320,7 @@ export function KnowledgeBoard() {
                 )}
 
                 {/* ── Custom compare blocks for this module ── */}
-                {store.compareBlocks
-                  .filter(b => b.moduleId === activeModule.id)
-                  .sort((a, b) => a.order - b.order)
-                  .map(block => (
-                    <div key={block.id} style={{ marginBottom: "1.2rem" }}>
-                      <CompareBlockView
-                        block={block}
-                        onEdit={isEditMode ? () => setCompareModal({ open: true, block }) : undefined}
-                        onDelete={isEditMode ? () => deleteCompareBlock(block.id) : undefined}
-                      />
-                    </div>
-                  ))
-                }
+                <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab="knowledge" isEditMode={isEditMode} onEdit={(b) => openCompareModal("knowledge", b)} onDelete={deleteCompareBlock} />
 
                 <div className="cards knowledge-dense-grid">
                   {visibleKnowledge.map((rawNode) => (
@@ -283,7 +340,22 @@ export function KnowledgeBoard() {
 
             {activeDimension === "operation" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><Rocket size={17} /><h2>操作点维度</h2></div>
+                <div className="section-title-row">
+                  <Rocket size={17} /><h2>操作点维度</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("operation")}>
+                        <Plus size={13} /> 新增操作步骤
+                      </button>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("operation")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab="operation" isEditMode={isEditMode} onEdit={(b) => openCompareModal("operation", b)} onDelete={deleteCompareBlock} />
                 <div className="timeline">
                   {activeModule.operationSteps.map((step, idx) => (
                     <article key={step.id} id={`item-${step.id}`}
@@ -292,7 +364,15 @@ export function KnowledgeBoard() {
                     >
                       <div className="timeline-index">0{idx + 1}</div>
                       <div className="timeline-content">
-                        <h4>{step.title}</h4>
+                        <div className="card-edit-row">
+                          <h4>{step.title}</h4>
+                          {isEditMode && (
+                            <div className="card-edit-btns">
+                              <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("operation", step)}><PenLine size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此操作步骤？")) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
+                            </div>
+                          )}
+                        </div>
                         <p className="target">目标：{step.target}</p>
                         <p>{step.detail}</p>
                         <div className="tool-tags">{step.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>
@@ -305,12 +385,41 @@ export function KnowledgeBoard() {
 
             {activeDimension === "tools" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><Wrench size={17} /><h2>工具维度</h2></div>
+                <div className="section-title-row">
+                  <Wrench size={17} /><h2>工具维度</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("tools")}>
+                        <Plus size={13} /> 新增工具
+                      </button>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("tools")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab="tools" isEditMode={isEditMode} onEdit={(b) => openCompareModal("tools", b)} onDelete={deleteCompareBlock} />
+                {(activeModule.tools ?? []).length === 0 && (
+                  <p className="empty-hint">本模块暂未配置工具，点击「新增工具」添加</p>
+                )}
                 <div className="tool-heat-grid">
-                  {moduleTools.map((tool) => (
-                    <article key={tool.name} id={`item-${tool.name}`} className="tool-heat-card">
-                      <strong>{tool.name}</strong>
-                      <span>在本模块出现 {tool.count} 次</span>
+                  {(activeModule.tools ?? []).map((tool) => (
+                    <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
+                      <div className="card-edit-row">
+                        <strong>{tool.name}</strong>
+                        {isEditMode && (
+                          <div className="card-edit-btns">
+                            <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("tools", tool)}><PenLine size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此工具？")) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
+                          </div>
+                        )}
+                      </div>
+                      <span className="tool-category">{tool.category}{tool.isPaid ? " · 付费" : " · 免费"}</span>
+                      {tool.description && <p style={{fontSize:"0.75rem",color:"#8aa0c8",margin:"0.3rem 0 0"}}>{tool.description}</p>}
+                      {tool.url && <a href={tool.url} target="_blank" rel="noreferrer" style={{fontSize:"0.7rem",color:"var(--c-neon)",display:"block",marginTop:"0.25rem"}}>{tool.url}</a>}
+                      {tool.tags.length > 0 && <div className="tool-tags" style={{marginTop:"0.3rem"}}>{tool.tags.map(t => <span key={t}>{t}</span>)}</div>}
                     </article>
                   ))}
                 </div>
@@ -319,11 +428,34 @@ export function KnowledgeBoard() {
 
             {activeDimension === "cases" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><FileText size={17} /><h2>真实案例</h2></div>
+                <div className="section-title-row">
+                  <FileText size={17} /><h2>真实案例</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("cases")}>
+                        <Plus size={13} /> 新增案例
+                      </button>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("cases")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab="cases" isEditMode={isEditMode} onEdit={(b) => openCompareModal("cases", b)} onDelete={deleteCompareBlock} />
                 <div className="cases-grid">
                   {(activeModule.cases ?? []).map((c) => (
                     <article key={c.id} id={`item-${c.id}`} className="case-card">
-                      <h4>{c.title}</h4>
+                      <div className="card-edit-row">
+                        <h4>{c.title}</h4>
+                        {isEditMode && (
+                          <div className="card-edit-btns">
+                            <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("cases", c)}><PenLine size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此案例？")) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
+                          </div>
+                        )}
+                      </div>
                       <div className="case-row"><em>场景</em><span>{c.scene}</span></div>
                       <div className="case-row"><em>问题</em><span>{c.problem}</span></div>
                       <div className="case-row"><em>方案</em><span>{c.solution}</span></div>
@@ -337,7 +469,17 @@ export function KnowledgeBoard() {
 
             {activeDimension === "skills" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><BrainCircuit size={17} /><h2>能力雷达</h2></div>
+                <div className="section-title-row">
+                  <BrainCircuit size={17} /><h2>能力雷达</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("skills")}>
+                        <Plus size={13} /> 新增技能
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {(activeModule.skills ?? []).length === 0 && (
                   <p className="empty-hint">本模块暂未配置能力要求</p>
                 )}
@@ -352,6 +494,12 @@ export function KnowledgeBoard() {
                             <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`} />
                           ))}
                         </div>
+                        {isEditMode && (
+                          <div className="card-edit-btns">
+                            <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("skills", skill)}><PenLine size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此技能？")) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
+                          </div>
+                        )}
                       </div>
                       <p className="skill-desc">{skill.description}</p>
                       <div className="skill-howto">
@@ -366,7 +514,17 @@ export function KnowledgeBoard() {
 
             {activeDimension === "path" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><Rocket size={17} /><h2>成长路径</h2></div>
+                <div className="section-title-row">
+                  <Rocket size={17} /><h2>成长路径</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("path")}>
+                        <Plus size={13} /> 新增路径节点
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {(activeModule.learningPath ?? []).length === 0 && (
                   <p className="empty-hint">本模块暂未配置学习路径</p>
                 )}
@@ -380,6 +538,12 @@ export function KnowledgeBoard() {
                           <span className="path-level-badge">{node.level}</span>
                           {node.estimatedHours && (
                             <span className="path-hours">≈ {node.estimatedHours}h</span>
+                          )}
+                          {isEditMode && (
+                            <div className="card-edit-btns">
+                              <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("path", node)}><PenLine size={11}/></button>
+                              <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此路径节点？")) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
+                            </div>
                           )}
                         </div>
                         {node.prerequisite && node.prerequisite.length > 0 && (
@@ -398,17 +562,47 @@ export function KnowledgeBoard() {
 
             {activeDimension === "interview" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><FileText size={17} /><h2>面试准备 <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{activeModule.interviewQuestions?.length ?? 0} 题</span></h2></div>
+                <div className="section-title-row">
+                  <FileText size={17} /><h2>面试准备 <span style={{fontSize:"0.75rem",color:"var(--c-neon)",marginLeft:"0.5rem"}}>{activeModule.interviewQuestions?.length ?? 0} 题</span></h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("interview")}>
+                        <Plus size={13} /> 新增面试题
+                      </button>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openCompareModal("interview")}>
+                        <Plus size={13} /> 新增对比组件
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab="interview" isEditMode={isEditMode} onEdit={(b) => openCompareModal("interview", b)} onDelete={deleteCompareBlock} />
                 {(activeModule.interviewQuestions ?? []).length === 0
                   ? <p className="empty-hint">本模块暂未配置面试题</p>
-                  : <InterviewPanel questions={activeModule.interviewQuestions ?? []} />
+                  : <InterviewPanel
+                      questions={activeModule.interviewQuestions ?? []}
+                      isEditMode={isEditMode}
+                      onEdit={(q) => openTabItemModal("interview", q)}
+                      onDelete={(id) => deleteInterview(activeModule.id, id)}
+                    />
                 }
               </section>
             )}
 
             {activeDimension === "career" && (
               <section className="section-block in-shell">
-                <div className="section-title-row"><Compass size={17} /><h2>15天职业规划</h2></div>
+                <div className="section-title-row">
+                  <Compass size={17} /><h2>15天职业规划</h2>
+                  {isEditMode && (
+                    <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <button type="button" className="section-add-btn" style={{ marginLeft: 0 }}
+                        onClick={() => openTabItemModal("career")}>
+                        <Plus size={13} /> 新增职业规划
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {(activeModule.careerPlan ?? []).length === 0 && (
                   <p className="empty-hint">本模块暂未配置职业规划</p>
                 )}
@@ -418,6 +612,12 @@ export function KnowledgeBoard() {
                       <div className="career-week">
                         <span className="career-week-label">{m.week}</span>
                         <span className="career-phase">{m.phase}</span>
+                        {isEditMode && (
+                          <div className="card-edit-btns">
+                            <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("career", m)}><PenLine size={11}/></button>
+                            <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm("删除此职业规划条目？")) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
+                          </div>
+                        )}
                       </div>
                       <div className="career-body">
                         <p className="career-goal">🎯 {m.goal}</p>
@@ -561,6 +761,7 @@ export function KnowledgeBoard() {
         <CompareBlockEditor
           block={compareModal.block}
           moduleId={activeModule.id}
+          dimensionTab={compareModal.dimensionTab}
           onSave={(block) => {
             if (compareModal.block) {
               editCompareBlock(block.id, block);
@@ -569,7 +770,17 @@ export function KnowledgeBoard() {
             }
           }}
           onDelete={compareModal.block ? () => deleteCompareBlock(compareModal.block!.id) : undefined}
-          onClose={() => setCompareModal({ open: false, block: null })}
+          onClose={() => setCompareModal({ open: false, block: null, dimensionTab: "knowledge" })}
+        />
+      )}
+
+      {tabItemModal.open && (
+        <TabItemEditor
+          tab={tabItemModal.tab}
+          item={tabItemModal.item}
+          onSave={(saved) => handleTabItemSave(tabItemModal.tab, saved as AnyTabItem)}
+          onDelete={tabItemModal.item ? () => handleTabItemDelete(tabItemModal.tab, tabItemModal.item!.id) : undefined}
+          onClose={closeTabItemModal}
         />
       )}
 

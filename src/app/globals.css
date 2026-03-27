@@ -657,6 +657,15 @@ body {
   display: block;
   font-size: 0.77rem;
   color: #d8e4ff;
+  flex: 1;
+}
+
+.tool-category {
+  display: inline-block;
+  font-size: 0.66rem;
+  color: var(--c-cyan);
+  margin-top: 0.18rem;
+  opacity: 0.8;
 }
 
 .tool-heat-card span {
@@ -2030,6 +2039,23 @@ body {
   padding: 0.9rem 1rem;
   max-height: 60vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 140, 255, 0.45) rgba(20, 28, 52, 0.6);
+}
+
+.note-edit-body::-webkit-scrollbar {
+  width: 5px;
+}
+.note-edit-body::-webkit-scrollbar-track {
+  background: rgba(20, 28, 52, 0.6);
+  border-radius: 999px;
+}
+.note-edit-body::-webkit-scrollbar-thumb {
+  background: rgba(100, 140, 255, 0.45);
+  border-radius: 999px;
+}
+.note-edit-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 160, 255, 0.7);
 }
 
 .note-field {
@@ -2720,10 +2746,29 @@ body {
   background: rgba(40, 70, 160, 0.2);
 }
 
-.cb-action-del:hover {
+.cb-action-delete:hover {
   color: #f06060;
-  border-color: rgba(240, 80, 80, 0.5);
-  background: rgba(180, 30, 30, 0.12);
+  border-color: rgba(220, 80, 80, 0.45);
+  background: rgba(180, 40, 40, 0.15);
+}
+
+/* ── Inline card edit row (title + edit/delete buttons) ── */
+.card-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.card-edit-row h4 {
+  margin: 0;
+  flex: 1;
+}
+
+.card-edit-btns {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 /* ── Compare Block Editor modal ── */

@@ -141,12 +141,13 @@ export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewPr
 interface CompareBlockEditorProps {
   block: CompareBlock | null;
   moduleId: string;
+  dimensionTab: string;
   onSave: (block: CompareBlock) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-export function CompareBlockEditor({ block, moduleId, onSave, onDelete, onClose }: CompareBlockEditorProps) {
+export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDelete, onClose }: CompareBlockEditorProps) {
   const isNew = block === null;
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -191,6 +192,7 @@ export function CompareBlockEditor({ block, moduleId, onSave, onDelete, onClose 
     onSave({
       id: block?.id ?? genId(),
       moduleId,
+      dimensionTab,
       title: title.trim(),
       rows: rows.filter(r => r.label.trim() && r.key.trim()),
       items,

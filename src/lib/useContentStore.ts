@@ -4,37 +4,65 @@
  */
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
+import type {
+  KnowledgeNode, LearningModule, CompareBlock,
+  OperationStep, CaseStudy, SkillItem,
+  LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem,
+} from "@/data/types";
 import { learningModules } from "@/data/knowledge";
 import { saveModuleNodesToGitHub } from "@/lib/githubNotes";
 
 const LS_KEY = "aishow_content_store";
 
+// Generic per-module list store
+type ModuleList<T> = Record<string, T[]>;
+
 export interface ContentStore {
-  // 对原始节点的覆盖（key = nodeId）
+  // ── Knowledge nodes ──
   nodeEdits: Record<string, Partial<KnowledgeNode>>;
-  // 每个模块新增的节点
-  addedNodes: Record<string, KnowledgeNode[]>;
-  // 已删除的节点 id
+  addedNodes: ModuleList<KnowledgeNode>;
   deletedNodes: string[];
-  // 新增的模块
+  // ── Modules ──
   addedModules: LearningModule[];
-  // 已删除的模块 id
   deletedModules: string[];
-  // 模块名称/图标/简介编辑
   moduleEdits: Record<string, Partial<Pick<LearningModule, "name" | "icon" | "intro">>>;
-  // 自定义对比组件（按模块存储）
+  // ── Compare blocks ──
   compareBlocks: CompareBlock[];
+  // ── Tab-specific items ──
+  addedOperations: ModuleList<OperationStep>;
+  editedOperations: Record<string, Partial<OperationStep>>;
+  deletedOperations: string[];
+  addedCases: ModuleList<CaseStudy>;
+  editedCases: Record<string, Partial<CaseStudy>>;
+  deletedCases: string[];
+  addedSkills: ModuleList<SkillItem>;
+  editedSkills: Record<string, Partial<SkillItem>>;
+  deletedSkills: string[];
+  addedPathNodes: ModuleList<LearningPathNode>;
+  editedPathNodes: Record<string, Partial<LearningPathNode>>;
+  deletedPathNodes: string[];
+  addedInterviews: ModuleList<InterviewQuestion>;
+  editedInterviews: Record<string, Partial<InterviewQuestion>>;
+  deletedInterviews: string[];
+  addedCareer: ModuleList<CareerMilestone>;
+  editedCareer: Record<string, Partial<CareerMilestone>>;
+  deletedCareer: string[];
+  addedTools: ModuleList<ToolItem>;
+  editedTools: Record<string, Partial<ToolItem>>;
+  deletedTools: string[];
 }
 
 const DEFAULT_STORE: ContentStore = {
-  nodeEdits: {},
-  addedNodes: {},
-  deletedNodes: [],
-  addedModules: [],
-  deletedModules: [],
-  moduleEdits: {},
+  nodeEdits: {}, addedNodes: {}, deletedNodes: [],
+  addedModules: [], deletedModules: [], moduleEdits: {},
   compareBlocks: [],
+  addedOperations: {}, editedOperations: {}, deletedOperations: [],
+  addedCases: {}, editedCases: {}, deletedCases: [],
+  addedSkills: {}, editedSkills: {}, deletedSkills: [],
+  addedPathNodes: {}, editedPathNodes: {}, deletedPathNodes: [],
+  addedInterviews: {}, editedInterviews: {}, deletedInterviews: [],
+  addedCareer: {}, editedCareer: {}, deletedCareer: [],
+  addedTools: {}, editedTools: {}, deletedTools: [],
 };
 
 function loadLocal(): ContentStore {
@@ -51,17 +79,47 @@ function saveLocal(store: ContentStore) {
   }, 0);
 }
 
+// Merge a base list with edits/adds/deletes
+function mergeList<T extends { id: string }>(
+  base: T[], added: T[],
+  edited: Record<string, Partial<T>>,
+  deleted: string[]
+): T[] {
+  const merged = base
+    .filter(i => !deleted.includes(i.id))
+    .map(i => edited[i.id] ? { ...i, ...edited[i.id] } : i);
+  const baseIds = new Set(merged.map(i => i.id));
+  const extra = added
+    .filter(i => !deleted.includes(i.id) && !baseIds.has(i.id))
+    .map(i => edited[i.id] ? { ...i, ...edited[i.id] } : i); // also apply edits to added items
+  return [...merged, ...extra];
+}
+
 // 给定模块，计算当前完整的 knowledgeNodes（含本地覆盖）
 function getMergedNodes(moduleId: string, store: ContentStore): KnowledgeNode[] {
   const base = learningModules.find(m => m.id === moduleId);
-  const baseNodes = (base?.knowledgeNodes ?? [])
-    .filter(n => !store.deletedNodes.includes(n.id))
-    .map(n => store.nodeEdits[n.id] ? { ...n, ...store.nodeEdits[n.id] } : n);
-  const baseIds = new Set(baseNodes.map(n => n.id));
-  const extraNodes = (store.addedNodes[moduleId] ?? [])
-    .filter(n => !store.deletedNodes.includes(n.id))
-    .filter(n => !baseIds.has(n.id));
-  return [...baseNodes, ...extraNodes];
+  return mergeList(
+    base?.knowledgeNodes ?? [],
+    store.addedNodes[moduleId] ?? [],
+    store.nodeEdits,
+    store.deletedNodes
+  );
+}
+
+function getMergedModule(m: LearningModule, store: ContentStore): LearningModule {
+  const mid = m.id;
+  const edit = store.moduleEdits[mid];
+  return {
+    ...(edit ? { ...m, ...edit } : m),
+    knowledgeNodes: getMergedNodes(mid, store),
+    operationSteps: mergeList(m.operationSteps, store.addedOperations[mid] ?? [], store.editedOperations, store.deletedOperations),
+    cases: mergeList(m.cases, store.addedCases[mid] ?? [], store.editedCases, store.deletedCases),
+    skills: mergeList(m.skills ?? [], store.addedSkills[mid] ?? [], store.editedSkills, store.deletedSkills),
+    learningPath: mergeList(m.learningPath ?? [], store.addedPathNodes[mid] ?? [], store.editedPathNodes, store.deletedPathNodes),
+    interviewQuestions: mergeList(m.interviewQuestions ?? [], store.addedInterviews[mid] ?? [], store.editedInterviews, store.deletedInterviews),
+    careerPlan: mergeList(m.careerPlan ?? [], store.addedCareer[mid] ?? [], store.editedCareer, store.deletedCareer),
+    tools: mergeList(m.tools ?? [], store.addedTools[mid] ?? [], store.editedTools, store.deletedTools),
+  };
 }
 
 export function useContentStore() {
@@ -70,7 +128,10 @@ export function useContentStore() {
   const [syncMsg, setSyncMsg] = useState("");
 
   useEffect(() => {
+    // Restore from localStorage after mount (avoids SSR hydration mismatch)
+    /* eslint-disable react-hooks/set-state-in-effect */
     setStore(loadLocal());
+    /* eslint-enable react-hooks/set-state-in-effect */
     const handler = (e: Event) => setStore((e as CustomEvent).detail as ContentStore);
     window.addEventListener("content-store-updated", handler);
     window.addEventListener("storage", () => setStore(loadLocal()));
@@ -199,32 +260,54 @@ export function useContentStore() {
     });
   }, []);
 
+  // ── Tab-item ops (operation / cases / skills / path / interview / career) ──
+  const addOperation    = useCallback((mid: string, item: OperationStep)      => { setStore(prev => { const l = prev.addedOperations; const n = {...prev, addedOperations: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editOperation   = useCallback((id: string,  f: Partial<OperationStep>)   => { setStore(prev => { const e = prev.editedOperations; const n = {...prev, editedOperations: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteOperation = useCallback((mid: string, id: string)                => { setStore(prev => { const l = prev.addedOperations; const n = {...prev, deletedOperations: [...prev.deletedOperations.filter(x=>x!==id), id], addedOperations: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addCase    = useCallback((mid: string, item: CaseStudy)           => { setStore(prev => { const l = prev.addedCases; const n = {...prev, addedCases: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editCase   = useCallback((id: string,  f: Partial<CaseStudy>)      => { setStore(prev => { const e = prev.editedCases; const n = {...prev, editedCases: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteCase = useCallback((mid: string, id: string)                => { setStore(prev => { const l = prev.addedCases; const n = {...prev, deletedCases: [...prev.deletedCases.filter(x=>x!==id), id], addedCases: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addSkill    = useCallback((mid: string, item: SkillItem)          => { setStore(prev => { const l = prev.addedSkills; const n = {...prev, addedSkills: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editSkill   = useCallback((id: string,  f: Partial<SkillItem>)     => { setStore(prev => { const e = prev.editedSkills; const n = {...prev, editedSkills: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteSkill = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedSkills; const n = {...prev, deletedSkills: [...prev.deletedSkills.filter(x=>x!==id), id], addedSkills: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addPathNode    = useCallback((mid: string, item: LearningPathNode)     => { setStore(prev => { const l = prev.addedPathNodes; const n = {...prev, addedPathNodes: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editPathNode   = useCallback((id: string,  f: Partial<LearningPathNode>) => { setStore(prev => { const e = prev.editedPathNodes; const n = {...prev, editedPathNodes: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deletePathNode = useCallback((mid: string, id: string)                 => { setStore(prev => { const l = prev.addedPathNodes; const n = {...prev, deletedPathNodes: [...prev.deletedPathNodes.filter(x=>x!==id), id], addedPathNodes: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addInterview    = useCallback((mid: string, item: InterviewQuestion)     => { setStore(prev => { const l = prev.addedInterviews; const n = {...prev, addedInterviews: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editInterview   = useCallback((id: string,  f: Partial<InterviewQuestion>) => { setStore(prev => { const e = prev.editedInterviews; const n = {...prev, editedInterviews: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteInterview = useCallback((mid: string, id: string)                  => { setStore(prev => { const l = prev.addedInterviews; const n = {...prev, deletedInterviews: [...prev.deletedInterviews.filter(x=>x!==id), id], addedInterviews: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addCareer    = useCallback((mid: string, item: CareerMilestone)    => { setStore(prev => { const l = prev.addedCareer; const n = {...prev, addedCareer: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editCareer   = useCallback((id: string,  f: Partial<CareerMilestone>) => { setStore(prev => { const e = prev.editedCareer; const n = {...prev, editedCareer: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteCareer = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedCareer; const n = {...prev, deletedCareer: [...prev.deletedCareer.filter(x=>x!==id), id], addedCareer: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
+  const addTool    = useCallback((mid: string, item: ToolItem)    => { setStore(prev => { const l = prev.addedTools; const n = {...prev, addedTools: {...l, [mid]: [...(l[mid]??[]), item]}}; saveLocal(n); return n; }); }, []);
+  const editTool   = useCallback((id: string,  f: Partial<ToolItem>) => { setStore(prev => { const e = prev.editedTools; const n = {...prev, editedTools: {...e, [id]: {...e[id], ...f}}}; saveLocal(n); return n; }); }, []);
+  const deleteTool = useCallback((mid: string, id: string)               => { setStore(prev => { const l = prev.addedTools; const n = {...prev, deletedTools: [...prev.deletedTools.filter(x=>x!==id), id], addedTools: {...l, [mid]: (l[mid]??[]).filter(i=>i.id!==id)}}; saveLocal(n); return n; }); }, []);
+
   // ── Computed: merged modules list ──
   const mergedModules: LearningModule[] = [
     ...learningModules
       .filter(m => !store.deletedModules.includes(m.id))
-      .map(m => {
-        const edit = store.moduleEdits[m.id];
-        const nodes = getMergedNodes(m.id, store);
-        return edit ? { ...m, ...edit, knowledgeNodes: nodes } : { ...m, knowledgeNodes: nodes };
-      }),
+      .map(m => getMergedModule(m, store)),
     ...store.addedModules.filter(m => !store.deletedModules.includes(m.id)),
   ];
 
   return {
-    store,
-    mergedModules,
-    syncStatus,
-    syncMsg,
-    editNode,
-    addNode,
-    deleteNode,
-    restoreNode,
-    addModule,
-    deleteModule,
-    editModule,
-    addCompareBlock,
-    editCompareBlock,
-    deleteCompareBlock,
+    store, mergedModules, syncStatus, syncMsg,
+    editNode, addNode, deleteNode, restoreNode,
+    addModule, deleteModule, editModule,
+    addCompareBlock, editCompareBlock, deleteCompareBlock,
+    addOperation, editOperation, deleteOperation,
+    addCase, editCase, deleteCase,
+    addSkill, editSkill, deleteSkill,
+    addPathNode, editPathNode, deletePathNode,
+    addInterview, editInterview, deleteInterview,
+    addCareer, editCareer, deleteCareer,
+    addTool, editTool, deleteTool,
   };
 }

@@ -87,6 +87,19 @@ export interface LearningModule {
   learningPath?: LearningPathNode[];
   interviewQuestions?: InterviewQuestion[];
   careerPlan?: CareerMilestone[];
+  tools?: ToolItem[];
+}
+
+// ── Tool Item ─────────────────────────────────────────────────────────────
+
+export interface ToolItem {
+  id: string;
+  name: string;
+  category: string;   // 如「AI写作」「AI绘图」「开发工具」
+  url?: string;       // 官网链接
+  description: string;
+  tags: string[];
+  isPaid?: boolean;
 }
 
 // ── Compare Block ─────────────────────────────────────────────────────────
@@ -104,8 +117,9 @@ export interface CompareItem {
 
 export interface CompareBlock {
   id: string;
-  moduleId: string;   // 所属模块
-  title: string;      // 标题，如「六种算法横向对比」
+  moduleId: string;        // 所属模块
+  dimensionTab: string;    // 所属 tab，如 "knowledge" | "operation" | ...
+  title: string;           // 标题，如「六种算法横向对比」
   rows: { label: string; key: string }[]; // 表格行定义
   items: CompareItem[];
   order: number;
