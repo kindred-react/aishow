@@ -7,6 +7,7 @@ import type {
   LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem,
   KnowledgeLevel,
 } from "@/data/types";
+import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT, INTERVIEW_DIFFICULTIES, INTERVIEW_DIFFICULTY_DEFAULT } from "@/data/types";
 
 function genId(prefix = "item") {
   return prefix + "-" + Math.random().toString(36).slice(2, 8);
@@ -136,10 +137,10 @@ function SkillForm({ init, onSave, t }: { init: SkillItem | null; onSave: (v: Sk
 // ─────────────────────────────────────────────
 // LearningPathNode editor
 // ─────────────────────────────────────────────
-const PATH_LEVELS: KnowledgeLevel[] = ["基础","进阶","实战"];
+const PATH_LEVELS = KNOWLEDGE_LEVELS;
 function PathForm({ init, onSave, t }: { init: LearningPathNode | null; onSave: (v: LearningPathNode) => void; t: T }) {
   const [title, setTitle] = useState(init?.title ?? "");
-  const [level, setLevel] = useState<KnowledgeLevel>(init?.level ?? "基础");
+  const [level, setLevel] = useState<KnowledgeLevel>(init?.level ?? KNOWLEDGE_LEVEL_DEFAULT);
   const [hours, setHours] = useState(String(init?.estimatedHours ?? ""));
   const [tip, setTip] = useState(init?.tip ?? "");
   const ref = useRef<HTMLInputElement>(null);
@@ -167,12 +168,14 @@ function PathForm({ init, onSave, t }: { init: LearningPathNode | null; onSave: 
 // ─────────────────────────────────────────────
 // InterviewQuestion editor
 // ─────────────────────────────────────────────
-const IQ_DIFFICULTIES = ["初级","中级","高级"] as const;
-const IQ_CATEGORIES = ["技术理解","产品设计","商业判断","行为面试"];
+type IQDifficulty = typeof INTERVIEW_DIFFICULTIES[number];
+
 function InterviewForm({ init, onSave, t }: { init: InterviewQuestion | null; onSave: (v: InterviewQuestion) => void; t: T }) {
+  const getCategories = () => [t.iqCatTech, t.iqCatProduct, t.iqCatBusiness, t.iqCatBehavior];
+  const IQ_CATEGORIES = getCategories();
   const [question, setQuestion] = useState(init?.question ?? "");
   const [category, setCategory] = useState(init?.category ?? IQ_CATEGORIES[0]);
-  const [difficulty, setDifficulty] = useState<"初级"|"中级"|"高级">(init?.difficulty ?? "初级");
+  const [difficulty, setDifficulty] = useState<IQDifficulty>(init?.difficulty ?? INTERVIEW_DIFFICULTY_DEFAULT);
   const [framework, setFramework] = useState(init?.framework ?? "");
   const [keyPoints, setKeyPoints] = useState<string[]>(init?.keyPoints ?? [""]);
   const [sampleAnswer, setSampleAnswer] = useState(init?.sampleAnswer ?? "");
@@ -193,7 +196,7 @@ function InterviewForm({ init, onSave, t }: { init: InterviewQuestion | null; on
         </div>
         <div className="note-field">
           <label className="note-label">{t.iqDifficulty}</label>
-          <div className="node-level-btns">{IQ_DIFFICULTIES.map(d => <button key={d} type="button" className={`node-level-btn ${difficulty===d?"active":""}`} onClick={()=>setDifficulty(d)}>{d}</button>)}</div>
+          <div className="node-level-btns">{INTERVIEW_DIFFICULTIES.map(d => <button key={d} type="button" className={`node-level-btn ${difficulty===d?"active":""}`} onClick={()=>setDifficulty(d)}>{d}</button>)}</div>
         </div>
       </div>
       <div className="note-field"><label className="note-label">{t.iqFramework}</label><input className="note-input" value={framework} onChange={e => setFramework(e.target.value)} placeholder={t.iqFrameworkPh} /></div>
@@ -241,13 +244,23 @@ function CareerForm({ init, onSave, t }: { init: CareerMilestone | null; onSave:
 // ─────────────────────────────────────────────
 // ToolItem editor
 // ─────────────────────────────────────────────
-const TOOL_CATEGORIES = ["AI写作","AI绘图","AI编程","AI搜索","AI视频","AI音频","开发工具","效率工具","其他"];
-const TOOL_CATEGORIES_EN = ["AI Writing","AI Image","AI Coding","AI Search","AI Video","AI Audio","Dev Tools","Productivity","Other"];
 function ToolForm({ init, onSave, t }: { init: ToolItem | null; onSave: (v: ToolItem) => void; t: T }) {
   const { locale } = useI18n();
   const isEn = locale === "en";
+  const TOOL_CATEGORIES = [
+    { zh: t.toolCatAiWrite, en: t.toolCatAiWrite },
+    { zh: t.toolCatAiImage, en: t.toolCatAiImage },
+    { zh: t.toolCatAiCode,  en: t.toolCatAiCode },
+    { zh: t.toolCatAiSearch, en: t.toolCatAiSearch },
+    { zh: t.toolCatAiVideo, en: t.toolCatAiVideo },
+    { zh: t.toolCatAiAudio, en: t.toolCatAiAudio },
+    { zh: t.toolCatDev,     en: t.toolCatDev },
+    { zh: t.toolCatProductivity, en: t.toolCatProductivity },
+    { zh: t.toolCatOther,   en: t.toolCatOther },
+  ];
+  const categoryLabels = TOOL_CATEGORIES.map(c => isEn ? c.en : c.zh);
   const [name, setName] = useState(init?.name ?? "");
-  const [category, setCategory] = useState(init?.category ?? TOOL_CATEGORIES[0]);
+  const [category, setCategory] = useState(init?.category ?? categoryLabels[0]);
   const [url, setUrl] = useState(init?.url ?? "");
   const [description, setDescription] = useState(init?.description ?? "");
   const [tags, setTags] = useState<string[]>(init?.tags ?? [""]);
@@ -267,7 +280,7 @@ function ToolForm({ init, onSave, t }: { init: ToolItem | null; onSave: (v: Tool
       <div className="note-field">
         <label className="note-label">{t.toolCategory}</label>
         <div className="node-level-btns" style={{flexWrap:"wrap"}}>
-          {TOOL_CATEGORIES.map((c, i) => <button key={c} type="button" className={`node-level-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{isEn ? TOOL_CATEGORIES_EN[i] : c}</button>)}
+          {categoryLabels.map((c) => <button key={c} type="button" className={`node-level-btn ${category===c?"active":""}`} onClick={()=>setCategory(c)}>{c}</button>)}
         </div>
       </div>
       <div className="note-field"><label className="note-label">{t.toolDesc}</label><textarea className="note-textarea" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder={t.toolDescPh} /></div>
@@ -285,26 +298,6 @@ function ToolForm({ init, onSave, t }: { init: ToolItem | null; onSave: (v: Tool
 
 export type TabItemType = "operation" | "cases" | "skills" | "path" | "interview" | "career" | "tools";
 
-const TAB_LABELS_ZH: Record<TabItemType, string> = {
-  operation: "操作步骤",
-  cases: "案例",
-  skills: "技能",
-  path: "路径节点",
-  interview: "面试题",
-  career: "职业规划条目",
-  tools: "工具",
-};
-
-const TAB_LABELS_EN: Record<TabItemType, string> = {
-  operation: "Operation Step",
-  cases: "Case Study",
-  skills: "Skill",
-  path: "Path Node",
-  interview: "Interview Q",
-  career: "Career Milestone",
-  tools: "Tool",
-};
-
 type AnyItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
 
 interface TabItemEditorProps {
@@ -317,9 +310,18 @@ interface TabItemEditorProps {
 
 export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemEditorProps) {
   const isNew = item === null;
-  const { locale, t } = useI18n();
-  const isEn = locale === "en";
-  const label = (isEn ? TAB_LABELS_EN : TAB_LABELS_ZH)[tab];
+  const { t } = useI18n();
+
+  const TAB_LABEL_MAP: Record<TabItemType, string> = {
+    operation: t.tabLabelOperation,
+    cases:     t.tabLabelCases,
+    skills:    t.tabLabelSkills,
+    path:      t.tabLabelPath,
+    interview: t.tabLabelInterview,
+    career:    t.tabLabelCareer,
+    tools:     t.tabLabelTools,
+  };
+  const label = TAB_LABEL_MAP[tab];
 
   const handleSave = (saved: AnyItem) => {
     onSave(saved);
@@ -327,7 +329,7 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
   };
 
   const handleDelete = () => {
-    if (!confirm(isEn ? `Delete this ${label}?` : `确定删除这条${label}？`)) return;
+    if (!confirm(t.tabItemDeleteConfirm(label))) return;
     onDelete?.();
     onClose();
   };
@@ -336,7 +338,7 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
     <div className="note-overlay" onClick={onClose}>
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="note-modal-header">
-          <span>{isNew ? (isEn ? `Add ${label}` : `新增${label}`) : (isEn ? `Edit: ${label}` : `编辑：${label}`)}</span>
+          <span>{isNew ? t.tabItemAdd(label) : t.tabItemEdit(label)}</span>
           <div style={{display:"flex",gap:"0.3rem"}}>
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13}/> {t.deleteNode}</button>

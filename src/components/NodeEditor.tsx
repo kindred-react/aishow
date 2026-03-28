@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
+import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT } from "@/data/types";
 import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
 import { useI18n } from "@/lib/i18n";
 
-const LEVELS: KnowledgeLevel[] = ["基础", "进阶", "实战"];
 const COLORS = [
   "var(--c-neon)", "var(--c-violet)", "var(--c-pink)",
   "var(--c-cyan)", "#f0a030", "#60d890", "#a080f0", "#f06060",
@@ -28,7 +28,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
   const isNew = node === null;
   const [title, setTitle] = useState(node?.title ?? "");
   const [summary, setSummary] = useState(node?.summary ?? "");
-  const [level, setLevel] = useState<KnowledgeLevel>(node?.level ?? "基础");
+  const [level, setLevel] = useState<KnowledgeLevel>(node?.level ?? KNOWLEDGE_LEVEL_DEFAULT);
   const [metaphor, setMetaphor] = useState(node?.metaphor ?? "");
   const [points, setPoints] = useState<string[]>(node?.points ?? [""]);
   const [color, setColor] = useState(node?.color ?? COLORS[0]);
@@ -136,7 +136,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
             <div className="note-field">
               <label className="note-label">{t.nodeDifficulty}</label>
               <div className="node-level-btns">
-                {LEVELS.map(l => (
+                {KNOWLEDGE_LEVELS.map(l => (
                   <button key={l} type="button"
                     className={`node-level-btn ${level === l ? "active" : ""}`}
                     onClick={() => setLevel(l)}>{l}</button>

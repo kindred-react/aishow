@@ -38,6 +38,7 @@ import { useContentStore } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem, DimensionTab, TabConfig, TabWidget } from "@/data/types";
+import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS } from "@/data/types";
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
@@ -54,15 +55,10 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
     if (!moduleData) return 0;
     const tab = init?.key ?? "";
     const check = (dim: string | undefined, native: string) => (dim ?? native) === tab;
-    if (key === "knowledge") return moduleData.knowledgeNodes.filter(i => check(i.dimensionTab, "knowledge")).length;
-    if (key === "operation") return moduleData.operationSteps.filter(i => check(i.dimensionTab, "operation")).length;
-    if (key === "case")      return (moduleData.cases ?? []).filter(i => check(i.dimensionTab, "cases")).length;
-    if (key === "tool")      return (moduleData.tools ?? []).filter(i => check(i.dimensionTab, "tools")).length;
-    if (key === "skill")     return (moduleData.skills ?? []).filter(i => check(i.dimensionTab, "skills")).length;
-    if (key === "path")      return (moduleData.learningPath ?? []).filter(i => check(i.dimensionTab, "path")).length;
-    if (key === "interview") return (moduleData.interviewQuestions ?? []).filter(i => check(i.dimensionTab, "interview")).length;
-    if (key === "career")    return (moduleData.careerPlan ?? []).filter(i => check(i.dimensionTab, "career")).length;
-    return 0;
+    const entry = WIDGET_MODULE_MAP.find(e => e.widget === key);
+    if (!entry) return 0;
+    const items = (moduleData[entry.field] as Array<{ dimensionTab?: string }> | undefined) ?? [];
+    return items.filter(i => check(i.dimensionTab, entry.defaultTab)).length;
   };
   const [label, setLabel] = useState(init?.label ?? "");
   const ref = useRef<HTMLInputElement>(null);
@@ -134,7 +130,12 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
                   onChange={() => toggleWidget(row.key)}
                   style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
                 />
-                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={meta?.desc}>
+                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={({
+                    knowledge: t.widgetKnowledgeDesc, operation: t.widgetOperationDesc,
+                    case: t.widgetCaseDesc, skill: t.widgetSkillDesc, path: t.widgetPathDesc,
+                    interview: t.widgetInterviewDesc, career: t.widgetCareerDesc,
+                    tool: t.widgetToolDesc, compare: t.widgetCompareDesc,
+                  } as Record<string,string>)[row.key]}>
                   <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
                   {({
                     knowledge: t.widgetKnowledge, operation: t.widgetOperation,
@@ -147,22 +148,22 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
                 <button type="button" disabled={idx === 0}
                   onClick={() => moveWidget(idx, -1)}
                   style={{appearance:"none",background:"none",border:"none",color:idx===0?"#2a4060":"#7aaad0",cursor:idx===0?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
-                  title="上移"
+                  title={t.moveUp}
                 >▲</button>
                 <button type="button" disabled={idx === widgetRows.length - 1}
                   onClick={() => moveWidget(idx, 1)}
                   style={{appearance:"none",background:"none",border:"none",color:idx===widgetRows.length-1?"#2a4060":"#7aaad0",cursor:idx===widgetRows.length-1?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
-                  title="下移"
+                  title={t.moveDown}
                 >▼</button>
               </div>
             );
           })}
         </div>
         <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.4rem",display:"block"}}>
-          勾选的组件会在内容区显示对应「新增」按钮，顺序即为内容区渲染顺序
+          {t.widgetFooterHint}
         </span>
       </div>
-      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> 保存</button>
+      <button type="button" className="note-save-btn note-save-btn-active" onClick={save}><Save size={13}/> {t.save}</button>
     </>
   );
 }
@@ -198,9 +199,10 @@ function CompareBlockList({
   );
 }
 
-const levelOrder = ["基础", "进阶", "实战"] as const;
+const FILTER_ALL = "all" as const;
+const levelOrder = KNOWLEDGE_LEVELS;
 
-type KnowledgeLevelFilter = "全部" | (typeof levelOrder)[number];
+type KnowledgeLevelFilter = typeof FILTER_ALL | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
   const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
@@ -230,12 +232,13 @@ export function KnowledgeBoard() {
 
   const [activeModuleId, setActiveModuleId] = useState<string>("");
   const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
-  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>("全部");
+  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(FILTER_ALL);
   const [isMounted, setIsMounted] = useState(false);
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("kb-theme") !== "light";
-  });
+  const [isDark, setIsDark] = useState<boolean>(true);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDark(localStorage.getItem("kb-theme") !== "light");
+  }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -262,38 +265,21 @@ export function KnowledgeBoard() {
     for (const m of mergedModules) {
       const dims = m.enabledTabs ?? ALL_TABS;
       const getTab = (key: string) => dims.find(t => t.key === key)?.label ?? key;
-      m.knowledgeNodes.forEach(n => {
-        if (n.title.toLowerCase().includes(q) || n.summary?.toLowerCase().includes(q) || n.points?.some((p: string) => p.toLowerCase().includes(q)))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: n.dimensionTab ?? "knowledge", tabLabel: getTab(n.dimensionTab ?? "knowledge"), title: n.title, subtitle: n.summary?.slice(0,80), type: "知识" });
-      });
-      m.operationSteps.forEach(s => {
-        if (s.title.toLowerCase().includes(q) || s.detail?.toLowerCase().includes(q) || s.target?.toLowerCase().includes(q) || s.tools?.some((tool: string) => tool.toLowerCase().includes(q)))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "operation", tabLabel: getTab(s.dimensionTab ?? "operation"), title: s.title, subtitle: s.target, type: "操作" });
-      });
-      (m.cases ?? []).forEach(c => {
-        if (c.title.toLowerCase().includes(q) || c.scene?.toLowerCase().includes(q) || c.problem?.toLowerCase().includes(q) || c.solution?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "cases", tabLabel: getTab(c.dimensionTab ?? "cases"), title: c.title, subtitle: c.scene, type: "案例" });
-      });
-      (m.tools ?? []).forEach(t => {
-        if (t.name.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q) || t.tags?.some((tag: string) => tag.toLowerCase().includes(q)) || t.category?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: t.dimensionTab ?? "tools", tabLabel: getTab(t.dimensionTab ?? "tools"), title: t.name, subtitle: t.description, type: "工具" });
-      });
-      (m.skills ?? []).forEach(s => {
-        if (s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.dimension?.toLowerCase().includes(q) || s.howTo?.some((h: string) => h.toLowerCase().includes(q)))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "skills", tabLabel: getTab(s.dimensionTab ?? "skills"), title: s.name, subtitle: s.description, type: "能力" });
-      });
-      (m.interviewQuestions ?? []).forEach(q2 => {
-        if (q2.question.toLowerCase().includes(q) || q2.sampleAnswer?.toLowerCase().includes(q) || q2.keyPoints?.some((kp: string) => kp.toLowerCase().includes(q)) || q2.framework?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: q2.dimensionTab ?? "interview", tabLabel: getTab(q2.dimensionTab ?? "interview"), title: q2.question.slice(0,80), subtitle: q2.category, type: "面试" });
-      });
-      (m.learningPath ?? []).forEach(p => {
-        if (p.title.toLowerCase().includes(q) || p.tip?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: p.dimensionTab ?? "path", tabLabel: getTab(p.dimensionTab ?? "path"), title: p.title, subtitle: p.tip, type: "路径" });
-      });
-      (m.careerPlan ?? []).forEach(c => {
-        if (c.phase.toLowerCase().includes(q) || c.goal?.toLowerCase().includes(q) || c.actions?.some((a: string) => a.toLowerCase().includes(q)))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "career", tabLabel: getTab(c.dimensionTab ?? "career"), title: c.phase, subtitle: c.goal, type: "职规" });
-      });
+      for (const entry of WIDGET_MODULE_MAP) {
+        const items = (m[entry.field] as Array<{ dimensionTab?: string }> | undefined) ?? [];
+        (items as Parameters<typeof entry.searchFn>[0][]).forEach(item => {
+          if (entry.searchFn(item as never, q))
+            results.push({
+              moduleId: m.id,
+              moduleName: m.name,
+              tabKey: (item as { dimensionTab?: string }).dimensionTab ?? entry.defaultTab,
+              tabLabel: getTab((item as { dimensionTab?: string }).dimensionTab ?? entry.defaultTab),
+              title: entry.titleFn(item as never),
+              subtitle: entry.subtitleFn?.(item as never),
+              type: entry.typeLabel,
+            });
+        });
+      }
     }
     return results.slice(0, 60);
   }, [searchQuery, mergedModules]);
@@ -325,8 +311,8 @@ export function KnowledgeBoard() {
     const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
     /* eslint-disable react-hooks/set-state-in-effect */
     if (savedModule) setActiveModuleId(savedModule);
-    if (savedDimension && ["knowledge","operation","skills","path","interview","career","tools","cases"].includes(savedDimension)) setActiveDimension(savedDimension);
-    if (savedLevel && ["全部","基础","进阶","实战"].includes(savedLevel)) setLevelFilter(savedLevel);
+    if (savedDimension && (["knowledge","operation","skills","path","interview","career","tools","cases"] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedLevel && ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(savedLevel)) setLevelFilter(savedLevel as KnowledgeLevelFilter);
     /* eslint-enable react-hooks/set-state-in-effect */
     // Small delay so state settles before revealing UI (prevents jump)
     setTimeout(() => setIsMounted(true), 80);
@@ -477,7 +463,7 @@ export function KnowledgeBoard() {
     const forThisTab = activeModule.knowledgeNodes.filter(n =>
       (n.dimensionTab ?? "knowledge") === activeDimension
     );
-    if (levelFilter === "全部") return forThisTab;
+    if (levelFilter === FILTER_ALL) return forThisTab;
     return forThisTab.filter((item) => item.level === levelFilter);
   }, [activeModule, levelFilter, activeDimension]);
 
@@ -489,8 +475,6 @@ export function KnowledgeBoard() {
       ?? ALL_TABS.find(t => t.key === activeDimension)?.widgets
       ?? ["compare"];
   }, [activeModule, activeDimension]);
-  const hasWidget = (w: TabWidget) => activeWidgets.includes(w);
-
   const tocItems = useMemo(() => {
     if (!activeModule) return [];
     // Build toc from all active widgets in current tab
@@ -536,7 +520,7 @@ export function KnowledgeBoard() {
           <Sparkles size={14} /> AI Learning Atlas
         </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.4 }}>
-          大模型多维知识中枢
+          {t.heroTitle}
         </motion.h1>
       </header>
 
@@ -546,7 +530,7 @@ export function KnowledgeBoard() {
             <div key={module.id} className="module-btn-wrap">
               <button type="button"
                 className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
-                onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter("全部"); }}
+                onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter(FILTER_ALL); }}
                 onContextMenu={isEditMode ? (e) => { e.preventDefault(); setCtxMenu({ moduleId: module.id, x: e.clientX, y: e.clientY }); } : undefined}
               >
                 <span className="module-icon">{module.icon}</span>{module.name}
@@ -610,25 +594,25 @@ export function KnowledgeBoard() {
               const addBtns: React.ReactNode[] = [];
               if (isEditMode) {
                 if (widget === "knowledge") addBtns.push(<button key="ak" type="button" className="section-add-btn" onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> {t.addKnowledgeNode}</button>);
-                if (widget === "operation") addBtns.push(<button key="aop" type="button" className="section-add-btn" onClick={() => openTabItemModal("operation")}><Plus size={13}/> 新增操作步骤</button>);
+                if (widget === "operation") addBtns.push(<button key="aop" type="button" className="section-add-btn" onClick={() => openTabItemModal("operation")}><Plus size={13}/> {t.addOperation}</button>);
                 if (widget === "case")      addBtns.push(<button key="ac" type="button" className="section-add-btn" onClick={() => openTabItemModal("cases")}><Plus size={13}/> {t.addCase}</button>);
                 if (widget === "skill")     addBtns.push(<button key="ask" type="button" className="section-add-btn" onClick={() => openTabItemModal("skills")}><Plus size={13}/> {t.addSkill}</button>);
                 if (widget === "path")      addBtns.push(<button key="ap" type="button" className="section-add-btn" onClick={() => openTabItemModal("path")}><Plus size={13}/> {t.addPathNode}</button>);
                 if (widget === "interview") addBtns.push(<button key="aiq" type="button" className="section-add-btn" onClick={() => openTabItemModal("interview")}><Plus size={13}/> {t.addInterview}</button>);
                 if (widget === "career")    addBtns.push(<button key="aca" type="button" className="section-add-btn" onClick={() => openTabItemModal("career")}><Plus size={13}/> {t.addCareer}</button>);
                 if (widget === "tool")      addBtns.push(<button key="at" type="button" className="section-add-btn" onClick={() => openTabItemModal("tools")}><Plus size={13}/> {t.addTool}</button>);
-                addBtns.push(<button key="acmp" type="button" className="section-add-btn" onClick={() => openCompareModal(activeDimension)}><Plus size={13}/> 新增对比组件</button>);
+                addBtns.push(<button key="acmp" type="button" className="section-add-btn" onClick={() => openCompareModal(activeDimension)}><Plus size={13}/> {t.addCompare}</button>);
               }
               const renderContent = () => {
                 switch (widget) {
                   case "knowledge": return (
                     <>
                       <div className="sub-filter">
-                        {(["全部", ...levelOrder] as const).map((item) => (
+                        {([FILTER_ALL, ...levelOrder] as KnowledgeLevelFilter[]).map((item) => (
                           <button key={item} type="button"
                             className={`sub-filter-btn ${levelFilter === item ? "active" : ""}`}
                             onClick={() => setLevelFilter(item)}
-                          >{item === "全部" ? t.filterAll : item}</button>
+                          >{item === FILTER_ALL ? t.filterAll : item}</button>
                         ))}
                       </div>
                       {activeModule.id === "agent" && (
@@ -675,7 +659,7 @@ export function KnowledgeBoard() {
                                   <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
                                 </div>}
                               </div>
-                              <p className="target">目标：{step.target}</p>
+                              <p className="target">{t.targetLabel}{step.target}</p>
                               <p>{step.detail}</p>
                               <div className="tool-tags">{step.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>
                             </div>
@@ -697,10 +681,10 @@ export function KnowledgeBoard() {
                                 <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
-                            <div className="case-row"><em>场景</em><span>{c.scene}</span></div>
+                            <div className="case-row"><em>{t.sceneLabel}</em><span>{c.scene}</span></div>
                             <div className="case-row"><em>{t.problemLabel}</em><span>{c.problem}</span></div>
-                            <div className="case-row"><em>方案</em><span>{c.solution}</span></div>
-                            <div className="case-row result"><em>结果</em><span>{c.result}</span></div>
+                            <div className="case-row"><em>{t.solutionLabel}</em><span>{c.solution}</span></div>
+                            <div className="case-row result"><em>{t.resultLabel}</em><span>{c.result}</span></div>
                             <div className="tool-tags">{c.tags.map((tg) => <span key={tg}>{tg}</span>)}</div>
                           </article>
                         ))}
@@ -724,7 +708,7 @@ export function KnowledgeBoard() {
                               </div>}
                             </div>
                             <p className="skill-desc">{skill.description}</p>
-                            <div className="skill-howto"><span className="skill-howto-label">如何提升</span><ul>{skill.howTo.map((h) => <li key={h}>{h}</li>)}</ul></div>
+                            <div className="skill-howto"><span className="skill-howto-label">{t.skillHowToLabel}</span><ul>{skill.howTo.map((h) => <li key={h}>{h}</li>)}</ul></div>
                           </article>
                         ))}
                       </div>
@@ -749,7 +733,7 @@ export function KnowledgeBoard() {
                                 </div>}
                               </div>
                               {node.prerequisite && node.prerequisite.length > 0 && (
-                                <span className="path-prereq">前置：{node.prerequisite.map(pid => activeModule.learningPath?.find(p => p.id === pid)?.title ?? pid).join(" / ")}</span>
+                                <span className="path-prereq">{t.pathPrereqLabel}{node.prerequisite.map(pid => activeModule.learningPath?.find(p => p.id === pid)?.title ?? pid).join(" / ")}</span>
                               )}
                               {node.tip && <p className="path-tip">💡 {node.tip}</p>}
                             </div>
@@ -790,8 +774,8 @@ export function KnowledgeBoard() {
                               <p className="career-goal">🎯 {m.goal}</p>
                               <ul className="career-actions">{m.actions.map((a) => <li key={a}>{a}</li>)}</ul>
                               <div className="career-footer">
-                                <span className="career-deliverable">📦 交付物：{m.deliverable}</span>
-                                <span className="career-check">✅ 验收：{m.checkPoint}</span>
+                                <span className="career-deliverable">{t.careerDeliverableLabel}{m.deliverable}</span>
+                                <span className="career-check">{t.careerCheckLabel}{m.checkPoint}</span>
                               </div>
                               {m.resources && m.resources.length > 0 && <div className="career-resources">{m.resources.map((r) => <span key={r}>{r}</span>)}</div>}
                             </div>
@@ -813,7 +797,7 @@ export function KnowledgeBoard() {
                                 <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
-                            <span className="tool-category">{tool.category}{tool.isPaid ? " · 付费" : " · 免费"}</span>
+                            <span className="tool-category">{tool.category}{tool.isPaid ? t.toolPaid : t.toolFree}</span>
                             {tool.description && <p style={{fontSize:"0.75rem",color:"#8aa0c8",margin:"0.3rem 0 0"}}>{tool.description}</p>}
                             {tool.url && <a href={tool.url} target="_blank" rel="noreferrer" style={{fontSize:"0.7rem",color:"var(--c-neon)",display:"block",marginTop:"0.25rem"}}>{tool.url}</a>}
                             {tool.tags.length > 0 && <div className="tool-tags" style={{marginTop:"0.3rem"}}>{tool.tags.map(tg => <span key={tg}>{tg}</span>)}</div>}
@@ -847,8 +831,8 @@ export function KnowledgeBoard() {
           </div>
 
           {tocItems.length > 0 && (
-            <nav className="toc-sidebar" aria-label="目录导航">
-              <p className="toc-title">目录</p>
+            <nav className="toc-sidebar" aria-label={t.tocNav}>
+              <p className="toc-title">{t.tocTitle}</p>
               {tocItems.map((item, idx) => (
                 <button key={item.id} type="button" className="toc-btn" title={item.label} onClick={() => scrollToId(item.id)}>
                   <span className="toc-btn-idx">{idx + 1}</span>{item.label}
@@ -1096,7 +1080,7 @@ export function KnowledgeBoard() {
             const next = (activeModule.enabledTabs ?? ALL_TABS).filter(t => t.key !== tabCtxMenu.tab.key);
             editModule(activeModule.id, { enabledTabs: next });
             if (activeDimension === tabCtxMenu.tab.key) setActiveDimension(next[0]?.key ?? "knowledge");
-          }}><Trash2 size={12}/> 删除 Tab</button>
+          }}><Trash2 size={12}/> {t.ctxDeleteTab}</button>
         </div>,
         document.body
       )}
@@ -1136,7 +1120,7 @@ export function KnowledgeBoard() {
           <button type="button" className="module-ctx-item" onClick={() => {
             const mod = sortedModules.find(m => m.id === ctxMenu.moduleId)!;
             setCtxMenu(null); setModuleModal({ open: true, module: mod });
-          }}><PenLine size={12} /> 编辑模块</button>
+          }}><PenLine size={12} /> {t.ctxEditModule}</button>
           <button type="button" className="module-ctx-item module-ctx-delete" onClick={() => {
             const mod = sortedModules.find(m => m.id === ctxMenu.moduleId)!;
             setCtxMenu(null);
@@ -1147,7 +1131,7 @@ export function KnowledgeBoard() {
                 if (next) setActiveModuleId(next.id);
               }
             }
-          }}><Trash2 size={12} /> 删除模块</button>
+          }}><Trash2 size={12} /> {t.ctxDeleteModule}</button>
         </div>,
         document.body
       )}
@@ -1190,8 +1174,8 @@ export function KnowledgeBoard() {
             </div>
             {searchQuery.trim() !== "" && searchResults.length > 0 && (
               <div style={{padding:"0.25rem 0.9rem 0",fontSize:"0.68rem",color:"var(--muted)",display:"flex",justifyContent:"space-between"}}>
-                <span>{searchResults.length} 条结果</span>
-                <span style={{opacity:0.5}}>↑↓ 导航 · Enter 跳转 · Esc 关闭</span>
+                <span>{t.searchResultCount(searchResults.length)}</span>
+                <span style={{opacity:0.5}}>{t.searchNavHint}</span>
               </div>
             )}
             <div className="search-results" ref={searchResultsRef}>

@@ -4,8 +4,6 @@ import { PenLine, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { InterviewQuestion } from "@/data/types";
 
-const DIFFICULTIES = ["全部", "初级", "中级", "高级"] as const;
-
 export function InterviewPanel({
   questions,
   isEditMode,
@@ -18,35 +16,38 @@ export function InterviewPanel({
   onDelete?: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const categories = useMemo(() => [
-    "全部",
-    ...Array.from(new Set(questions.map((q) => q.category))),
-  ], [questions]);
 
-  const [cat, setCat] = useState("全部");
-  const [diff, setDiff] = useState("全部");
+  const DIFFICULTIES = [t.interviewDiffAll, t.interviewDiffBeginner, t.interviewDiffIntermediate, t.interviewDiffAdvanced] as const;
+
+  const categories = useMemo(() => [
+    t.interviewDiffAll,
+    ...Array.from(new Set(questions.map((q) => q.category))),
+  ], [questions, t.interviewDiffAll]);
+
+  const [cat, setCat] = useState(t.interviewDiffAll);
+  const [diff, setDiff] = useState(t.interviewDiffAll);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     return questions.filter((q) => {
-      if (cat !== "全部" && q.category !== cat) return false;
-      if (diff !== "全部" && q.difficulty !== diff) return false;
+      if (cat !== t.interviewDiffAll && q.category !== cat) return false;
+      if (diff !== t.interviewDiffAll && q.difficulty !== diff) return false;
       if (search && !q.question.includes(search) && !q.keyPoints.join("").includes(search)) return false;
       return true;
     });
-  }, [questions, cat, diff, search]);
+  }, [questions, cat, diff, search, t.interviewDiffAll]);
 
   return (
     <div className="interview-panel">
       <div className="interview-filters">
         <input
           className="interview-search"
-          placeholder="搜索题目关键词…"
+          placeholder={t.interviewSearchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="interview-filter-row">
-          <span className="filter-label">分类</span>
+          <span className="filter-label">{t.interviewFilterCat}</span>
           {categories.map((c) => (
             <button
               key={c}
@@ -57,7 +58,7 @@ export function InterviewPanel({
           ))}
         </div>
         <div className="interview-filter-row">
-          <span className="filter-label">难度</span>
+          <span className="filter-label">{t.interviewFilterDiff}</span>
           {DIFFICULTIES.map((d) => (
             <button
               key={d}
@@ -69,7 +70,7 @@ export function InterviewPanel({
         </div>
         <div className="interview-count">
           {t.interviewTotal(filtered.length)}
-          {(cat !== "全部" || diff !== "全部" || search) && t.interviewFiltered(filtered.length, questions.length)}
+          {(cat !== t.interviewDiffAll || diff !== t.interviewDiffAll || search) && t.interviewFiltered(filtered.length, questions.length)}
         </div>
       </div>
 
@@ -88,19 +89,19 @@ export function InterviewPanel({
               )}
             </div>
             <h4 className="interview-q">{q.question}</h4>
-            <div className="interview-framework">答题框架：{q.framework}</div>
+            <div className="interview-framework">{t.interviewFrameworkLabel}{q.framework}</div>
             <ul className="interview-kps">
               {q.keyPoints.map((kp) => <li key={kp}>{kp}</li>)}
             </ul>
             <details className="interview-answer">
-              <summary>查看参考答案</summary>
+              <summary>{t.interviewViewAnswer}</summary>
               <p>{q.sampleAnswer}</p>
-              {q.pitfall && <p className="interview-pitfall">⚠️ 常见坑：{q.pitfall}</p>}
+              {q.pitfall && <p className="interview-pitfall">{t.interviewPitfallLabel}{q.pitfall}</p>}
             </details>
           </article>
         ))}
         {filtered.length === 0 && (
-          <p className="empty-hint">没有符合条件的题目，试试调整筛选条件</p>
+          <p className="empty-hint">{t.interviewNoResult}</p>
         )}
       </div>
     </div>

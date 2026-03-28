@@ -88,7 +88,7 @@ export function KnowledgeCard({
       )}
       {(node.source || node.updatedAt) && (
         <div className="knowledge-meta">
-          {node.source && <span className="meta-source">来源：{node.source}</span>}
+          {node.source && <span className="meta-source">{t.sourceLabel}{node.source}</span>}
           {node.updatedAt && <span className="meta-date">{node.updatedAt}</span>}
           {node.version && node.version > 1 && <span className="meta-version">v{node.version}</span>}
         </div>

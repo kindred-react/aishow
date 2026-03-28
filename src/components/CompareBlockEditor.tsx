@@ -71,7 +71,7 @@ export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewPr
                 <table className="apc-table">
                   <thead>
                     <tr>
-                      <th>维度</th>
+                      <th>{t.compareDimension}</th>
                       {block.items.map(item => (
                         <th key={item.id} style={{ color: item.color }}>
                           {item.name}
@@ -230,11 +230,11 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
           {/* LEFT: title + rows + item tabs */}
           <div className="cb-editor-left">
             <div className="note-field">
-              <label className="note-label">标题 <span style={{ color:"#f06060" }}>*</span></label>
+              <label className="note-label">{t.compareBlockTitleLabel} <span style={{ color:"#f06060" }}>*</span></label>
               <input ref={titleRef}
                 className={`note-input ${titleError ? "note-input-error" : ""}`}
                 value={title} onChange={e => { setTitle(e.target.value); setTitleError(false); }}
-                placeholder="如：六种算法横向对比" />
+                placeholder={t.compareBlockTitlePh} />
             </div>
 
             <div className="note-field">
@@ -246,7 +246,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                 {rows.map((row, idx) => (
                   <div key={idx} className="cb-row-item">
                     <GripVertical size={12} className="cb-grip" />
-                    <input className="note-input cb-row-input" placeholder="维度名 如：类别"
+                    <input className="note-input cb-row-input" placeholder={t.compareRowDimNamePh}
                       value={row.label} onChange={e => updateRow(idx, "label", e.target.value)} />
                     <input className="note-input cb-row-input cb-row-key" placeholder="key"
                       value={row.key} onChange={e => updateRow(idx, "key", e.target.value.replace(/\s/g,"_"))} />
@@ -258,7 +258,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
 
             <div className="note-field">
               <div className="note-label-row">
-                <label className="note-label">对比项（卡片列）</label>
+                <label className="note-label">{t.compareItemsLabel}</label>
                 <button type="button" className="note-add-point" onClick={addItem}><Plus size={11} /> {t.fieldAdd}</button>
               </div>
               <div className="cb-item-tabs">
@@ -270,7 +270,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                       onClick={() => setActiveItemIdx(idx)}
                     >
                       <span className="cb-item-tab-dot" style={{ background: item.color }} />
-                      {item.name || `项目 ${idx + 1}`}
+                      {item.name || t.compareItemDefault(idx + 1)}
                     </button>
                     {items.length > 1 && (
                       <button type="button" className="cb-item-tab-del" onClick={() => removeItem(idx)} title={t.deleteCompareBtn}>
@@ -287,19 +287,19 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
           {activeItem && (
             <div className="cb-editor-right">
               <div className="note-field">
-                <label className="note-label">名称 <span style={{ color:"#f06060" }}>*</span></label>
-                <input className="note-input" placeholder="如：线性回归"
+                <label className="note-label">{t.compareItemNameLabel} <span style={{ color:"#f06060" }}>*</span></label>
+                <input className="note-input" placeholder={t.compareItemNamePh}
                   value={activeItem.name}
                   onChange={e => updateItem(activeItemIdx, { name: e.target.value })} />
               </div>
               <div className="note-field">
-                <label className="note-label">副标题 / 英文名</label>
-                <input className="note-input" placeholder="如：Linear Regression"
+                <label className="note-label">{t.compareItemSubtitleLabel}</label>
+                <input className="note-input" placeholder={t.compareItemSubtitlePh}
                   value={activeItem.nameEn ?? ""}
                   onChange={e => updateItem(activeItemIdx, { nameEn: e.target.value })} />
               </div>
               <div className="note-field">
-                <label className="note-label">颜色</label>
+                <label className="note-label">{t.compareColorLabel}</label>
                 <div className="cb-palette">
                   {PALETTE.map((p, pi) => (
                     <button key={pi} type="button"
@@ -311,12 +311,12 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
               </div>
               {rows.filter(r => r.key && r.label).length > 0 && (
                 <div className="note-field">
-                  <label className="note-label">对比维度值</label>
+                  <label className="note-label">{t.compareTagValuesLabel}</label>
                   <div className="cb-tags-grid">
                     {rows.filter(r => r.key && r.label).map(row => (
                       <div key={row.key} className="cb-tag-row">
                         <span className="cb-tag-label">{row.label}</span>
-                        <input className="note-input" placeholder="填写该项的值"
+                        <input className="note-input" placeholder={t.compareTagValuePh}
                           value={activeItem.tags[row.key] ?? ""}
                           onChange={e => updateTag(activeItemIdx, row.key, e.target.value)} />
                       </div>
@@ -325,16 +325,16 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                 </div>
               )}
               <div className="note-field">
-                <label className="note-label">流程步骤（每行一步）</label>
+                <label className="note-label">{t.compareFlowLabel}</label>
                 <textarea className="note-textarea cb-textarea" rows={4}
-                  placeholder={"输入特征\n线性变换\n预测结果"}
+                  placeholder={t.compareFlowPh}
                   value={(activeItem.flow ?? []).join("\n")}
                   onChange={e => updateItem(activeItemIdx, { flow: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })} />
               </div>
               <div className="note-field">
-                <label className="note-label">要点列表（每行一条）</label>
+                <label className="note-label">{t.compareKeyPointsLabel}</label>
                 <textarea className="note-textarea cb-textarea" rows={5}
-                  placeholder={"最小二乘法\nPython: sklearn\n大模型关联"}
+                  placeholder={t.compareKeyPointsPh}
                   value={(activeItem.keyPoints ?? []).join("\n")}
                   onChange={e => updateItem(activeItemIdx, { keyPoints: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })} />
               </div>

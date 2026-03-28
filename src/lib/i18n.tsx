@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 export type Locale = "zh" | "en";
 
@@ -149,6 +149,22 @@ const ZH = {
   deleteCardConfirm2: (title: string) => `确定删除「${title}」？`,
   tocTitle: "目录",
   compareDimensions: "对比维度（表格行）",
+  compareBlockTitleLabel: "标题",
+  compareBlockTitlePh: "如：六种算法横向对比",
+  compareRowDimNamePh: "维度名 如：类别",
+  compareItemsLabel: "对比项（卡片列）",
+  compareItemDefault: (n: number) => `项目 ${n}`,
+  compareItemNameLabel: "名称",
+  compareItemNamePh: "如：线性回归",
+  compareItemSubtitleLabel: "副标题 / 英文名",
+  compareItemSubtitlePh: "如：Linear Regression",
+  compareColorLabel: "颜色",
+  compareTagValuesLabel: "对比维度值",
+  compareTagValuePh: "填写该项的值",
+  compareFlowLabel: "流程步骤（每行一步）",
+  compareFlowPh: "输入特征\n线性变换\n预测结果",
+  compareKeyPointsLabel: "要点列表（每行一条）",
+  compareKeyPointsPh: "最小二乘法\nPython: sklearn\n大模型关联",
   interviewFiltered: (shown: number, total: number) => ` (筛选自 ${total} 题)`,
   interviewTotal: (n: number) => `共 ${n} 题`,
   addToModule: (id: string) => `将添加到模块「${id}」`,
@@ -224,19 +240,87 @@ const ZH = {
   interviewSectionTitle: "面试准备",
   questionsCount: (n: number) => `${n} 题`,
   problemLabel: "问题",
+
+  // ── InterviewPanel ──
+  interviewSearchPlaceholder: "搜索题目关键词…",
+  interviewFilterCat: "分类",
+  interviewFilterDiff: "难度",
+  interviewNoResult: "没有符合条件的题目，试试调整筛选条件",
+  interviewViewAnswer: "查看参考答案",
+  interviewFrameworkLabel: "答题框架：",
+  interviewPitfallLabel: "⚠️ 常见坑：",
+  interviewDiffAll: "全部",
+  interviewDiffBeginner: "初级",
+  interviewDiffIntermediate: "中级",
+  interviewDiffAdvanced: "高级",
+
+  // ── TabItemEditor labels ──
+  tabLabelOperation: "操作步骤",
+  tabLabelCases: "案例",
+  tabLabelSkills: "技能",
+  tabLabelPath: "路径节点",
+  tabLabelInterview: "面试题",
+  tabLabelCareer: "职业规划条目",
+  tabLabelTools: "工具",
+  tabItemAdd: (label: string) => `新增${label}`,
+  tabItemEdit: (label: string) => `编辑：${label}`,
+  tabItemDeleteConfirm: (label: string) => `确定删除这条${label}？`,
+
+  // ── IQ categories ──
+  iqCatTech: "技术理解",
+  iqCatProduct: "产品设计",
+  iqCatBusiness: "商业判断",
+  iqCatBehavior: "行为面试",
+
+  // ── Tool categories ──
+  toolCatAiWrite: "AI写作",
+  toolCatAiImage: "AI绘图",
+  toolCatAiCode: "AI编程",
+  toolCatAiSearch: "AI搜索",
+  toolCatAiVideo: "AI视频",
+  toolCatAiAudio: "AI音频",
+  toolCatDev: "开发工具",
+  toolCatProductivity: "效率工具",
+  toolCatOther: "其他",
+
+  // ── NoteEditor ──
+  sourceLabel: "来源：",
   agentPatternLabel: "5种Agent模式对比",
   agentFrameworkLabel: "8种主流Agent框架 + MCP集成代码",
   mlAlgorithmLabel: "6个机器学习核心算法对比",
+  compareDimension: "维度",
+  compareZoomIn: "点击放大",
+  compareZoomTitle: "点击查看大图",
+  compareAlgoLightbox: (name: string) => `${name} — 算法示意图`,
+  comparePatternLightbox: (name: string) => `${name} — 流程图`,
+  compareCodeLabel: "集成 MCP Server 示例代码",
+  compareMLTitle: "六种算法横向对比",
+  comparePatternTitle: "五种模式横向对比",
+  compareFrameworkTitle: "8种主流Agent框架横向对比",
 
-  // ── Add buttons ──
-  addKnowledgeNode: "新增知识点",
-  addCompareBlock: "新增对比组件",
-  addTool: "新增工具",
+  // ── Section field labels ──
+  targetLabel: "目标：",
+  sceneLabel: "场景",
+  solutionLabel: "方案",
+  resultLabel: "结果",
+  skillHowToLabel: "如何提升",
+  pathPrereqLabel: "前置：",
+  careerDeliverableLabel: "📦 交付物：",
+  careerCheckLabel: "✅ 验收：",
+  toolPaid: "· 付费",
+  toolFree: "· 免费",
+  tocNav: "目录导航",
+  addOperation: "新增操作步骤",
   addCase: "新增案例",
   addSkill: "新增技能",
   addPathNode: "新增路径节点",
   addInterview: "新增面试题",
   addCareer: "新增职业规划",
+  addTool: "新增工具",
+  addKnowledgeNode: "新增知识点",
+  searchResultCount: (n: number) => `${n} 条结果`,
+  searchNavHint: "↑↓ 导航 · Enter 跳转 · Esc 关闭",
+  heroTitle: "大模型多维知识中枢",
 
   // ── Empty hints ──
   emptyKnowledge: "暂无知识点",
@@ -455,6 +539,22 @@ const EN: typeof ZH = {
   deleteCardConfirm2: (title: string) => `Delete "${title}"?`,
   tocTitle: "Contents",
   compareDimensions: "Comparison Dimensions (rows)",
+  compareBlockTitleLabel: "Title",
+  compareBlockTitlePh: "e.g. Six Algorithms Comparison",
+  compareRowDimNamePh: "Dimension name e.g. Category",
+  compareItemsLabel: "Compare Items (columns)",
+  compareItemDefault: (n: number) => `Item ${n}`,
+  compareItemNameLabel: "Name",
+  compareItemNamePh: "e.g. Linear Regression",
+  compareItemSubtitleLabel: "Subtitle / English Name",
+  compareItemSubtitlePh: "e.g. Linear Regression",
+  compareColorLabel: "Color",
+  compareTagValuesLabel: "Dimension Values",
+  compareTagValuePh: "Enter value for this dimension",
+  compareFlowLabel: "Flow Steps (one per line)",
+  compareFlowPh: "Input Features\nLinear Transform\nPredict Output",
+  compareKeyPointsLabel: "Key Points (one per line)",
+  compareKeyPointsPh: "Least Squares\nPython: sklearn\nLLM connection",
   interviewFiltered: (shown: number, total: number) => ` (filtered from ${total})`,
   interviewTotal: (n: number) => `Total ${n}`,
   addToModule: (id: string) => `Will be added to module "${id}"`,
@@ -569,14 +669,84 @@ const EN: typeof ZH = {
   // ── Section titles ──
   interviewSectionTitle: "Interview Prep",
   questionsCount: (n: number) => `${n} Q`,
+
+  // ── InterviewPanel ──
+  interviewSearchPlaceholder: "Search questions…",
+  interviewFilterCat: "Category",
+  interviewFilterDiff: "Difficulty",
+  interviewNoResult: "No matching questions, try adjusting the filters",
+  interviewViewAnswer: "View Sample Answer",
+  interviewFrameworkLabel: "Framework: ",
+  interviewPitfallLabel: "⚠️ Common Pitfall: ",
+  interviewDiffAll: "All",
+  interviewDiffBeginner: "Beginner",
+  interviewDiffIntermediate: "Intermediate",
+  interviewDiffAdvanced: "Advanced",
+
+  // ── TabItemEditor labels ──
+  tabLabelOperation: "Operation Step",
+  tabLabelCases: "Case Study",
+  tabLabelSkills: "Skill",
+  tabLabelPath: "Path Node",
+  tabLabelInterview: "Interview Q",
+  tabLabelCareer: "Career Milestone",
+  tabLabelTools: "Tool",
+  tabItemAdd: (label: string) => `Add ${label}`,
+  tabItemEdit: (label: string) => `Edit: ${label}`,
+  tabItemDeleteConfirm: (label: string) => `Delete this ${label}?`,
+
+  // ── IQ categories ──
+  iqCatTech: "Tech Understanding",
+  iqCatProduct: "Product Design",
+  iqCatBusiness: "Business Judgment",
+  iqCatBehavior: "Behavioral",
+
+  // ── Tool categories ──
+  toolCatAiWrite: "AI Writing",
+  toolCatAiImage: "AI Image",
+  toolCatAiCode: "AI Coding",
+  toolCatAiSearch: "AI Search",
+  toolCatAiVideo: "AI Video",
+  toolCatAiAudio: "AI Audio",
+  toolCatDev: "Dev Tools",
+  toolCatProductivity: "Productivity",
+  toolCatOther: "Other",
+
+  // ── NoteEditor ──
+  sourceLabel: "Source: ",
   problemLabel: "Problem",
   agentPatternLabel: "5 Agent Pattern Comparisons",
   agentFrameworkLabel: "8 Major Agent Frameworks + MCP Integration Code",
   mlAlgorithmLabel: "6 Core ML Algorithm Comparisons",
+  compareDimension: "Dimension",
+  compareZoomIn: "Zoom In",
+  compareZoomTitle: "Click to enlarge",
+  compareAlgoLightbox: (name: string) => `${name} — Algorithm Diagram`,
+  comparePatternLightbox: (name: string) => `${name} — Flow Diagram`,
+  compareCodeLabel: "MCP Server Integration Example",
+  compareMLTitle: "Six Algorithms Comparison",
+  comparePatternTitle: "Five Patterns Comparison",
+  compareFrameworkTitle: "8 Major Agent Frameworks Comparison",
+
+  // ── Section field labels ──
+  targetLabel: "Target: ",
+  sceneLabel: "Scene",
+  solutionLabel: "Solution",
+  resultLabel: "Result",
+  skillHowToLabel: "How to Improve",
+  pathPrereqLabel: "Prerequisites: ",
+  careerDeliverableLabel: "📦 Deliverable: ",
+  careerCheckLabel: "✅ Checkpoint: ",
+  toolPaid: "· Paid",
+  toolFree: "· Free",
+  tocNav: "Table of Contents",
+  addOperation: "Add Operation Step",
+  searchResultCount: (n: number) => `${n} results`,
+  searchNavHint: "↑↓ Navigate · Enter Jump · Esc Close",
+  heroTitle: "LLM Multi-Dimensional Knowledge Hub",
 
   // ── Add buttons ──
   addKnowledgeNode: "Add Knowledge",
-  addCompareBlock: "Add Compare",
   addTool: "Add Tool",
   addCase: "Add Case",
   addSkill: "Add Skill",
@@ -630,11 +800,14 @@ const I18nContext = createContext<I18nCtx>({
 });
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "zh";
+  const [locale, setLocaleState] = useState<Locale>("zh");
+
+  // After mount, sync from localStorage to avoid SSR/client hydration mismatch
+  useEffect(() => {
     const saved = localStorage.getItem("kb-locale") as Locale | null;
-    return saved === "en" || saved === "zh" ? saved : "zh";
-  });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved === "en" || saved === "zh") setLocaleState(saved);
+  }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);

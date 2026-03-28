@@ -7,26 +7,26 @@ import { useI18n } from "@/lib/i18n";
 const ICONS = ["📚","🔍","⚙️","🚀","🤖","🧠","💡","🎯","📊","🛠️","🌐","💼","🔬","📝","🎨","⚡"];
 
 export const ALL_WIDGETS: { key: TabWidget; label: string; desc: string }[] = [
-  { key: "knowledge", label: "知识点卡片",     desc: "概念卡片，含隐喻、要点、颜色" },
-  { key: "operation", label: "操作步骤卡片",   desc: "动手操作步骤，含工具" },
-  { key: "case",      label: "案例卡片",       desc: "场景-问题-方案-结果" },
-  { key: "skill",     label: "能力雷达项",     desc: "技能维度与升级路径" },
-  { key: "path",      label: "成长路径节点",   desc: "前置条件、时长、提示" },
-  { key: "interview", label: "面试题",         desc: "题目、框架、要点、参考答案" },
-  { key: "career",    label: "职业规划里程碑", desc: "阶段、行动、交付物" },
-  { key: "tool",      label: "工具卡片",       desc: "工具名称、类别、链接" },
-  { key: "compare",   label: "对比组件",       desc: "多列横向对比表格" },
+  { key: "knowledge", label: "Knowledge Cards",    desc: "Concept cards with metaphors, points, colors" },
+  { key: "operation", label: "Operation Steps",    desc: "Step-by-step instructions with tools" },
+  { key: "case",      label: "Case Studies",       desc: "Scene-Problem-Solution-Result" },
+  { key: "skill",     label: "Skill Radar",        desc: "Skill dimensions and growth paths" },
+  { key: "path",      label: "Learning Path",      desc: "Prerequisites, duration, tips" },
+  { key: "interview", label: "Interview Q&A",      desc: "Questions, frameworks, key points, sample answers" },
+  { key: "career",    label: "Career Milestones",  desc: "Phase, actions, deliverables" },
+  { key: "tool",      label: "Tool Cards",         desc: "Tool name, category, link" },
+  { key: "compare",   label: "Compare Block",      desc: "Multi-column comparison table" },
 ];
 
 export const ALL_TABS: TabConfig[] = [
-  { key: "knowledge",  label: "知识点",   widgets: ["knowledge", "compare"] },
-  { key: "operation",  label: "操作点",   widgets: ["operation", "compare"] },
-  { key: "skills",     label: "能力雷达", widgets: ["skill", "compare"] },
-  { key: "path",       label: "成长路径", widgets: ["path", "compare"] },
-  { key: "interview",  label: "面试准备", widgets: ["interview", "compare"] },
-  { key: "career",     label: "职业规划", widgets: ["career", "compare"] },
-  { key: "tools",      label: "工具",     widgets: ["tool", "compare"] },
-  { key: "cases",      label: "案例",     widgets: ["case", "compare"] },
+  { key: "knowledge",  label: "Knowledge",    widgets: ["knowledge", "compare"] },
+  { key: "operation",  label: "Operations",   widgets: ["operation", "compare"] },
+  { key: "skills",     label: "Skills",       widgets: ["skill", "compare"] },
+  { key: "path",       label: "Learning Path",widgets: ["path", "compare"] },
+  { key: "interview",  label: "Interview",    widgets: ["interview", "compare"] },
+  { key: "career",     label: "Career",       widgets: ["career", "compare"] },
+  { key: "tools",      label: "Tools",        widgets: ["tool", "compare"] },
+  { key: "cases",      label: "Cases",        widgets: ["case", "compare"] },
 ];
 
 function genModuleId() {
@@ -267,8 +267,9 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 
 // ── Add Module Button ──
 export function AddModuleButton({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
-    <button type="button" className="add-module-btn" title="新增模块" onClick={onClick}
+    <button type="button" className="add-module-btn" title={t.addModule} onClick={onClick}
       style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
       <Plus size={13} />
     </button>

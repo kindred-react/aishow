@@ -1,4 +1,10 @@
 export type KnowledgeLevel = "基础" | "进阶" | "实战";
+export const KNOWLEDGE_LEVELS: KnowledgeLevel[] = ["基础", "进阶", "实战"];
+export const KNOWLEDGE_LEVEL_DEFAULT: KnowledgeLevel = "基础";
+
+export type InterviewDifficulty = "初级" | "中级" | "高级";
+export const INTERVIEW_DIFFICULTIES: InterviewDifficulty[] = ["初级", "中级", "高级"];
+export const INTERVIEW_DIFFICULTY_DEFAULT: InterviewDifficulty = "初级";
 
 export interface KnowledgeNode {
   id: string;
@@ -152,6 +158,120 @@ export interface CompareBlock {
   items: CompareItem[];
   order: number;
 }
+
+/**
+ * widget key → LearningModule 字段的映射表。
+ * 集中管理所有 widget 与模块数据的对应关系，避免组件里散落硬编码。
+ *
+ * field        — LearningModule 上的字段名
+ * defaultTab   — 未设置 dimensionTab 时的默认 tab key
+ * titleFn      — 从数据项取标题
+ * subtitleFn   — 从数据项取副标题（可选）
+ * searchFn     — 判断数据项是否匹配搜索词
+ * typeLabel    — 搜索结果里显示的类型标签
+ */
+export const WIDGET_MODULE_MAP = [
+  {
+    widget: "knowledge" as TabWidget,
+    field: "knowledgeNodes" as keyof LearningModule,
+    defaultTab: "knowledge",
+    typeLabel: "知识",
+    titleFn:    (i: KnowledgeNode) => i.title,
+    subtitleFn: (i: KnowledgeNode) => i.summary?.slice(0, 80),
+    searchFn:   (i: KnowledgeNode, q: string) =>
+      i.title.toLowerCase().includes(q) ||
+      i.summary?.toLowerCase().includes(q) ||
+      i.points?.some((p: string) => p.toLowerCase().includes(q)),
+  },
+  {
+    widget: "operation" as TabWidget,
+    field: "operationSteps" as keyof LearningModule,
+    defaultTab: "operation",
+    typeLabel: "操作",
+    titleFn:    (i: OperationStep) => i.title,
+    subtitleFn: (i: OperationStep) => i.target,
+    searchFn:   (i: OperationStep, q: string) =>
+      i.title.toLowerCase().includes(q) ||
+      i.detail?.toLowerCase().includes(q) ||
+      i.target?.toLowerCase().includes(q) ||
+      i.tools?.some((t: string) => t.toLowerCase().includes(q)),
+  },
+  {
+    widget: "case" as TabWidget,
+    field: "cases" as keyof LearningModule,
+    defaultTab: "cases",
+    typeLabel: "案例",
+    titleFn:    (i: CaseStudy) => i.title,
+    subtitleFn: (i: CaseStudy) => i.scene,
+    searchFn:   (i: CaseStudy, q: string) =>
+      i.title.toLowerCase().includes(q) ||
+      i.scene?.toLowerCase().includes(q) ||
+      i.problem?.toLowerCase().includes(q) ||
+      i.solution?.toLowerCase().includes(q),
+  },
+  {
+    widget: "tool" as TabWidget,
+    field: "tools" as keyof LearningModule,
+    defaultTab: "tools",
+    typeLabel: "工具",
+    titleFn:    (i: ToolItem) => i.name,
+    subtitleFn: (i: ToolItem) => i.description,
+    searchFn:   (i: ToolItem, q: string) =>
+      i.name.toLowerCase().includes(q) ||
+      i.description?.toLowerCase().includes(q) ||
+      i.tags?.some((tag: string) => tag.toLowerCase().includes(q)) ||
+      i.category?.toLowerCase().includes(q),
+  },
+  {
+    widget: "skill" as TabWidget,
+    field: "skills" as keyof LearningModule,
+    defaultTab: "skills",
+    typeLabel: "能力",
+    titleFn:    (i: SkillItem) => i.name,
+    subtitleFn: (i: SkillItem) => i.description,
+    searchFn:   (i: SkillItem, q: string) =>
+      i.name.toLowerCase().includes(q) ||
+      i.description?.toLowerCase().includes(q) ||
+      i.dimension?.toLowerCase().includes(q) ||
+      i.howTo?.some((h: string) => h.toLowerCase().includes(q)),
+  },
+  {
+    widget: "interview" as TabWidget,
+    field: "interviewQuestions" as keyof LearningModule,
+    defaultTab: "interview",
+    typeLabel: "面试",
+    titleFn:    (i: InterviewQuestion) => i.question.slice(0, 80),
+    subtitleFn: (i: InterviewQuestion) => i.category,
+    searchFn:   (i: InterviewQuestion, q: string) =>
+      i.question.toLowerCase().includes(q) ||
+      i.sampleAnswer?.toLowerCase().includes(q) ||
+      i.keyPoints?.some((kp: string) => kp.toLowerCase().includes(q)) ||
+      i.framework?.toLowerCase().includes(q),
+  },
+  {
+    widget: "path" as TabWidget,
+    field: "learningPath" as keyof LearningModule,
+    defaultTab: "path",
+    typeLabel: "路径",
+    titleFn:    (i: LearningPathNode) => i.title,
+    subtitleFn: (i: LearningPathNode) => i.tip,
+    searchFn:   (i: LearningPathNode, q: string) =>
+      i.title.toLowerCase().includes(q) ||
+      i.tip?.toLowerCase().includes(q),
+  },
+  {
+    widget: "career" as TabWidget,
+    field: "careerPlan" as keyof LearningModule,
+    defaultTab: "career",
+    typeLabel: "职规",
+    titleFn:    (i: CareerMilestone) => i.phase,
+    subtitleFn: (i: CareerMilestone) => i.goal,
+    searchFn:   (i: CareerMilestone, q: string) =>
+      i.phase.toLowerCase().includes(q) ||
+      i.goal?.toLowerCase().includes(q) ||
+      i.actions?.some((a: string) => a.toLowerCase().includes(q)),
+  },
+] as const;
 
 /**
  * 知识库合并规则（给 AI 分析 PPT/PDF 后写入时参考）：
