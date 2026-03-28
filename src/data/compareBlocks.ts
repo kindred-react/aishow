@@ -22,4 +22,24 @@ export const compareBlocks: CompareBlock[] = [
     ],
     order: 1774694895650,
   },
+  {
+    id: "1ad2rqf",
+    moduleId: "foundations",
+    dimensionTab: "path",
+    title: "11111",
+    rows: [],
+    items: [
+      {
+        id: "vhfp0iv",
+        name: "111",
+        nameEn: "",
+        color: "var(--c-cyan)",
+        accent: "rgba(102,201,255,0.10)",
+        tags: {},
+        flow: [],
+        keyPoints: [],
+      },
+    ],
+    order: 1774694955808,
+  },
 ];
