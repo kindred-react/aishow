@@ -794,11 +794,17 @@
   transition: background 0.1s;
 }
 .search-result-item:last-child { border-bottom: none; }
-.search-result-item:hover {
+.search-result-item:hover,
+.search-result-active {
   background: rgba(100, 160, 255, 0.07);
 }
-[data-theme="light"] .search-result-item:hover {
+[data-theme="light"] .search-result-item:hover,
+[data-theme="light"] .search-result-active {
   background: rgba(80, 120, 220, 0.06);
+}
+.search-result-active {
+  outline: 1px solid rgba(99, 180, 255, 0.25);
+  outline-offset: -1px;
 }
 .search-result-title {
   font-size: 0.85rem;

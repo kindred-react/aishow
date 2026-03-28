@@ -3,14 +3,15 @@
  * 保存时直接通过 GitHub API 写回对应的 .ts 模块文件
  */
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   KnowledgeNode, LearningModule, CompareBlock,
   OperationStep, CaseStudy, SkillItem,
   LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem,
 } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
-import { pushChangesToGitHub } from "@/lib/githubNotes";
+import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
+import { pushChangesToGitHub, pushCompareBlocksToGitHub, pushKnowledgeIndexToGitHub } from "@/lib/githubNotes";
 
 const LS_KEY = "aishow_content_store";
 
@@ -55,7 +56,7 @@ export interface ContentStore {
 const DEFAULT_STORE: ContentStore = {
   nodeEdits: {}, addedNodes: {}, deletedNodes: [],
   addedModules: [], deletedModules: [], moduleEdits: {},
-  compareBlocks: [],
+  compareBlocks: staticCompareBlocks,
   addedOperations: {}, editedOperations: {}, deletedOperations: [],
   addedCases: {}, editedCases: {}, deletedCases: [],
   addedSkills: {}, editedSkills: {}, deletedSkills: [],
@@ -68,7 +69,18 @@ const DEFAULT_STORE: ContentStore = {
 function loadLocal(): ContentStore {
   if (typeof window === "undefined") return DEFAULT_STORE;
   try {
-    return { ...DEFAULT_STORE, ...JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") };
+    const persisted = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") as Partial<ContentStore>;
+    // Merge static compareBlocks with locally-drafted ones.
+    // Static blocks (from GitHub) are the base; local draft additions/edits override/append.
+    const localBlocks: CompareBlock[] = persisted.compareBlocks ?? [];
+    const staticIds = new Set(staticCompareBlocks.map(b => b.id));
+    const localOnly = localBlocks.filter(b => !staticIds.has(b.id));
+    // For blocks that exist in static, prefer the local version (user may have edited)
+    const merged = [
+      ...staticCompareBlocks.map(b => localBlocks.find(l => l.id === b.id) ?? b),
+      ...localOnly,
+    ];
+    return { ...DEFAULT_STORE, ...persisted, compareBlocks: merged };
   } catch { return DEFAULT_STORE; }
 }
 
@@ -125,6 +137,7 @@ function getMergedModule(m: LearningModule, store: ContentStore): LearningModule
 export function useContentStore() {
   // savedStore = persisted to localStorage; draftStore = in-memory edits during edit mode
   const [savedStore, setSavedStore] = useState<ContentStore>(DEFAULT_STORE);
+  const savedStoreRef = useRef<ContentStore>(DEFAULT_STORE);
   const [draftStore, setDraftStore] = useState<ContentStore | null>(null);
 
   // The active store for rendering: draft when editing, saved otherwise
@@ -136,17 +149,34 @@ export function useContentStore() {
   useEffect(() => {
     // Restore from localStorage after mount (avoids SSR hydration mismatch)
     /* eslint-disable react-hooks/set-state-in-effect */
-    setSavedStore(loadLocal());
+    const initial = loadLocal();
+    setSavedStore(initial);
+    savedStoreRef.current = initial;
     /* eslint-enable react-hooks/set-state-in-effect */
-    const handler = (e: Event) => setSavedStore((e as CustomEvent).detail as ContentStore);
+    const handler = (e: Event) => {
+      const s = (e as CustomEvent).detail as ContentStore;
+      setSavedStore(s);
+      savedStoreRef.current = s;
+    };
+    const storageHandler = () => {
+      const s = loadLocal();
+      setSavedStore(s);
+      savedStoreRef.current = s;
+    };
     window.addEventListener("content-store-updated", handler);
-    window.addEventListener("storage", () => setSavedStore(loadLocal()));
-    return () => window.removeEventListener("content-store-updated", handler);
+    window.addEventListener("storage", storageHandler);
+    return () => {
+      window.removeEventListener("content-store-updated", handler);
+      window.removeEventListener("storage", storageHandler);
+    };
   }, []);
 
   // Call when entering edit mode — fork a draft from the current saved state
   const beginDraft = useCallback(() => {
-    setSavedStore(prev => { setDraftStore(loadLocal()); return prev; });
+    const current = loadLocal();
+    setSavedStore(current);
+    savedStoreRef.current = current;
+    setDraftStore(current);
   }, []);
 
   // Commit draft to localStorage and trigger GitHub push
@@ -155,10 +185,12 @@ export function useContentStore() {
       if (!prev) return null;
       saveLocal(prev);
       setSavedStore(prev);
+      savedStoreRef.current = prev;
 
       // Determine which module IDs have changes
       const changedIds = new Set<string>([
         // ── edits / adds (keyed by moduleId directly) ──
+        ...prev.addedModules.map(m => m.id),
         ...Object.keys(prev.addedNodes),
         ...Object.keys(prev.addedOperations),
         ...Object.keys(prev.addedCases),
@@ -238,12 +270,24 @@ export function useContentStore() {
       ]);
 
       const ids = [...changedIds].filter(id => id);
-      if (ids.length > 0) {
+      // Use ref to get the actual saved state at commit time (avoids stale closure)
+      const hasCompareChanges = JSON.stringify(prev.compareBlocks) !== JSON.stringify(savedStoreRef.current.compareBlocks);
+      // knowledge.ts index needs updating when modules are added or deleted
+      const hasModuleStructureChanges = prev.addedModules.length > 0 || prev.deletedModules.length > 0;
+      if (ids.length > 0 || hasCompareChanges || hasModuleStructureChanges) {
         setSyncStatus("syncing");
         setSyncMsg("正在推送到 GitHub…");
-        pushChangesToGitHub(ids, mergedModules).then(result => {
-          setSyncStatus(result.ok ? "done" : "error");
-          setSyncMsg(result.message);
+        const pushTasks: Promise<{ ok: boolean; message: string }>[] = [];
+        if (ids.length > 0) pushTasks.push(pushChangesToGitHub(ids, mergedModules));
+        if (hasCompareChanges) pushTasks.push(pushCompareBlocksToGitHub(prev.compareBlocks));
+        if (hasModuleStructureChanges) pushTasks.push(pushKnowledgeIndexToGitHub(mergedModules));
+        Promise.all(pushTasks).then(results => {
+          const failed = results.filter(r => !r.ok);
+          setSyncStatus(failed.length === 0 ? "done" : "error");
+          setSyncMsg(failed.length === 0
+            ? results.map(r => r.message).join("；")
+            : failed.map(r => r.message).join("；")
+          );
           setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); }, 6000);
         });
       }

@@ -247,25 +247,14 @@ export function KnowledgeBoard() {
     localStorage.setItem("kb-theme", isDark ? "dark" : "light");
   }, [isDark]);
 
-  // Search keyboard shortcut (Cmd/Ctrl+K)
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(o => !o);
-      }
-      if (e.key === "Escape") closeSearch();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 60);
   }, [searchOpen]);
 
   // Build search index from all merged modules
-  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; }
+  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; type: string; }
+  const [searchCursor, setSearchCursor] = useState(-1);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
   const searchResults = useMemo<SearchResult[]>(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
@@ -274,44 +263,58 @@ export function KnowledgeBoard() {
       const dims = m.enabledTabs ?? ALL_TABS;
       const getTab = (key: string) => dims.find(t => t.key === key)?.label ?? key;
       m.knowledgeNodes.forEach(n => {
-        if (n.title.toLowerCase().includes(q) || n.summary?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: n.dimensionTab ?? "knowledge", tabLabel: getTab(n.dimensionTab ?? "knowledge"), title: n.title, subtitle: n.summary?.slice(0,60) });
+        if (n.title.toLowerCase().includes(q) || n.summary?.toLowerCase().includes(q) || n.points?.some((p: string) => p.toLowerCase().includes(q)))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: n.dimensionTab ?? "knowledge", tabLabel: getTab(n.dimensionTab ?? "knowledge"), title: n.title, subtitle: n.summary?.slice(0,80), type: "知识" });
       });
       m.operationSteps.forEach(s => {
-        if (s.title.toLowerCase().includes(q) || s.detail?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "operation", tabLabel: getTab(s.dimensionTab ?? "operation"), title: s.title, subtitle: s.target });
+        if (s.title.toLowerCase().includes(q) || s.detail?.toLowerCase().includes(q) || s.target?.toLowerCase().includes(q) || s.tools?.some((tool: string) => tool.toLowerCase().includes(q)))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "operation", tabLabel: getTab(s.dimensionTab ?? "operation"), title: s.title, subtitle: s.target, type: "操作" });
       });
       (m.cases ?? []).forEach(c => {
-        if (c.title.toLowerCase().includes(q) || c.scene?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "cases", tabLabel: getTab(c.dimensionTab ?? "cases"), title: c.title, subtitle: c.scene });
+        if (c.title.toLowerCase().includes(q) || c.scene?.toLowerCase().includes(q) || c.problem?.toLowerCase().includes(q) || c.solution?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "cases", tabLabel: getTab(c.dimensionTab ?? "cases"), title: c.title, subtitle: c.scene, type: "案例" });
       });
       (m.tools ?? []).forEach(t => {
-        if (t.name.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: t.dimensionTab ?? "tools", tabLabel: getTab(t.dimensionTab ?? "tools"), title: t.name, subtitle: t.description });
+        if (t.name.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q) || t.tags?.some((tag: string) => tag.toLowerCase().includes(q)) || t.category?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: t.dimensionTab ?? "tools", tabLabel: getTab(t.dimensionTab ?? "tools"), title: t.name, subtitle: t.description, type: "工具" });
       });
       (m.skills ?? []).forEach(s => {
-        if (s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "skills", tabLabel: getTab(s.dimensionTab ?? "skills"), title: s.name, subtitle: s.description });
+        if (s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.dimension?.toLowerCase().includes(q) || s.howTo?.some((h: string) => h.toLowerCase().includes(q)))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: s.dimensionTab ?? "skills", tabLabel: getTab(s.dimensionTab ?? "skills"), title: s.name, subtitle: s.description, type: "能力" });
       });
       (m.interviewQuestions ?? []).forEach(q2 => {
-        if (q2.question.toLowerCase().includes(q) || q2.sampleAnswer?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: q2.dimensionTab ?? "interview", tabLabel: getTab(q2.dimensionTab ?? "interview"), title: q2.question.slice(0,60), subtitle: q2.category });
+        if (q2.question.toLowerCase().includes(q) || q2.sampleAnswer?.toLowerCase().includes(q) || q2.keyPoints?.some((kp: string) => kp.toLowerCase().includes(q)) || q2.framework?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: q2.dimensionTab ?? "interview", tabLabel: getTab(q2.dimensionTab ?? "interview"), title: q2.question.slice(0,80), subtitle: q2.category, type: "面试" });
       });
       (m.learningPath ?? []).forEach(p => {
-        if (p.title.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: p.dimensionTab ?? "path", tabLabel: getTab(p.dimensionTab ?? "path"), title: p.title, subtitle: p.tip });
+        if (p.title.toLowerCase().includes(q) || p.tip?.toLowerCase().includes(q))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: p.dimensionTab ?? "path", tabLabel: getTab(p.dimensionTab ?? "path"), title: p.title, subtitle: p.tip, type: "路径" });
       });
       (m.careerPlan ?? []).forEach(c => {
-        if (c.phase.toLowerCase().includes(q) || c.goal?.toLowerCase().includes(q))
-          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "career", tabLabel: getTab(c.dimensionTab ?? "career"), title: c.phase, subtitle: c.goal });
+        if (c.phase.toLowerCase().includes(q) || c.goal?.toLowerCase().includes(q) || c.actions?.some((a: string) => a.toLowerCase().includes(q)))
+          results.push({ moduleId: m.id, moduleName: m.name, tabKey: c.dimensionTab ?? "career", tabLabel: getTab(c.dimensionTab ?? "career"), title: c.phase, subtitle: c.goal, type: "职规" });
       });
     }
-    return results.slice(0, 40);
+    return results.slice(0, 60);
   }, [searchQuery, mergedModules]);
+
+  // Auto-scroll active search result into view
+  useEffect(() => {
+    if (searchCursor < 0 || !searchResultsRef.current) return;
+    const active = searchResultsRef.current.children[searchCursor] as HTMLElement | undefined;
+    active?.scrollIntoView({ block: "nearest" });
+  }, [searchCursor]);
+
+  // Search keyboard navigation
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setSearchCursor(c => Math.min(c + 1, searchResults.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setSearchCursor(c => Math.max(c - 1, 0)); }
+    else if (e.key === "Enter" && searchResults[searchCursor]) { jumpToResult(searchResults[searchCursor]); }
+  };
 
   const jumpToResult = (r: SearchResult) => {
     setActiveModuleId(r.moduleId);
-    setActiveDimension(r.tabKey);
+    setActiveDimension(r.tabKey as DimensionTab);
     closeSearch();
   };
 
@@ -394,6 +397,29 @@ export function KnowledgeBoard() {
   const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: TabItemType; item: AnyTabItem | null }>({ open: false, tab: "operation", item: null });
   const openTabItemModal = (tab: TabItemType, item: AnyTabItem | null = null) => setTabItemModal({ open: true, tab, item });
   const closeTabItemModal = () => setTabItemModal(prev => ({ ...prev, open: false }));
+
+  // Global keyboard shortcuts: Cmd/Ctrl+K = search, Escape = close all modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(o => !o);
+      }
+      if (e.key === "Escape") {
+        if (searchOpen) { closeSearch(); return; }
+        if (nodeModal.open)   { setNodeModal(m => ({ ...m, open: false })); return; }
+        if (compareModal.open){ setCompareModal(m => ({ ...m, open: false })); return; }
+        if (tabItemModal.open){ setTabItemModal(m => ({ ...m, open: false })); return; }
+        if (tabEditModal.open){ setTabEditModal(m => ({ ...m, open: false })); return; }
+        if (moduleModal.open) { setModuleModal(m => ({ ...m, open: false })); return; }
+        if (showImageCleanup) { setShowImageCleanup(false); return; }
+        if (ctxMenu)          { setCtxMenu(null); return; }
+        if (tabCtxMenu)       { setTabCtxMenu(null); return; }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [searchOpen, nodeModal.open, compareModal.open, tabItemModal.open, tabEditModal.open, moduleModal.open, showImageCleanup, ctxMenu, tabCtxMenu]);
 
   const handleTabItemSave = (tab: TabItemType, saved: AnyTabItem) => {
     const mid = activeModule.id;
@@ -1501,12 +1527,19 @@ export function KnowledgeBoard() {
               <input
                 ref={searchInputRef}
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => { setSearchQuery(e.target.value); setSearchCursor(-1); }}
+                onKeyDown={handleSearchKeyDown}
                 placeholder={t.searchPlaceholder}
               />
-              {searchQuery && <button type="button" onClick={() => setSearchQuery("")} style={{appearance:"none",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",padding:0}}><X size={14}/></button>}
+              {searchQuery && <button type="button" onClick={() => { setSearchQuery(""); setSearchCursor(-1); }} style={{appearance:"none",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",padding:0}}><X size={14}/></button>}
             </div>
-            <div className="search-results">
+            {searchQuery.trim() !== "" && searchResults.length > 0 && (
+              <div style={{padding:"0.25rem 0.9rem 0",fontSize:"0.68rem",color:"var(--muted)",display:"flex",justifyContent:"space-between"}}>
+                <span>{searchResults.length} 条结果</span>
+                <span style={{opacity:0.5}}>↑↓ 导航 · Enter 跳转 · Esc 关闭</span>
+              </div>
+            )}
+            <div className="search-results" ref={searchResultsRef}>
               {searchQuery.trim() === "" && (
                 <div className="search-empty">{t.searchEmpty}<br/><span style={{fontSize:"0.7rem",opacity:0.5}}>{t.searchShortcutHint}</span></div>
               )}
@@ -1520,9 +1553,16 @@ export function KnowledgeBoard() {
                   return <>{s.slice(0, idx)}<mark>{s.slice(idx, idx + searchQuery.length)}</mark>{s.slice(idx + searchQuery.length)}</>;
                 };
                 return (
-                  <div key={i} className="search-result-item" onClick={() => jumpToResult(r)}>
-                    <div className="search-result-title">{hi(r.title)}</div>
-                    <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? ` · ${r.subtitle.slice(0,40)}` : ""}</div>
+                  <div key={i}
+                    className={`search-result-item${i === searchCursor ? " search-result-active" : ""}`}
+                    onClick={() => jumpToResult(r)}
+                    onMouseEnter={() => setSearchCursor(i)}
+                  >
+                    <div style={{display:"flex",alignItems:"center",gap:"0.45rem"}}>
+                      <span style={{fontSize:"0.6rem",fontWeight:600,padding:"0.05rem 0.35rem",borderRadius:"3px",background:"rgba(80,140,220,0.18)",color:"#6ab0f5",flexShrink:0,letterSpacing:"0.02em"}}>{r.type}</span>
+                      <div className="search-result-title">{hi(r.title)}</div>
+                    </div>
+                    <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? ` · ${r.subtitle.slice(0,50)}` : ""}</div>
                   </div>
                 );
               })}

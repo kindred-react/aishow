@@ -9,6 +9,7 @@ const REPO = "kindred-react/aishow";
 const BRANCH = "main";
 
 import type { LearningModule } from "@/data/types";
+import type { CompareBlock } from "@/data/types";
 
 // ── GitHub helpers ────────────────────────────────────────────────────────
 
@@ -61,6 +62,11 @@ const MODULE_FILE_MAP: Record<string, string> = {
   aipm:        "src/data/modules/aipm.ts",
   aipm100q:    "src/data/modules/aipm100q.ts",
 };
+
+/** Derive file path for a module — builtin uses the map, new modules get a dynamic path */
+function moduleFilePath(moduleId: string): string {
+  return MODULE_FILE_MAP[moduleId] ?? `src/data/modules/${moduleId}.ts`;
+}
 
 // ── TypeScript serializer ─────────────────────────────────────────────────
 // Converts a value to a TypeScript literal string (subset of JSON-compatible types).
@@ -133,10 +139,43 @@ function generateModuleTs(module: LearningModule): string {
   ].join("\n");
 }
 
+/**
+ * Generate the src/data/knowledge.ts index file content
+ * based on the current full list of modules (after adds/deletes).
+ */
+function generateKnowledgeIndexTs(allModules: LearningModule[]): string {
+  // Sort by order for stable output
+  const sorted = [...allModules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const imports = sorted.map(m => {
+    const exportName = `${m.id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())}Module`;
+    const filePath = `./modules/${m.id}`;
+    return `import { ${exportName} } from "${filePath}";`;
+  }).join("\n");
+
+  const moduleList = sorted.map(m => {
+    const exportName = `${m.id.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())}Module`;
+    return `  ${exportName},`;
+  }).join("\n");
+
+  return [
+    `import type { LearningModule } from "./types";`,
+    imports,
+    ``,
+    `export type { KnowledgeLevel, KnowledgeNode, CaseStudy, OperationStep, LearningModule } from "./types";`,
+    ``,
+    `export const learningModules: LearningModule[] = [`,
+    moduleList,
+    `];`,
+    ``,
+  ].join("\n");
+}
+
 // ── Public API ────────────────────────────────────────────────────────────
 
 /**
  * Push a single module's full data to GitHub.
+ * For new modules (not in MODULE_FILE_MAP), dynamically generates the file path.
  * Returns { ok, message } for UI feedback.
  */
 export async function saveModuleToGitHub(
@@ -145,9 +184,7 @@ export async function saveModuleToGitHub(
   const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
   if (!token) return { ok: false, message: "未配置 GitHub Token" };
 
-  const filePath = MODULE_FILE_MAP[module.id];
-  if (!filePath) return { ok: true, message: `模块 ${module.id} 为新建模块，暂不同步` };
-
+  const filePath = moduleFilePath(module.id);
   try {
     const sha = await getFileSha(filePath, token);
     const content = generateModuleTs(module);
@@ -182,6 +219,64 @@ export async function pushChangesToGitHub(
     return { ok: true, message: `已推送 ${targets.length} 个模块到 GitHub，约1-2分钟后部署生效` };
   }
   return { ok: false, message: failed.map(r => r.message).join("；") };
+}
+
+/**
+ * Push the knowledge.ts index file to GitHub.
+ * Must be called whenever modules are added or deleted.
+ * allModules: the full current module list (after adds/deletes applied).
+ */
+export async function pushKnowledgeIndexToGitHub(
+  allModules: LearningModule[]
+): Promise<{ ok: boolean; message: string }> {
+  const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+  if (!token) return { ok: false, message: "未配置 GitHub Token" };
+
+  const filePath = "src/data/knowledge.ts";
+  try {
+    const sha = await getFileSha(filePath, token);
+    const content = generateKnowledgeIndexTs(allModules);
+    return await putFile(
+      filePath, content, sha, token,
+      "feat: update knowledge index [web editor]"
+    );
+  } catch (e) {
+    return { ok: false, message: `错误: ${String(e)}` };
+  }
+}
+
+// ── Compare Blocks ────────────────────────────────────────────────────────
+
+function generateCompareBlocksTs(blocks: CompareBlock[]): string {
+  return [
+    `import type { CompareBlock } from "@/data/types";`,
+    ``,
+    `// 此文件由 Web 编辑器自动生成，请勿手动修改`,
+    `export const compareBlocks: CompareBlock[] = ${serialize(blocks, 0)};`,
+    ``,
+  ].join("\n");
+}
+
+/**
+ * Push all compare blocks to GitHub as src/data/compareBlocks.ts
+ */
+export async function pushCompareBlocksToGitHub(
+  blocks: CompareBlock[]
+): Promise<{ ok: boolean; message: string }> {
+  const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+  if (!token) return { ok: false, message: "未配置 GitHub Token" };
+
+  const filePath = "src/data/compareBlocks.ts";
+  try {
+    const sha = await getFileSha(filePath, token);
+    const content = generateCompareBlocksTs(blocks);
+    return await putFile(
+      filePath, content, sha, token,
+      "feat: update compareBlocks [web editor]"
+    );
+  } catch (e) {
+    return { ok: false, message: `错误: ${String(e)}` };
+  }
 }
 
 // ── Legacy compat ─────────────────────────────────────────────────────────
