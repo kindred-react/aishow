@@ -178,6 +178,14 @@ export const foundationsModule: LearningModule = {
       detail: "用 2~3 个提示词实验，观察 token 切分、context 截断、prompt 结构对输出的影响。",
       tools: ["Prompt Playground", "Tokenizer 工具", "对比记录"],
     },
+    {
+      id: "op-rqh5ur",
+      title: "1111",
+      target: "",
+      detail: "",
+      tools: [],
+      dimensionTab: "operation",
+    },
   ],
   cases: [
     {
@@ -199,6 +207,25 @@ export const foundationsModule: LearningModule = {
       result: "关键信息保留率明显提升，摘要层次更清晰。",
       tags: ["Context Window", "长文档", "Prompt"],
       source: "内置",
+    },
+  ],
+  skills: [
+    {
+      id: "skill-y73xup",
+      name: "11",
+      dimension: "111",
+      level: 3,
+      description: "111",
+      howTo: ["111"],
+      dimensionTab: "skills",
+    },
+  ],
+  learningPath: [
+    {
+      id: "path-9stqq0",
+      title: "1111",
+      level: "基础",
+      dimensionTab: "path",
     },
   ],
   enabledTabs: [
