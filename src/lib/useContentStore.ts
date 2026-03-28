@@ -183,6 +183,8 @@ export function useContentStore() {
   const commitDraft = useCallback((mergedModules: LearningModule[]) => {
     setDraftStore(prev => {
       if (!prev) return null;
+      // Capture the baseline BEFORE overwriting ref — used for diff below
+      const baselineStore = savedStoreRef.current;
       saveLocal(prev);
       setSavedStore(prev);
       savedStoreRef.current = prev;
@@ -270,8 +272,8 @@ export function useContentStore() {
       ]);
 
       const ids = [...changedIds].filter(id => id);
-      // Use ref to get the actual saved state at commit time (avoids stale closure)
-      const hasCompareChanges = JSON.stringify(prev.compareBlocks) !== JSON.stringify(savedStoreRef.current.compareBlocks);
+      // Diff against baseline (captured before ref was overwritten)
+      const hasCompareChanges = JSON.stringify(prev.compareBlocks) !== JSON.stringify(baselineStore.compareBlocks);
       // knowledge.ts index needs updating when modules are added or deleted
       const hasModuleStructureChanges = prev.addedModules.length > 0 || prev.deletedModules.length > 0;
       if (ids.length > 0 || hasCompareChanges || hasModuleStructureChanges) {
