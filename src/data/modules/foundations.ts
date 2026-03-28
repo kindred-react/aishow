@@ -237,11 +237,6 @@ export const foundationsModule: LearningModule = {
       widgets: ["path", "compare"],
     },
     {
-      key: "tools",
-      label: "工具",
-      widgets: ["tool", "compare", "knowledge"],
-    },
-    {
       key: "cases",
       label: "案例",
       widgets: ["case", "compare"],
