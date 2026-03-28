@@ -5,7 +5,6 @@ import { finetuneModule } from "./modules/finetune";
 import { evaluationModule } from "./modules/evaluation";
 import { deployModule } from "./modules/deploy";
 import { agentModule } from "./modules/agent";
-import { emergingModule } from "./modules/emerging";
 import { projectModule } from "./modules/project";
 import { aipmModule } from "./modules/aipm";
 
@@ -18,7 +17,6 @@ export const learningModules: LearningModule[] = [
   evaluationModule,
   deployModule,
   agentModule,
-  emergingModule,
   projectModule,
   aipmModule,
 ];
