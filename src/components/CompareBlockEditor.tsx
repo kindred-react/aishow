@@ -3,20 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
+import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
 import {
   ChevronUp, ChevronDown, X, Save, Trash2,
   Plus, Pencil, BarChart2, GripVertical, Minus,
 } from "lucide-react";
 import type { CompareBlock, CompareItem } from "@/data/types";
-
-const PALETTE = [
-  { color: "var(--c-cyan)",   accent: "rgba(102,201,255,0.10)" },
-  { color: "var(--c-lime)",   accent: "rgba(176,255,112,0.10)" },
-  { color: "var(--c-neon)",   accent: "rgba(99,243,255,0.10)"  },
-  { color: "var(--c-violet)", accent: "rgba(158,141,255,0.10)" },
-  { color: "var(--c-orange)", accent: "rgba(255,180,84,0.10)"  },
-  { color: "var(--c-pink)",   accent: "rgba(255,128,191,0.10)" },
-];
 
 function genId() {
   return Math.random().toString(36).slice(2, 9);
@@ -161,7 +153,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
   const [items, setItems] = useState<CompareItem[]>(
     block?.items.length
       ? block.items
-      : [{ id: genId(), name: "", nameEn: "", color: PALETTE[0].color, accent: PALETTE[0].accent, tags: {}, flow: [], keyPoints: [] }]
+      : [{ id: genId(), name: "", nameEn: "", color: THEME_PRESETS[0].color, accent: THEME_PRESETS[0].accent ?? "rgba(99,243,255,0.12)", tags: {}, flow: [], keyPoints: [] }]
   );
   const [activeItemIdx, setActiveItemIdx] = useState(0);
   const [titleError, setTitleError] = useState(false);
@@ -176,8 +168,8 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
 
   // item helpers
   const addItem = () => {
-    const p = PALETTE[items.length % PALETTE.length];
-    const newItem: CompareItem = { id: genId(), name: "", nameEn: "", color: p.color, accent: p.accent, tags: {}, flow: [], keyPoints: [] };
+    const p = THEME_PRESETS[items.length % THEME_PRESETS.length];
+    const newItem: CompareItem = { id: genId(), name: "", nameEn: "", color: p.color, accent: p.accent ?? "rgba(99,243,255,0.12)", tags: {}, flow: [], keyPoints: [] };
     setItems(prev => [...prev, newItem]);
     setActiveItemIdx(items.length);
   };
@@ -299,15 +291,13 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                   onChange={e => updateItem(activeItemIdx, { nameEn: e.target.value })} />
               </div>
               <div className="note-field">
-                <label className="note-label">{t.compareColorLabel}</label>
-                <div className="cb-palette">
-                  {PALETTE.map((p, pi) => (
-                    <button key={pi} type="button"
-                      className={`cb-palette-swatch ${activeItem.color === p.color ? "active" : ""}`}
-                      style={{ background: p.color }}
-                      onClick={() => updateItem(activeItemIdx, { color: p.color, accent: p.accent })} />
-                  ))}
-                </div>
+                <ColorPicker
+                  label={t.compareColorLabel}
+                  value={activeItem.color}
+                  withAccent
+                  onChange={(color, accent) => updateItem(activeItemIdx, { color, accent: accent ?? activeItem.accent })}
+                  presets={THEME_PRESETS}
+                />
               </div>
               {rows.filter(r => r.key && r.label).length > 0 && (
                 <div className="note-field">

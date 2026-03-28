@@ -3,13 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
 import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT } from "@/data/types";
+import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
 import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
 import { useI18n } from "@/lib/i18n";
-
-const COLORS = [
-  "var(--c-neon)", "var(--c-violet)", "var(--c-pink)",
-  "var(--c-cyan)", "#f0a030", "#60d890", "#a080f0", "#f06060",
-];
 
 function genId() {
   return "node-" + Math.random().toString(36).slice(2, 8);
@@ -23,7 +19,8 @@ interface NodeEditorModalProps {
   onClose: () => void;
 }
 
-export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: NodeEditorModalProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function NodeEditorModal({ node, moduleId: _moduleId, onSave, onDelete, onClose }: NodeEditorModalProps) {
   const { t } = useI18n();
   const isNew = node === null;
   const [title, setTitle] = useState(node?.title ?? "");
@@ -31,7 +28,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
   const [level, setLevel] = useState<KnowledgeLevel>(node?.level ?? KNOWLEDGE_LEVEL_DEFAULT);
   const [metaphor, setMetaphor] = useState(node?.metaphor ?? "");
   const [points, setPoints] = useState<string[]>(node?.points ?? [""]);
-  const [color, setColor] = useState(node?.color ?? COLORS[0]);
+  const [color, setColor] = useState(node?.color ?? THEME_PRESETS[0].color);
   const [imageUrl, setImageUrl] = useState(node?.imageUrl ?? "");
   const [imagePreview, setImagePreview] = useState(node?.imageUrl ?? "");
   const [uploading, setUploading] = useState(false);
@@ -151,16 +148,11 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
 
           {/* Color */}
           <div className="note-field">
-            <label className="note-label">{t.nodeColor}</label>
-            <div className="node-color-picker">
-              {COLORS.map(c => (
-                <button key={c} type="button"
-                  className={`node-color-swatch ${color === c ? "active" : ""}`}
-                  style={{ background: c }}
-                  onClick={() => setColor(c)}
-                />
-              ))}
-            </div>
+            <ColorPicker
+              label={t.nodeColor}
+              value={color}
+              onChange={(c) => setColor(c)}
+            />
           </div>
 
           {/* Image Upload */}
@@ -175,6 +167,7 @@ export function NodeEditorModal({ node, moduleId, onSave, onDelete, onClose }: N
             </div>
             {imagePreview ? (
               <div className="node-img-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imagePreview} alt="preview" />
                 {uploading && <div className="node-img-uploading"><Loader size={18} className="note-spin" /></div>}
               </div>

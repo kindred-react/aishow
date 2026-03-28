@@ -4,13 +4,10 @@
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
-  BrainCircuit,
   Compass,
   FileText,
-  Rocket,
   Save,
   Sparkles,
-  Wrench,
   PenLine,
   Trash2,
   Lock,

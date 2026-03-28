@@ -60,7 +60,8 @@ const MODULE_FILE_MAP: Record<string, string> = {
   emerging:    "src/data/modules/emerging.ts",
   project:     "src/data/modules/project.ts",
   aipm:        "src/data/modules/aipm.ts",
-  aipm100q:    "src/data/modules/aipm100q.ts",
+  // Note: aipm100q is a standalone InterviewQuestion[] file, NOT a LearningModule.
+  // Do NOT add it here — it is not managed by the web editor.
 };
 
 /** Derive file path for a module — builtin uses the map, new modules get a dynamic path */
