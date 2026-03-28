@@ -237,11 +237,6 @@ export const foundationsModule: LearningModule = {
       widgets: ["path", "compare"],
     },
     {
-      key: "interview",
-      label: "面试准备",
-      widgets: ["interview", "compare"],
-    },
-    {
       key: "career",
       label: "职业规划",
       widgets: ["career", "compare"],
