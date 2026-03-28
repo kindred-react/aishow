@@ -112,21 +112,6 @@ export const ragModule: LearningModule = {
       widgets: ["knowledge", "compare"],
     },
     {
-      key: "interview",
-      label: "面试准备",
-      widgets: ["interview", "compare"],
-    },
-    {
-      key: "career",
-      label: "职业规划",
-      widgets: ["career", "compare"],
-    },
-    {
-      key: "tools",
-      label: "工具",
-      widgets: ["tool", "compare"],
-    },
-    {
       key: "cases",
       label: "案例",
       widgets: ["case", "compare"],
