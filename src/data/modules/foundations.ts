@@ -232,11 +232,6 @@ export const foundationsModule: LearningModule = {
       widgets: ["operation", "compare"],
     },
     {
-      key: "skills",
-      label: "能力雷达",
-      widgets: ["skill", "compare"],
-    },
-    {
       key: "path",
       label: "成长路径",
       widgets: ["path", "compare"],
