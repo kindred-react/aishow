@@ -237,11 +237,6 @@ export const foundationsModule: LearningModule = {
       widgets: ["path", "compare"],
     },
     {
-      key: "career",
-      label: "职业规划",
-      widgets: ["career", "compare"],
-    },
-    {
       key: "tools",
       label: "工具",
       widgets: ["tool", "compare", "knowledge"],
@@ -250,11 +245,6 @@ export const foundationsModule: LearningModule = {
       key: "cases",
       label: "案例",
       widgets: ["case", "compare"],
-    },
-    {
-      key: "custom-111-4qh",
-      label: "111",
-      widgets: ["compare"],
     },
   ],
 };
