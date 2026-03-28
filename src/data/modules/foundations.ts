@@ -178,22 +178,6 @@ export const foundationsModule: LearningModule = {
       detail: "用 2~3 个提示词实验，观察 token 切分、context 截断、prompt 结构对输出的影响。",
       tools: ["Prompt Playground", "Tokenizer 工具", "对比记录"],
     },
-    {
-      id: "op-rqh5ur",
-      title: "1111",
-      target: "",
-      detail: "",
-      tools: [],
-      dimensionTab: "operation",
-    },
-    {
-      id: "op-431w70",
-      title: "1112",
-      target: "",
-      detail: "",
-      tools: [],
-      dimensionTab: "operation",
-    },
   ],
   cases: [
     {
