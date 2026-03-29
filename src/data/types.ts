@@ -37,8 +37,8 @@ export interface CaseStudy {
 export interface OperationStep {
   id: string;
   title: string;
-  target: string;
-  detail: string;
+  target?: string;
+  detail?: string;
   tools: string[];
   dimensionTab?: string;
 }
@@ -46,17 +46,17 @@ export interface OperationStep {
 export interface SkillItem {
   id: string;
   name: string;
-  dimension: string;
-  level: 1 | 2 | 3 | 4 | 5;
-  description: string;
-  howTo: string[];
+  dimension?: string;
+  level?: 1 | 2 | 3 | 4 | 5;
+  description?: string;
+  howTo?: string[];
   dimensionTab?: string;
 }
 
 export interface LearningPathNode {
   id: string;
   title: string;
-  level: KnowledgeLevel;
+  level?: KnowledgeLevel;
   prerequisite?: string[];
   estimatedHours?: number;
   tip?: string;
@@ -66,24 +66,24 @@ export interface LearningPathNode {
 export interface InterviewQuestion {
   id: string;
   question: string;
-  category: string;
-  difficulty: "初级" | "中级" | "高级";
-  framework: string;
-  keyPoints: string[];
-  sampleAnswer: string;
+  category?: string;
+  difficulty?: "初级" | "中级" | "高级";
+  framework?: string;
+  keyPoints?: string[];
+  sampleAnswer?: string;
   pitfall?: string;
   dimensionTab?: string;
 }
 
 export interface CareerMilestone {
   id: string;
-  week: string;
-  phase: string;
-  goal: string;
-  actions: string[];
-  deliverable: string;
+  week?: string;
+  phase?: string;
+  goal?: string;
+  actions?: string[];
+  deliverable?: string;
   resources?: string[];
-  checkPoint: string;
+  checkPoint?: string;
   dimensionTab?: string;
 }
 
@@ -134,9 +134,9 @@ export interface LearningModule {
 export interface ToolItem {
   id: string;
   name: string;
-  category: string;
+  category?: string;
   url?: string;
-  description: string;
+  description?: string;
   tags: string[];
   isPaid?: boolean;
   dimensionTab?: string;
