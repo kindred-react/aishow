@@ -194,7 +194,7 @@ const levelOrder = KNOWLEDGE_LEVELS;
 type KnowledgeLevelFilter = typeof FILTER_ALL | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, commitTasks, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, commitTasks, hasDraftChanges, beginDraft, commitDraft, discardDraft, clearCommit } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt, registerOnBeforeExit } = useEditMode();
   const { t, locale, setLocale } = useI18n();
 
@@ -1028,7 +1028,7 @@ export function KnowledgeBoard() {
       <CommitProgressModal
         tasks={commitTasks}
         syncStatus={syncStatus}
-        onClose={() => {}}
+        onClose={clearCommit}
       />
 
       {/* Legacy sync toast (shown when no tasks, e.g. immediate errors) */}

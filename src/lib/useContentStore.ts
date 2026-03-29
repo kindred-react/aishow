@@ -260,6 +260,10 @@ export function useContentStore() {
 
   const discardDraft = useCallback(() => setDraftStore(null), []);
 
+  const clearCommit = useCallback(() => {
+    setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]);
+  }, []);
+
   const hasDraftChanges = draftStore !== null && JSON.stringify(draftStore) !== JSON.stringify(savedStore);
 
   const updateDraft = useCallback((fn: (s: ContentStore) => ContentStore) => {
@@ -361,7 +365,7 @@ export function useContentStore() {
 
   return {
     store, mergedModules, syncStatus, syncMsg, commitTasks,
-    hasDraftChanges, beginDraft, commitDraft, discardDraft,
+    hasDraftChanges, beginDraft, commitDraft, discardDraft, clearCommit,
     editNode, addNode, deleteNode, restoreNode,
     addModule, deleteModule, editModule,
     addCompareBlock, editCompareBlock, deleteCompareBlock,
