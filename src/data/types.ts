@@ -25,10 +25,10 @@ export interface KnowledgeNode {
 export interface CaseStudy {
   id: string;
   title: string;
-  scene: string;
-  problem: string;
-  solution: string;
-  result: string;
+  scene?: string;
+  problem?: string;
+  solution?: string;
+  result?: string;
   tags: string[];
   dimensionTab?: string;
   source?: string;
