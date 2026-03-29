@@ -845,6 +845,7 @@ export function KnowledgeBoard() {
         <NodeEditorModal
           node={nodeModal.node}
           moduleId={nodeModal.moduleId}
+          tabKey={activeDimension}
           onSave={(node) => {
             if (nodeModal.node) {
               editNode(nodeModal.moduleId, node.id, node);

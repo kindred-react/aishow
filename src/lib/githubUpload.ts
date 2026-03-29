@@ -1,15 +1,17 @@
 /**
  * GitHub Image Upload
- * 将图片上传到仓库 public/uploads/ 目录
- * 上传后通过 /uploads/filename 直接访问
+ * 将图片上传到仓库 public/uploads/{folder}/ 目录
+ * folder 默认为 "misc"，传入 moduleId 可按模块分类存放
+ * 上传后通过 /uploads/{folder}/filename 直接访问
  */
 
 const REPO = "kindred-react/aishow";
 const BRANCH = "main";
-const UPLOAD_DIR = "public/uploads";
+const UPLOAD_BASE = "public/uploads";
 
 export async function uploadImageToGitHub(
-  file: File
+  file: File,
+  folder = "misc"
 ): Promise<{ ok: boolean; url: string; message: string }> {
   const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
   if (!token) return { ok: false, url: "", message: "未配置 GitHub Token" };
@@ -19,7 +21,9 @@ export async function uploadImageToGitHub(
   const timestamp = Date.now();
   const random = Math.random().toString(36).slice(2, 6);
   const filename = `img-${timestamp}-${random}.${ext}`;
-  const filePath = `${UPLOAD_DIR}/${filename}`;
+  // 按 folder 分类存放
+  const safeFolder = folder.replace(/[^a-z0-9_-]/gi, "-").toLowerCase() || "misc";
+  const filePath = `${UPLOAD_BASE}/${safeFolder}/${filename}`;
 
   // 读取文件为 Base64
   const base64 = await fileToBase64(file);
@@ -57,7 +61,7 @@ export async function uploadImageToGitHub(
 
     if (putRes.ok) {
       // 返回 Vercel 部署后的访问路径
-      const publicUrl = `/uploads/${filename}`;
+      const publicUrl = `/uploads/${safeFolder}/${filename}`;
       return { ok: true, url: publicUrl, message: "图片上传成功，部署后生效" };
     } else {
       const err = await putRes.json();

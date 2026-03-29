@@ -14,13 +14,13 @@ function genId() {
 interface NodeEditorModalProps {
   node: KnowledgeNode | null;
   moduleId: string;
+  tabKey?: string;
   onSave: (node: KnowledgeNode) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function NodeEditorModal({ node, moduleId: _moduleId, onSave, onDelete, onClose }: NodeEditorModalProps) {
+export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onClose }: NodeEditorModalProps) {
   const { t } = useI18n();
   const isNew = node === null;
   const [title, setTitle] = useState(node?.title ?? "");
@@ -54,7 +54,7 @@ export function NodeEditorModal({ node, moduleId: _moduleId, onSave, onDelete, o
     setUploadMsg(t.nodeImageUploading);
     setUploading(true);
 
-    const result = await uploadImageToGitHub(file);
+    const result = await uploadImageToGitHub(file, tabKey ? `${moduleId}/${tabKey}` : moduleId || "misc");
     setUploading(false);
 
     if (result.ok) {
