@@ -294,10 +294,10 @@ export const WIDGET_MODULE_MAP = [
     field: "careerPlan" as keyof LearningModule,
     defaultTab: "career",
     typeLabel: "职规",
-    titleFn:    (i: CareerMilestone) => i.phase,
+    titleFn:    (i: CareerMilestone) => i.phase ?? "",
     subtitleFn: (i: CareerMilestone) => i.goal,
     searchFn:   (i: CareerMilestone, q: string) =>
-      i.phase.toLowerCase().includes(q) ||
+      (i.phase ?? "").toLowerCase().includes(q) ||
       i.goal?.toLowerCase().includes(q) ||
       i.actions?.some((a: string) => a.toLowerCase().includes(q)),
   },

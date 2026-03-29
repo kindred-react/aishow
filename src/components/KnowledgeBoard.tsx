@@ -268,7 +268,7 @@ export function KnowledgeBoard() {
               tabKey: (item as { dimensionTab?: string }).dimensionTab ?? entry.defaultTab,
               tabLabel: getTab((item as { dimensionTab?: string }).dimensionTab ?? entry.defaultTab),
               title: entry.titleFn(item as never),
-              subtitle: entry.subtitleFn?.(item as never),
+              subtitle: entry.subtitleFn?.(item as never) ?? "",
               type: entry.typeLabel,
             });
         });
@@ -672,14 +672,14 @@ export function KnowledgeBoard() {
                             <div className="skill-header">
                               <span className="skill-dimension">{skill.dimension}</span>
                               <strong>{skill.name}</strong>
-                              <div className="skill-level-bar">{[1,2,3,4,5].map((n) => <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`}/>)}</div>
+                              <div className="skill-level-bar">{[1,2,3,4,5].map((n) => <span key={n} className={`skill-dot ${n <= (skill.level ?? 0) ? "filled" : ""}`}/>)}</div>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, skill)}><PenLine size={11}/></button>
                                 <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <p className="skill-desc">{skill.description}</p>
-                            <div className="skill-howto"><span className="skill-howto-label">{t.skillHowToLabel}</span><ul>{skill.howTo.map((h) => <li key={h}>{h}</li>)}</ul></div>
+                            <div className="skill-howto"><span className="skill-howto-label">{t.skillHowToLabel}</span><ul>{(skill.howTo ?? []).map((h) => <li key={h}>{h}</li>)}</ul></div>
                           </article>
                         ))}
                       </div>
@@ -743,9 +743,9 @@ export function KnowledgeBoard() {
                             </div>
                             <div className="career-body">
                               <p className="career-goal">🎯 {m.goal}</p>
-                              <ul className="career-actions">{m.actions.map((a) => <li key={a}>{a}</li>)}</ul>
+                              <ul className="career-actions">{(m.actions ?? []).map((a) => <li key={a}>{a}</li>)}</ul>
                               <div className="career-footer">
-                                <span className="career-deliverable">{t.careerDeliverableLabel}{m.deliverable}</span>
+                                <span className="career-deliverable">{t.careerDeliverableLabel}{m.deliverable ?? ""}</span>
                                 <span className="career-check">{t.careerCheckLabel}{m.checkPoint}</span>
                               </div>
                               {m.resources && m.resources.length > 0 && <div className="career-resources">{m.resources.map((r) => <span key={r}>{r}</span>)}</div>}

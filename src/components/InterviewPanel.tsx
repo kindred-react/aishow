@@ -24,7 +24,7 @@ export function InterviewPanel({
 
   const categories = useMemo(() => [
     t.interviewDiffAll,
-    ...Array.from(new Set(questions.map((q) => q.category))),
+    ...Array.from(new Set(questions.map((q) => q.category).filter((c): c is string => !!c))),
   ], [questions, t.interviewDiffAll]);
 
   const [cat, setCat] = useState(t.interviewDiffAll);
@@ -35,7 +35,7 @@ export function InterviewPanel({
     return questions.filter((q) => {
       if (cat !== t.interviewDiffAll && q.category !== cat) return false;
       if (diff !== t.interviewDiffAll && q.difficulty !== diff) return false;
-      if (search && !q.question.includes(search) && !q.keyPoints.join("").includes(search)) return false;
+      if (search && !q.question.includes(search) && !(q.keyPoints ?? []).join("").includes(search)) return false;
       return true;
     });
   }, [questions, cat, diff, search, t.interviewDiffAll]);
@@ -94,7 +94,7 @@ export function InterviewPanel({
             <h4 className="interview-q">{q.question}</h4>
             <div className="interview-framework">{t.interviewFrameworkLabel}{q.framework}</div>
             <ul className="interview-kps">
-              {q.keyPoints.map((kp) => <li key={kp}>{kp}</li>)}
+              {(q.keyPoints ?? []).map((kp) => <li key={kp}>{kp}</li>)}
             </ul>
             <details className="interview-answer">
               <summary>{t.interviewViewAnswer}</summary>
