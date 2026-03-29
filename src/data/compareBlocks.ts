@@ -72,4 +72,24 @@ export const compareBlocks: CompareBlock[] = [
     ],
     order: 1774700503779,
   },
+  {
+    id: "jzkr344",
+    moduleId: "foundations",
+    dimensionTab: "cases",
+    title: "1",
+    rows: [],
+    items: [
+      {
+        id: "udn7g6g",
+        name: "",
+        nameEn: "",
+        color: "var(--c-neon)",
+        accent: "rgba(99,243,255,0.12)",
+        tags: {},
+        flow: [],
+        keyPoints: [],
+      },
+    ],
+    order: 1774784626620,
+  },
 ];

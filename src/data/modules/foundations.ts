@@ -200,6 +200,12 @@ export const foundationsModule: LearningModule = {
       tags: ["Context Window", "长文档", "Prompt"],
       source: "内置",
     },
+    {
+      id: "case-x1ztss",
+      title: "测",
+      tags: [],
+      dimensionTab: "cases",
+    },
   ],
   skills: [
     {
@@ -240,6 +246,11 @@ export const foundationsModule: LearningModule = {
       key: "cases",
       label: "案例",
       widgets: ["case", "compare"],
+    },
+    {
+      key: "custom-测试-1cq",
+      label: "测试",
+      widgets: ["compare"],
     },
   ],
 };
