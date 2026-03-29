@@ -3,6 +3,8 @@
  * 把完整的 LearningModule 数据写回对应的 src/data/modules/*.ts 文件
  * 支持所有 tab：knowledgeNodes / operationSteps / cases / skills /
  *             learningPath / interviewQuestions / careerPlan / tools
+ *
+ * 使用 Git Tree API 将所有文件改动合并为一个 commit，避免多个独立 commit。
  */
 
 const REPO = "kindred-react/aishow";
@@ -11,41 +13,96 @@ const BRANCH = "main";
 import type { LearningModule } from "@/data/types";
 import type { CompareBlock } from "@/data/types";
 
-// ── GitHub helpers ────────────────────────────────────────────────────────
+// ── GitHub Git Tree API helpers ───────────────────────────────────────────
 
-async function getFileSha(path: string, token: string): Promise<string | undefined> {
+type TreeEntry = { path: string; mode: "100644"; type: "blob"; content: string };
+
+async function getHeadCommitSha(token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`,
+    `https://api.github.com/repos/${REPO}/git/ref/heads/${BRANCH}`,
     { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
   );
-  if (!res.ok) return undefined;
+  if (!res.ok) throw new Error(`Failed to get HEAD: ${res.status}`);
+  const data = await res.json();
+  return data.object.sha as string;
+}
+
+async function getBaseTreeSha(commitSha: string, token: string): Promise<string> {
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/git/commits/${commitSha}`,
+    { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
+  );
+  if (!res.ok) throw new Error(`Failed to get commit: ${res.status}`);
+  const data = await res.json();
+  return data.tree.sha as string;
+}
+
+async function createTree(baseTreeSha: string, entries: TreeEntry[], token: string): Promise<string> {
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/git/trees`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ base_tree: baseTreeSha, tree: entries }),
+    }
+  );
+  if (!res.ok) { const e = await res.json(); throw new Error(`Failed to create tree: ${e.message}`); }
   const data = await res.json();
   return data.sha as string;
 }
 
-async function putFile(
-  path: string,
-  content: string,
-  sha: string | undefined,
-  token: string,
-  message: string
-): Promise<{ ok: boolean; message: string }> {
-  const encoded = btoa(unescape(encodeURIComponent(content)));
+async function createCommit(message: string, treeSha: string, parentSha: string, token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${path}`,
+    `https://api.github.com/repos/${REPO}/git/commits`,
     {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message, content: encoded, sha, branch: BRANCH }),
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ message, tree: treeSha, parents: [parentSha] }),
     }
   );
-  if (res.ok) return { ok: true, message: "已写入 GitHub，约1-2分钟后部署生效" };
-  const err = await res.json();
-  return { ok: false, message: `GitHub 错误: ${err.message}` };
+  if (!res.ok) { const e = await res.json(); throw new Error(`Failed to create commit: ${e.message}`); }
+  const data = await res.json();
+  return data.sha as string;
+}
+
+async function updateRef(commitSha: string, token: string): Promise<void> {
+  const res = await fetch(
+    `https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ sha: commitSha }),
+    }
+  );
+  if (!res.ok) { const e = await res.json(); throw new Error(`Failed to update ref: ${e.message}`); }
+}
+
+/**
+ * Push multiple files as a single Git commit.
+ * entries: array of { path, content } — all files to write.
+ * message: commit message.
+ */
+async function pushBatchCommit(
+  entries: { path: string; content: string }[],
+  message: string,
+  token: string
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const headSha = await getHeadCommitSha(token);
+    const baseTreeSha = await getBaseTreeSha(headSha, token);
+    const treeEntries: TreeEntry[] = entries.map(e => ({
+      path: e.path,
+      mode: "100644",
+      type: "blob",
+      content: e.content,
+    }));
+    const newTreeSha = await createTree(baseTreeSha, treeEntries, token);
+    const newCommitSha = await createCommit(message, newTreeSha, headSha, token);
+    await updateRef(newCommitSha, token);
+    return { ok: true, message: `已推送 ${entries.length} 个文件到 GitHub，约1-2分钟后部署生效` };
+  } catch (e) {
+    return { ok: false, message: `GitHub 错误: ${String(e)}` };
+  }
 }
 
 // ── Module file map ───────────────────────────────────────────────────────
@@ -174,34 +231,55 @@ function generateKnowledgeIndexTs(allModules: LearningModule[]): string {
 
 // ── Public API ────────────────────────────────────────────────────────────
 
-/**
- * Push a single module's full data to GitHub.
- * For new modules (not in MODULE_FILE_MAP), dynamically generates the file path.
- * Returns { ok, message } for UI feedback.
- */
-export async function saveModuleToGitHub(
-  module: LearningModule
-): Promise<{ ok: boolean; message: string }> {
-  const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-  if (!token) return { ok: false, message: "未配置 GitHub Token" };
+/** Generate file entries for changed modules (no network call). */
+export function buildModuleEntries(
+  changedModuleIds: string[],
+  allModules: LearningModule[]
+): { path: string; content: string; label: string }[] {
+  return allModules
+    .filter(m => changedModuleIds.includes(m.id))
+    .map(m => ({
+      path: moduleFilePath(m.id),
+      content: generateModuleTs(m),
+      label: m.name ?? m.id,
+    }));
+}
 
-  const filePath = moduleFilePath(module.id);
-  try {
-    const sha = await getFileSha(filePath, token);
-    const content = generateModuleTs(module);
-    return await putFile(
-      filePath, content, sha, token,
-      `feat: update ${module.id} [web editor]`
-    );
-  } catch (e) {
-    return { ok: false, message: `错误: ${String(e)}` };
-  }
+/** Generate file entry for the knowledge index. */
+export function buildIndexEntry(allModules: LearningModule[]): { path: string; content: string; label: string } {
+  return {
+    path: "src/data/knowledge.ts",
+    content: generateKnowledgeIndexTs(allModules),
+    label: "知识库索引",
+  };
+}
+
+/** Generate file entry for compare blocks. */
+export function buildCompareEntry(blocks: CompareBlock[]): { path: string; content: string; label: string } {
+  return {
+    path: "src/data/compareBlocks.ts",
+    content: generateCompareBlocksTs(blocks),
+    label: "对比组件",
+  };
 }
 
 /**
- * Push all changed modules to GitHub in parallel.
- * changedModuleIds: list of module IDs that were edited.
- * allModules: the full merged module list to get current data from.
+ * Push all changes as a single Git commit using the Git Tree API.
+ * entries: array of { path, content, label } — all files to write.
+ */
+export async function pushAllChangesAsOneCommit(
+  entries: { path: string; content: string; label: string }[],
+  commitMessage: string
+): Promise<{ ok: boolean; message: string }> {
+  const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+  if (!token) return { ok: false, message: "未配置 GitHub Token（NEXT_PUBLIC_GITHUB_TOKEN）" };
+  if (entries.length === 0) return { ok: true, message: "无需同步" };
+  return pushBatchCommit(entries, commitMessage, token);
+}
+
+/**
+ * Push all changed modules to GitHub (legacy: each module = one commit).
+ * @deprecated Use pushAllChangesAsOneCommit instead.
  */
 export async function pushChangesToGitHub(
   changedModuleIds: string[],
@@ -209,41 +287,22 @@ export async function pushChangesToGitHub(
 ): Promise<{ ok: boolean; message: string }> {
   const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
   if (!token) return { ok: false, message: "未配置 GitHub Token（NEXT_PUBLIC_GITHUB_TOKEN）" };
-
-  const targets = allModules.filter(m => changedModuleIds.includes(m.id));
-  if (targets.length === 0) return { ok: true, message: "无需同步" };
-
-  const results = await Promise.all(targets.map(m => saveModuleToGitHub(m)));
-  const failed = results.filter(r => !r.ok);
-
-  if (failed.length === 0) {
-    return { ok: true, message: `已推送 ${targets.length} 个模块到 GitHub，约1-2分钟后部署生效` };
-  }
-  return { ok: false, message: failed.map(r => r.message).join("；") };
+  const entries = buildModuleEntries(changedModuleIds, allModules);
+  if (entries.length === 0) return { ok: true, message: "无需同步" };
+  return pushBatchCommit(entries, `feat: update modules [web editor]`, token);
 }
 
 /**
  * Push the knowledge.ts index file to GitHub.
- * Must be called whenever modules are added or deleted.
- * allModules: the full current module list (after adds/deletes applied).
+ * @deprecated Use pushAllChangesAsOneCommit instead.
  */
 export async function pushKnowledgeIndexToGitHub(
   allModules: LearningModule[]
 ): Promise<{ ok: boolean; message: string }> {
   const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
   if (!token) return { ok: false, message: "未配置 GitHub Token" };
-
-  const filePath = "src/data/knowledge.ts";
-  try {
-    const sha = await getFileSha(filePath, token);
-    const content = generateKnowledgeIndexTs(allModules);
-    return await putFile(
-      filePath, content, sha, token,
-      "feat: update knowledge index [web editor]"
-    );
-  } catch (e) {
-    return { ok: false, message: `错误: ${String(e)}` };
-  }
+  const entry = buildIndexEntry(allModules);
+  return pushBatchCommit([entry], "feat: update knowledge index [web editor]", token);
 }
 
 // ── Compare Blocks ────────────────────────────────────────────────────────
@@ -260,24 +319,15 @@ function generateCompareBlocksTs(blocks: CompareBlock[]): string {
 
 /**
  * Push all compare blocks to GitHub as src/data/compareBlocks.ts
+ * @deprecated Use pushAllChangesAsOneCommit instead.
  */
 export async function pushCompareBlocksToGitHub(
   blocks: CompareBlock[]
 ): Promise<{ ok: boolean; message: string }> {
   const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
   if (!token) return { ok: false, message: "未配置 GitHub Token" };
-
-  const filePath = "src/data/compareBlocks.ts";
-  try {
-    const sha = await getFileSha(filePath, token);
-    const content = generateCompareBlocksTs(blocks);
-    return await putFile(
-      filePath, content, sha, token,
-      "feat: update compareBlocks [web editor]"
-    );
-  } catch (e) {
-    return { ok: false, message: `错误: ${String(e)}` };
-  }
+  const entry = buildCompareEntry(blocks);
+  return pushBatchCommit([entry], "feat: update compareBlocks [web editor]", token);
 }
 
 // ── Legacy compat ─────────────────────────────────────────────────────────

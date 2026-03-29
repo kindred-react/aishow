@@ -15,7 +15,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
 import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
-import { pushChangesToGitHub, pushCompareBlocksToGitHub, pushKnowledgeIndexToGitHub } from "@/lib/githubNotes";
+import { pushAllChangesAsOneCommit, buildModuleEntries, buildCompareEntry, buildIndexEntry } from "@/lib/githubNotes";
 
 // ── Commit progress task type ──────────────────────────────────────────────
 export type CommitTask = {
@@ -217,45 +217,40 @@ export function useContentStore() {
       if (ids.length > 0 || hasCompareChanges || hasModuleStructureChanges) {
         setSyncStatus("syncing"); setSyncMsg("正在推送到 GitHub…");
 
-        // Build task list for progress modal
-        const tasks: CommitTask[] = [];
-        if (ids.length > 0) {
-          const moduleNames = ids.map(id => mergedModules.find(m => m.id === id)?.name ?? id);
-          tasks.push({ id: "modules", label: `模块内容 (${moduleNames.join("、")})`, status: "pending" });
-        }
-        if (hasCompareChanges) tasks.push({ id: "compare", label: "对比组件", status: "pending" });
-        if (hasModuleStructureChanges) tasks.push({ id: "index", label: "知识库索引", status: "pending" });
+        // Build all file entries
+        const allEntries: { path: string; content: string; label: string }[] = [];
+        if (ids.length > 0) allEntries.push(...buildModuleEntries(ids, mergedModules));
+        if (hasCompareChanges) allEntries.push(buildCompareEntry(prev.compareBlocks));
+        if (hasModuleStructureChanges) allEntries.push(buildIndexEntry(mergedModules));
+
+        // Build task list for progress modal — one task per file
+        const tasks: CommitTask[] = allEntries.map(e => ({
+          id: e.path,
+          label: e.label,
+          status: "pending",
+        }));
         setCommitTasks(tasks);
 
-        // Run tasks sequentially to show live progress
+        // Mark all as running, then push as single commit
+        setCommitTasks(t => t.map(x => ({ ...x, status: "running" })));
+
         (async () => {
-          let allOk = true;
-          const finalMsgs: string[] = [];
+          const moduleNames = ids.map(id => mergedModules.find(m => m.id === id)?.name ?? id);
+          const commitMsg = [
+            moduleNames.length > 0 ? `feat: update ${moduleNames.join(", ")}` : "",
+            hasCompareChanges ? "compareBlocks" : "",
+            hasModuleStructureChanges ? "knowledge index" : "",
+          ].filter(Boolean).join(" + ") + " [web editor]";
 
-          if (ids.length > 0) {
-            setCommitTasks(t => t.map(x => x.id === "modules" ? { ...x, status: "running" } : x));
-            const r = await pushChangesToGitHub(ids, mergedModules);
-            allOk = allOk && r.ok;
-            finalMsgs.push(r.message);
-            setCommitTasks(t => t.map(x => x.id === "modules" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
-          }
-          if (hasCompareChanges) {
-            setCommitTasks(t => t.map(x => x.id === "compare" ? { ...x, status: "running" } : x));
-            const r = await pushCompareBlocksToGitHub(prev.compareBlocks);
-            allOk = allOk && r.ok;
-            finalMsgs.push(r.message);
-            setCommitTasks(t => t.map(x => x.id === "compare" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
-          }
-          if (hasModuleStructureChanges) {
-            setCommitTasks(t => t.map(x => x.id === "index" ? { ...x, status: "running" } : x));
-            const r = await pushKnowledgeIndexToGitHub(mergedModules);
-            allOk = allOk && r.ok;
-            finalMsgs.push(r.message);
-            setCommitTasks(t => t.map(x => x.id === "index" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
-          }
+          const result = await pushAllChangesAsOneCommit(allEntries, commitMsg);
 
-          setSyncStatus(allOk ? "done" : "error");
-          setSyncMsg(finalMsgs.join("；"));
+          setCommitTasks(t => t.map(x => ({
+            ...x,
+            status: result.ok ? "done" : "error",
+            message: result.ok ? "已写入" : result.message,
+          })));
+          setSyncStatus(result.ok ? "done" : "error");
+          setSyncMsg(result.message);
           setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]); }, 8000);
         })();
       }
