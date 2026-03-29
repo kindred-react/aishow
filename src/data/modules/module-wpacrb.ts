@@ -6,8 +6,30 @@ export const moduleWpacrbModule: LearningModule = {
   icon: "📚",
   order: 10,
   intro: "",
-  knowledgeNodes: [],
-  operationSteps: [],
+  knowledgeNodes: [
+    {
+      id: "node-k56xcs",
+      title: "11212",
+      summary: "",
+      level: "基础",
+      metaphor: "",
+      points: [],
+      color: "var(--c-neon)",
+      relatedOps: [],
+      updatedAt: "2026-03-29",
+      version: 1,
+      imageUrl: "/uploads/module-wpacrb-knowledge/img-1774785096119-tpe1.jpg",
+      dimensionTab: "knowledge",
+    },
+  ],
+  operationSteps: [
+    {
+      id: "op-m3jwpi",
+      title: "23",
+      tools: [],
+      dimensionTab: "operation",
+    },
+  ],
   cases: [],
   enabledTabs: [
     {
