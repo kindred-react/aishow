@@ -130,10 +130,11 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
                   style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
                 />
                 <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={
-                    (t as unknown as Record<string,string>)[`widget${row.key.charAt(0).toUpperCase()}${row.key.slice(1)}Desc`]
+                    (() => { const wm = WIDGET_MODULE_MAP.find(m => m.widget === row.key); return wm ? (t as Record<string, unknown>)[`${wm.i18nKey}Desc`] as string : undefined; })()
                   }>
                   <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
-                  {(t as unknown as Record<string,string>)[`widget${row.key.charAt(0).toUpperCase()}${row.key.slice(1)}`] ?? meta?.label ?? row.key}
+                  {(() => { const wm = WIDGET_MODULE_MAP.find(m => m.widget === row.key); return wm ? (t as Record<string, unknown>)[wm.i18nKey] as string : meta?.label ?? row.key; })()
+                  }
                   {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
                 </span>
                 <button type="button" disabled={idx === 0}

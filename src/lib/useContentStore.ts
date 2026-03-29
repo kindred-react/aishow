@@ -22,9 +22,7 @@ export type { CommitTask } from "@/components/CommitProgressModal";
 import type { CommitTask } from "@/components/CommitProgressModal";
 
 import { LS_CONTENT_STORE_KEY } from "@/data/constants";
-import { WIDGET_MODULE_MAP, TAB_WIDGET } from "@/data/types";
-
-// LS_CONTENT_STORE_KEY imported from @/data/constants
+import { WIDGET_MODULE_MAP } from "@/data/types";
 
 type ModuleList<T> = Record<string, T[]>;
 type ItemRecord = Record<string, unknown>;
@@ -35,7 +33,7 @@ type ItemRecord = Record<string, unknown>;
 export const TAB_FIELD_MAP: Record<string, keyof LearningModule> =
   Object.fromEntries(
     WIDGET_MODULE_MAP
-      .filter(e => e.defaultTab !== TAB_WIDGET.Knowledge) // knowledge handled separately
+      .filter(e => !e.separateStore) // entries with separateStore use dedicated store fields
       .map(e => [e.defaultTab, e.field])
   );
 

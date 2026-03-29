@@ -49,7 +49,7 @@ function renderField(
   t: T,
   isFirst: boolean,
 ): React.ReactNode {
-  const tRecord = t as unknown as Record<string, unknown>;
+  const tRecord = t as Record<string, unknown>;
 
   if (field.type === "row") {
     let firstInRow = isFirst;
@@ -162,7 +162,7 @@ function DynamicForm({ tabKey, init, onSave, t }: {
   t: T;
 }) {
   const schema = TAB_FORM_SCHEMA_MAP[tabKey];
-  const tRecord = t as unknown as Record<string, unknown>;
+  const tRecord = t as Record<string, unknown>;
 
   // Build default state from schema
   const buildDefaults = useCallback((): FormState => {
@@ -253,7 +253,7 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
   const isNew = item === null;
   const { t } = useI18n();
 
-  const tRecord = t as unknown as Record<string, unknown>;
+  const tRecord = t as Record<string, unknown>;
   const label = TAB_LABEL_MAP[tab] ?? tab;
 
   const handleSave = (saved: Record<string, unknown>) => {

@@ -79,7 +79,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     fields: [
       { type: "text",  key: "title", labelKey: "pathTitle", placeholderKey: "pathTitlePh", required: true },
       { type: "row", fields: [
-        { type: "radio",  key: "level", labelKey: "pathDifficulty", options: KNOWLEDGE_LEVELS as unknown as string[], defaultOption: KNOWLEDGE_LEVEL_DEFAULT },
+        { type: "radio",  key: "level", labelKey: "pathDifficulty", options: [...KNOWLEDGE_LEVELS], defaultOption: KNOWLEDGE_LEVEL_DEFAULT },
         { type: "number", key: "estimatedHours", labelKey: "pathHours", placeholderKey: "pathHoursPh" },
       ]},
       { type: "text",  key: "tip",   labelKey: "pathTip",   placeholderKey: "pathTipPh" },
@@ -93,7 +93,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
       { type: "textarea", key: "question",    labelKey: "iqQuestion",    placeholderKey: "iqQuestionPh",    rows: 2, required: true, autoFocus: true },
       { type: "row", fields: [
         { type: "radio", key: "category",   labelKey: "iqCategory",   options: (t) => [t.iqCatTech, t.iqCatProduct, t.iqCatBusiness, t.iqCatBehavior] as string[], defaultOption: (t) => t.iqCatTech as string },
-        { type: "radio", key: "difficulty", labelKey: "iqDifficulty", options: INTERVIEW_DIFFICULTIES as unknown as string[], defaultOption: INTERVIEW_DIFFICULTY_DEFAULT },
+        { type: "radio", key: "difficulty", labelKey: "iqDifficulty", options: [...INTERVIEW_DIFFICULTIES], defaultOption: INTERVIEW_DIFFICULTY_DEFAULT },
       ]},
       { type: "text",     key: "framework",   labelKey: "iqFramework",   placeholderKey: "iqFrameworkPh" },
       { type: "list",     key: "keyPoints",   labelKey: "iqKeyPoints",   placeholderKey: "iqKeyPointPh" },

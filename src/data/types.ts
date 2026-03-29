@@ -179,6 +179,8 @@ export interface CompareBlock {
 export const WIDGET_MODULE_MAP = [
   {
     widget: TAB_WIDGET.Knowledge,
+    i18nKey: "widgetKnowledge",
+    separateStore: true, // knowledge nodes use dedicated nodeEdits/addedNodes/deletedNodes
     desc: "Concept cards with metaphors, points, colors",
     field: "knowledgeNodes" as keyof LearningModule,
     defaultTab: "knowledge",
@@ -192,6 +194,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Operation,
+    separateStore: false,
+    i18nKey: "widgetOperation",
     desc: "Step-by-step instructions with tools",
     field: "operationSteps" as keyof LearningModule,
     defaultTab: "operation",
@@ -206,6 +210,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Case,
+    separateStore: false,
+    i18nKey: "widgetCase",
     desc: "Scene-Problem-Solution-Result",
     field: "cases" as keyof LearningModule,
     defaultTab: "cases",
@@ -220,6 +226,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Tool,
+    separateStore: false,
+    i18nKey: "widgetTool",
     desc: "Tool name, category, link",
     field: "tools" as keyof LearningModule,
     defaultTab: "tools",
@@ -234,6 +242,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Skill,
+    separateStore: false,
+    i18nKey: "widgetSkill",
     desc: "Skill dimensions and growth paths",
     field: "skills" as keyof LearningModule,
     defaultTab: "skills",
@@ -248,6 +258,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Interview,
+    separateStore: false,
+    i18nKey: "widgetInterview",
     desc: "Questions, frameworks, key points, sample answers",
     field: "interviewQuestions" as keyof LearningModule,
     defaultTab: "interview",
@@ -262,6 +274,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Path,
+    separateStore: false,
+    i18nKey: "widgetPath",
     desc: "Prerequisites, duration, tips",
     field: "learningPath" as keyof LearningModule,
     defaultTab: "path",
@@ -274,6 +288,8 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Career,
+    separateStore: false,
+    i18nKey: "widgetCareer",
     desc: "Phase, actions, deliverables",
     field: "careerPlan" as keyof LearningModule,
     defaultTab: "career",
