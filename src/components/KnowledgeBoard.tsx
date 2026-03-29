@@ -300,6 +300,31 @@ export function KnowledgeBoard() {
     closeSearch();
   };
 
+  const openMoveModal = (node: KnowledgeNode, fromModuleId: string, fromTab: string) => {
+    setMoveModal({ open: true, node, fromModuleId, fromTab });
+    setMoveTargetModuleId(fromModuleId);
+    setMoveTargetTab(fromTab);
+  };
+
+  const executeMoveNode = () => {
+    const { node, fromModuleId, fromTab } = moveModal;
+    if (!node) return;
+    const sameModule = moveTargetModuleId === fromModuleId;
+    const sameTab = moveTargetTab === fromTab;
+    if (sameModule && sameTab) { setMoveModal(m => ({ ...m, open: false })); return; }
+    if (sameModule) {
+      // Same module, different tab — just update dimensionTab
+      editNode(fromModuleId, node.id, { dimensionTab: moveTargetTab });
+    } else {
+      // Different module — delete from source, add to target with new dimensionTab
+      deleteNode(fromModuleId, node.id);
+      addNode(moveTargetModuleId, { ...node, dimensionTab: moveTargetTab });
+    }
+    setMoveModal(m => ({ ...m, open: false }));
+    setActiveModuleId(moveTargetModuleId);
+    setActiveDimension(moveTargetTab as DimensionTab);
+  };
+
   // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
   useEffect(() => {
     const savedModule = localStorage.getItem(LS_KB_MODULE_KEY);
@@ -316,6 +341,9 @@ export function KnowledgeBoard() {
   }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
+  const [moveModal, setMoveModal] = useState<{ open: boolean; node: KnowledgeNode | null; fromModuleId: string; fromTab: string }>({ open: false, node: null, fromModuleId: "", fromTab: "" });
+  const [moveTargetModuleId, setMoveTargetModuleId] = useState("");
+  const [moveTargetTab, setMoveTargetTab] = useState("");
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const [showImageCleanup, setShowImageCleanup] = useState(false);
   const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: TAB_WIDGET.Knowledge });
@@ -374,6 +402,7 @@ export function KnowledgeBoard() {
       if (e.key === "Escape") {
         if (searchOpen) { closeSearch(); return; }
         if (nodeModal.open)   { setNodeModal(m => ({ ...m, open: false })); return; }
+        if (moveModal.open)   { setMoveModal(m => ({ ...m, open: false })); return; }
         if (compareModal.open){ setCompareModal(m => ({ ...m, open: false })); return; }
         if (tabItemModal.open){ setTabItemModal(m => ({ ...m, open: false })); return; }
         if (tabEditModal.open){ setTabEditModal(m => ({ ...m, open: false })); return; }
@@ -385,7 +414,7 @@ export function KnowledgeBoard() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [searchOpen, nodeModal.open, compareModal.open, tabItemModal.open, tabEditModal.open, moduleModal.open, showImageCleanup, ctxMenu, tabCtxMenu]);
+  }, [searchOpen, nodeModal.open, moveModal.open, compareModal.open, tabItemModal.open, tabEditModal.open, moduleModal.open, showImageCleanup, ctxMenu, tabCtxMenu]);
 
   const handleTabItemSave = (tab: string, saved: Record<string, unknown>) => {
     const mid = activeModule.id;
@@ -610,6 +639,7 @@ export function KnowledgeBoard() {
                           <KnowledgeCard key={rawNode.id} rawNode={rawNode}
                             operationSteps={activeModule.operationSteps} onJumpToOp={jumpToOp}
                             onEdit={isEditMode ? (node) => setNodeModal({ open: true, node, moduleId: activeModule.id }) : undefined}
+                            onMove={isEditMode ? (node) => openMoveModal(node, activeModule.id, rawNode.dimensionTab ?? activeDimension) : undefined}
                             onDelete={isEditMode ? (nodeId) => deleteNode(activeModule.id, nodeId) : undefined}
                           />
                         ))}
@@ -843,6 +873,42 @@ export function KnowledgeBoard() {
           onDelete={nodeModal.node ? () => deleteNode(nodeModal.moduleId, nodeModal.node!.id) : undefined}
           onClose={() => setNodeModal({ open: false, node: null, moduleId: "" })}
         />
+      )}
+
+      {/* ── Move Node Modal ── */}
+      {moveModal.open && moveModal.node && (
+        <div className="note-overlay" onClick={() => setMoveModal(m => ({ ...m, open: false }))}>
+          <div className="note-modal" onClick={e => e.stopPropagation()} style={{maxWidth:"360px"}}>
+            <div className="note-modal-header">
+              <span>{t.moveItemTitle}: <strong>{moveModal.node.title}</strong></span>
+              <button type="button" className="note-close" onClick={() => setMoveModal(m => ({ ...m, open: false }))}><X size={14}/></button>
+            </div>
+            <div className="note-edit-body">
+              <div className="note-field">
+                <label className="note-label">{t.moveItemTargetModule}</label>
+                <select className="note-input" value={moveTargetModuleId} onChange={e => { setMoveTargetModuleId(e.target.value); setMoveTargetTab(""); }}>
+                  {sortedModules.map(m => (
+                    <option key={m.id} value={m.id}>{m.icon} {m.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="note-field">
+                <label className="note-label">{t.moveItemTargetTab}</label>
+                <select className="note-input" value={moveTargetTab} onChange={e => setMoveTargetTab(e.target.value)}>
+                  {(sortedModules.find(m => m.id === moveTargetModuleId)?.enabledTabs ?? ALL_TABS).map(tab => (
+                    <option key={tab.key} value={tab.key}>{tab.label}</option>
+                  ))}
+                </select>
+              </div>
+              {moveTargetModuleId === moveModal.fromModuleId && moveTargetTab === moveModal.fromTab && (
+                <p style={{fontSize:"0.75rem",color:"var(--muted)",margin:"0"}}>{t.moveItemSameLocation}</p>
+              )}
+            </div>
+            <div className="note-modal-footer">
+              <button type="button" className="note-save-btn note-save-btn-active" onClick={executeMoveNode}>{t.moveItemConfirm}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Module Editor Modal ── */}

@@ -49,12 +49,14 @@ export function KnowledgeCard({
   operationSteps,
   onJumpToOp,
   onEdit,
+  onMove,
   onDelete,
 }: {
   rawNode: KnowledgeNode;
   operationSteps: OperationStep[];
   onJumpToOp: (id: string) => void;
   onEdit?: (node: KnowledgeNode) => void;
+  onMove?: (node: KnowledgeNode) => void;
   onDelete?: (nodeId: string) => void;
 }) {
   const { t } = useI18n();
@@ -68,6 +70,11 @@ export function KnowledgeCard({
           {onEdit && (
             <button type="button" className="note-btn" title={t.editCard} onClick={() => onEdit(node)}>
               <PenLine size={12} />
+            </button>
+          )}
+          {onMove && (
+            <button type="button" className="note-btn" title={t.moveItem} onClick={() => onMove(node)}>
+              <ArrowRight size={12} />
             </button>
           )}
           {onDelete && (
