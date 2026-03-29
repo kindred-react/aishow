@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
+import { useFocusOnMount } from "@/lib/hooks";
 import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
 import {
   ChevronUp, ChevronDown, X, Save, Trash2,
@@ -144,7 +145,7 @@ interface CompareBlockEditorProps {
 export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDelete, onClose }: CompareBlockEditorProps) {
   const { t } = useI18n();
   const isNew = block === null;
-  const titleRef = useRef<HTMLInputElement>(null);
+  const titleRef = useFocusOnMount<HTMLInputElement>();
 
   const [title, setTitle] = useState(block?.title ?? "");
   const [rows, setRows] = useState<{ label: string; key: string }[]>(
@@ -158,7 +159,6 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
   const [activeItemIdx, setActiveItemIdx] = useState(0);
   const [titleError, setTitleError] = useState(false);
 
-  useEffect(() => { setTimeout(() => titleRef.current?.focus(), 60); }, []);
 
   // row helpers
   const updateRow = (idx: number, field: "label" | "key", val: string) =>

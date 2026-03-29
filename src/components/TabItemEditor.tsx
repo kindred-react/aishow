@@ -4,11 +4,8 @@ import { X, Save, Trash2, Plus } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { TAB_LABEL_MAP } from "@/data/types";
 import { TAB_FORM_SCHEMA_MAP } from "@/components/formSchemas";
+import { genId } from "@/lib/hooks";
 import type { FieldDef } from "@/components/formSchemas";
-
-function genId(prefix = "item") {
-  return prefix + "-" + Math.random().toString(36).slice(2, 8);
-}
 
 type T = ReturnType<typeof useI18n>["t"];
 type FormState = Record<string, unknown>;

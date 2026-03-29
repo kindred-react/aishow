@@ -217,6 +217,7 @@ const ZH = {
   editCompare: "编辑对比组件",
   deleteCompare: "删除对比组件",
   deleteCompareConfirm: "确定删除此对比组件？",
+  deleteItemConfirm: "确定删除此条目？",
 
   // ── Image Cleanup ──
   imageCleanup: "图片清理",
@@ -605,6 +606,7 @@ const EN: typeof ZH = {
   editCompare: "Edit Compare",
   deleteCompare: "Delete Compare",
   deleteCompareConfirm: "Delete this compare block?",
+  deleteItemConfirm: "Delete this item?",
 
   // ── Password / edit mode prompt ──
   passwordPromptTitle: "Enter edit password",

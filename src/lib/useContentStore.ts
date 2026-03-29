@@ -134,6 +134,8 @@ function getMergedModule(m: LearningModule, store: ContentStore): LearningModule
 export function useContentStore() {
   const [savedStore, setSavedStore] = useState<ContentStore>(DEFAULT_STORE);
   const savedStoreRef = useRef<ContentStore>(DEFAULT_STORE);
+  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearCommitTimer = () => { if (commitTimerRef.current !== null) { clearTimeout(commitTimerRef.current); commitTimerRef.current = null; } };
   const [draftStore, setDraftStore] = useState<ContentStore | null>(null);
   const store = draftStore ?? savedStore;
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
@@ -158,6 +160,7 @@ export function useContentStore() {
     return () => {
       window.removeEventListener("content-store-updated", handler);
       window.removeEventListener("storage", storageHandler);
+      clearCommitTimer();
     };
   }, []);
 
@@ -242,20 +245,22 @@ export function useContentStore() {
           })));
           setSyncStatus(result.ok ? "done" : "error");
           setSyncMsg(result.message);
-          setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]); }, 8000);
+          clearCommitTimer();
+          commitTimerRef.current = setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]); }, 8000);
         })();
       }
       return null;
     });
   }, []);
 
-  const discardDraft = useCallback(() => setDraftStore(null), []);
+  const discardDraft = useCallback(() => { setDraftStore(null); }, []);
 
   const clearCommit = useCallback(() => {
+    clearCommitTimer();
     setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]);
   }, []);
 
-  const hasDraftChanges = draftStore !== null && JSON.stringify(draftStore) !== JSON.stringify(savedStore);
+  const hasDraftChanges = draftStore !== null;
 
   const updateDraft = useCallback((fn: (s: ContentStore) => ContentStore) => {
     setDraftStore(prev => fn(prev ?? savedStore));

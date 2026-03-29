@@ -1,15 +1,12 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
 import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT } from "@/data/types";
 import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
 import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
 import { useI18n } from "@/lib/i18n";
-
-function genId() {
-  return "node-" + Math.random().toString(36).slice(2, 8);
-}
+import { useFocusOnMount, genId } from "@/lib/hooks";
 
 interface NodeEditorModalProps {
   node: KnowledgeNode | null;
@@ -33,12 +30,8 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
   const [imagePreview, setImagePreview] = useState(node?.imageUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
-  const titleRef = useRef<HTMLInputElement>(null);
+  const titleRef = useFocusOnMount<HTMLInputElement>();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setTimeout(() => titleRef.current?.focus(), 60);
-  }, []);
 
   const updatePoint = (i: number, v: string) => setPoints(ps => ps.map((p, j) => j === i ? v : p));
   const addPoint = () => setPoints(ps => [...ps, ""]);
@@ -64,7 +57,8 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
       setUploadMsg("✗ " + result.message);
       setImagePreview(imageUrl); // 恢复旧预览
     }
-    setTimeout(() => setUploadMsg(""), 4000);
+    const timer = setTimeout(() => setUploadMsg(""), 4000);
+    return () => clearTimeout(timer);
   };
 
   const handleRemoveImage = () => {
@@ -76,7 +70,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
   const handleSave = () => {
     if (!title.trim()) { titleRef.current?.focus(); return; }
     const saved: KnowledgeNode = {
-      id: node?.id ?? genId(),
+      id: node?.id ?? genId("node"),
       title: title.trim(),
       summary: summary.trim(),
       level,

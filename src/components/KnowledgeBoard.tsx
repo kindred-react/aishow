@@ -20,6 +20,7 @@ import {
   Moon,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
+import { useFocusOnMount } from "@/lib/hooks";
 import { KnowledgeCard } from "@/components/NoteEditor";
 import { NodeEditorModal } from "@/components/NodeEditor";
 import { ModuleEditorModal, AddModuleButton } from "@/components/ModuleEditor";
@@ -60,8 +61,7 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
     return items.filter(i => check(i.dimensionTab, entry.defaultTab)).length;
   };
   const [label, setLabel] = useState(init?.label ?? "");
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => { setTimeout(() => ref.current?.focus(), 60); }, []);
+  const ref = useFocusOnMount<HTMLInputElement>();
 
   // Build unified widget rows: all ALL_WIDGETS in user order
   const initWidgetRows = () => {
@@ -242,7 +242,9 @@ export function KnowledgeBoard() {
   }, [isDark]);
 
   useEffect(() => {
-    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 60);
+    if (!searchOpen) return;
+    const frame = requestAnimationFrame(() => searchInputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
   }, [searchOpen]);
 
   // Build search index from all merged modules
@@ -306,7 +308,8 @@ export function KnowledgeBoard() {
     if (savedLevel && ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(savedLevel)) setLevelFilter(savedLevel as KnowledgeLevelFilter);
     /* eslint-enable react-hooks/set-state-in-effect */
     // Small delay so state settles before revealing UI (prevents jump)
-    setTimeout(() => setIsMounted(true), 80);
+    const timer = setTimeout(() => setIsMounted(true), 80);
+    return () => clearTimeout(timer);
   }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
@@ -323,7 +326,7 @@ export function KnowledgeBoard() {
     const hasChanges =
       Object.keys(s.nodeEdits).length > 0 ||
       Object.values(s.addedNodes).some(a => a.length > 0) ||
-      s.deletedNodes.length > 0 ||
+      s.deletedNodes && Object.values(s.deletedNodes).some(arr => arr.length > 0) ||
       ALL_TAB_KEYS.some(k =>
         Object.values(s.tabItems[k] ?? {}).some((a: unknown[]) => a.length > 0) ||
         Object.keys(s.tabEdits[k] ?? {}).length > 0 ||
@@ -624,7 +627,7 @@ export function KnowledgeBoard() {
                               <div className="card-edit-row"><h4>{step.title}</h4>
                                 {isEditMode && <div className="card-edit-btns">
                                   <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, step)}><PenLine size={11}/></button>
-                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, step.id); }}><Trash2 size={11}/></button>
+                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, step.id); }}><Trash2 size={11}/></button>
                                 </div>}
                               </div>
                               <p className="target">{t.targetLabel}{step.target}</p>
@@ -646,7 +649,7 @@ export function KnowledgeBoard() {
                             <div className="card-edit-row"><h4>{c.title}</h4>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, c)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, c.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, c.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <div className="case-row"><em>{t.sceneLabel}</em><span>{c.scene}</span></div>
@@ -672,7 +675,7 @@ export function KnowledgeBoard() {
                               <div className="skill-level-bar">{[1,2,3,4,5].map((n) => <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`}/>)}</div>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, skill)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <p className="skill-desc">{skill.description}</p>
@@ -697,7 +700,7 @@ export function KnowledgeBoard() {
                                 {node.estimatedHours && <span className="path-hours">≈ {node.estimatedHours}h</span>}
                                 {isEditMode && <div className="card-edit-btns">
                                   <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, node)}><PenLine size={11}/></button>
-                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, node.id); }}><Trash2 size={11}/></button>
+                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, node.id); }}><Trash2 size={11}/></button>
                                 </div>}
                               </div>
                               {node.prerequisite && node.prerequisite.length > 0 && (
@@ -735,7 +738,7 @@ export function KnowledgeBoard() {
                               <span className="career-phase">{m.phase}</span>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, m)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, m.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, m.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <div className="career-body">
@@ -762,7 +765,7 @@ export function KnowledgeBoard() {
                             <div className="card-edit-row"><strong>{tool.name}</strong>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, tool)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteItemConfirm)) getTabOps(wTabKey)?.del(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <span className="tool-category">{tool.category}{tool.isPaid ? t.toolPaid : t.toolFree}</span>
