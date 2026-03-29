@@ -322,6 +322,7 @@ const ZH = {
   addKnowledgeNode: "新增知识点",
   searchResultCount: (n: number) => `${n} 条结果`,
   searchNavHint: "↑↓ 导航 · Enter 跳转 · Esc 关闭",
+  searchFilterAll: "全部模块",
   heroTitle: "大模型多维知识中枢",
 
   // ── Empty hints ──
@@ -746,6 +747,7 @@ const EN: typeof ZH = {
   addOperation: "Add Operation Step",
   searchResultCount: (n: number) => `${n} results`,
   searchNavHint: "↑↓ Navigate · Enter Jump · Esc Close",
+  searchFilterAll: "All Modules",
   heroTitle: "LLM Multi-Dimensional Knowledge Hub",
 
   // ── Add buttons ──

@@ -233,7 +233,7 @@ export function KnowledgeBoard() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const closeSearch = () => { setSearchOpen(false); setSearchQuery(""); };
+  const closeSearch = () => { setSearchOpen(false); setSearchQuery(""); setSearchModuleFilter(""); };
 
   // Theme toggle with persistence
   useEffect(() => {
@@ -248,14 +248,16 @@ export function KnowledgeBoard() {
   }, [searchOpen]);
 
   // Build search index from all merged modules
-  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; type: string; }
+  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; type: string; tags?: string[]; }
   const [searchCursor, setSearchCursor] = useState(-1);
+  const [searchModuleFilter, setSearchModuleFilter] = useState("");
   const searchResultsRef = useRef<HTMLDivElement>(null);
   const searchResults = useMemo<SearchResult[]>(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
     const results: SearchResult[] = [];
     for (const m of mergedModules) {
+      if (searchModuleFilter && m.id !== searchModuleFilter) continue;
       const dims = m.enabledTabs ?? ALL_TABS;
       const getTab = (key: string) => dims.find(t => t.key === key)?.label ?? key;
       for (const entry of WIDGET_MODULE_MAP) {
@@ -270,12 +272,13 @@ export function KnowledgeBoard() {
               title: entry.titleFn(item as never),
               subtitle: entry.subtitleFn?.(item as never) ?? "",
               type: entry.typeLabel,
+              tags: (item as { tags?: string[] }).tags,
             });
         });
       }
     }
     return results.slice(0, 60);
-  }, [searchQuery, mergedModules]);
+  }, [searchQuery, searchModuleFilter, mergedModules]);
 
   // Auto-scroll active search result into view
   useEffect(() => {
@@ -1161,12 +1164,22 @@ export function KnowledgeBoard() {
               />
               {searchQuery && <button type="button" onClick={() => { setSearchQuery(""); setSearchCursor(-1); }} style={{appearance:"none",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",padding:0}}><X size={14}/></button>}
             </div>
-            {searchQuery.trim() !== "" && searchResults.length > 0 && (
-              <div style={{padding:"0.25rem 0.9rem 0",fontSize:"0.68rem",color:"var(--muted)",display:"flex",justifyContent:"space-between"}}>
-                <span>{t.searchResultCount(searchResults.length)}</span>
-                <span style={{opacity:0.5}}>{t.searchNavHint}</span>
-              </div>
-            )}
+            <div className="search-filter-row" style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.3rem 0.9rem 0"}}>
+              <select
+                value={searchModuleFilter}
+                onChange={e => { setSearchModuleFilter(e.target.value); setSearchCursor(-1); }}
+                style={{fontSize:"0.72rem",background:"var(--bg-card)",color:"var(--fg)",border:"1px solid var(--border)",borderRadius:"5px",padding:"0.15rem 0.4rem",cursor:"pointer",flex:1,maxWidth:"200px"}}
+              >
+                <option value="">{t.searchFilterAll}</option>
+                {sortedModules.map(m => (
+                  <option key={m.id} value={m.id}>{m.icon} {m.name}</option>
+                ))}
+              </select>
+              {searchQuery.trim() !== "" && searchResults.length > 0 && (
+                <span style={{fontSize:"0.68rem",color:"var(--muted)",marginLeft:"auto",whiteSpace:"nowrap"}}>{t.searchResultCount(searchResults.length)}</span>
+              )}
+              <span style={{fontSize:"0.65rem",color:"var(--muted)",opacity:0.5,whiteSpace:"nowrap",marginLeft:"auto"}}>{t.searchNavHint}</span>
+            </div>
             <div className="search-results" ref={searchResultsRef}>
               {searchQuery.trim() === "" && (
                 <div className="search-empty">{t.searchEmpty}<br/><span style={{fontSize:"0.7rem",opacity:0.5}}>{t.searchShortcutHint}</span></div>
@@ -1186,11 +1199,14 @@ export function KnowledgeBoard() {
                     onClick={() => jumpToResult(r)}
                     onMouseEnter={() => setSearchCursor(i)}
                   >
-                    <div style={{display:"flex",alignItems:"center",gap:"0.45rem"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"0.45rem",flexWrap:"wrap"}}>
                       <span style={{fontSize:"0.6rem",fontWeight:600,padding:"0.05rem 0.35rem",borderRadius:"3px",background:"rgba(80,140,220,0.18)",color:"#6ab0f5",flexShrink:0,letterSpacing:"0.02em"}}>{r.type}</span>
                       <div className="search-result-title">{hi(r.title)}</div>
+                      {r.tags && r.tags.length > 0 && r.tags.slice(0,3).map(tag => (
+                        <span key={tag} style={{fontSize:"0.58rem",padding:"0.02rem 0.3rem",borderRadius:"3px",background:"rgba(60,120,80,0.18)",color:"#7dcfa0",flexShrink:0}}>{tag}</span>
+                      ))}
                     </div>
-                    <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? ` · ${r.subtitle.slice(0,50)}` : ""}</div>
+                    <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? <> · {hi(r.subtitle.slice(0,60))}</> : ""}</div>
                   </div>
                 );
               })}
