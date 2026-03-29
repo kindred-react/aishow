@@ -16,6 +16,10 @@ export const compareBlocks: CompareBlock[] = [
         label: "2222",
         key: "row_1",
       },
+      {
+        label: "3333",
+        key: "row_2",
+      },
     ],
     items: [
       {
@@ -40,6 +44,20 @@ export const compareBlocks: CompareBlock[] = [
         tags: {
           row_0: "2223",
           row_1: "3334",
+        },
+        flow: [],
+        keyPoints: [],
+      },
+      {
+        id: "vmechk6",
+        name: "3333",
+        nameEn: "333",
+        color: "var(--c-lime)",
+        accent: "rgba(176,255,112,0.12)",
+        tags: {
+          row_2: "33",
+          row_1: "33",
+          row_0: "333",
         },
         flow: [],
         keyPoints: [],
