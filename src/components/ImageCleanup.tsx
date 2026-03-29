@@ -4,13 +4,12 @@ import { Trash2, X, ImageOff, Loader, CheckCircle } from "lucide-react";
 import { learningModules } from "@/data/knowledge";
 import { useI18n } from "@/lib/i18n";
 
-const REPO = "kindred-react/aishow";
-const BRANCH = "main";
-const UPLOAD_DIR = "public/uploads";
+import { GITHUB_REPO, GITHUB_BRANCH, UPLOAD_BASE_DIR } from "@/data/constants";
+
 
 async function listUploadedImages(token: string): Promise<Array<{ name: string; sha: string; path: string }>> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${UPLOAD_DIR}?ref=${BRANCH}`,
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/${UPLOAD_BASE_DIR}?ref=${GITHUB_BRANCH}`,
     { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
   );
   if (!res.ok) return [];
@@ -20,7 +19,7 @@ async function listUploadedImages(token: string): Promise<Array<{ name: string; 
 
 async function deleteFile(path: string, sha: string, token: string): Promise<boolean> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${path}`,
+    `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,
     {
       method: "DELETE",
       headers: {
@@ -31,7 +30,7 @@ async function deleteFile(path: string, sha: string, token: string): Promise<boo
       body: JSON.stringify({
         message: `chore: remove unused image ${path}`,
         sha,
-        branch: BRANCH,
+        branch: GITHUB_BRANCH,
       }),
     }
   );

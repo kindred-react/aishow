@@ -7,9 +7,8 @@
  * 使用 Git Tree API 将所有文件改动合并为一个 commit，避免多个独立 commit。
  */
 
-const REPO = "kindred-react/aishow";
-const BRANCH = "main";
 
+import { GITHUB_REPO, GITHUB_BRANCH } from "@/data/constants";
 import type { LearningModule } from "@/data/types";
 import type { CompareBlock } from "@/data/types";
 
@@ -19,7 +18,7 @@ type TreeEntry = { path: string; mode: "100644"; type: "blob"; content: string }
 
 async function getHeadCommitSha(token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/git/ref/heads/${BRANCH}`,
+    `https://api.github.com/repos/${GITHUB_REPO}/git/ref/heads/${GITHUB_BRANCH}`,
     { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
   );
   if (!res.ok) throw new Error(`Failed to get HEAD: ${res.status}`);
@@ -29,7 +28,7 @@ async function getHeadCommitSha(token: string): Promise<string> {
 
 async function getBaseTreeSha(commitSha: string, token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/git/commits/${commitSha}`,
+    `https://api.github.com/repos/${GITHUB_REPO}/git/commits/${commitSha}`,
     { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
   );
   if (!res.ok) throw new Error(`Failed to get commit: ${res.status}`);
@@ -39,7 +38,7 @@ async function getBaseTreeSha(commitSha: string, token: string): Promise<string>
 
 async function createTree(baseTreeSha: string, entries: TreeEntry[], token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/git/trees`,
+    `https://api.github.com/repos/${GITHUB_REPO}/git/trees`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
@@ -53,7 +52,7 @@ async function createTree(baseTreeSha: string, entries: TreeEntry[], token: stri
 
 async function createCommit(message: string, treeSha: string, parentSha: string, token: string): Promise<string> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/git/commits`,
+    `https://api.github.com/repos/${GITHUB_REPO}/git/commits`,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
@@ -67,7 +66,7 @@ async function createCommit(message: string, treeSha: string, parentSha: string,
 
 async function updateRef(commitSha: string, token: string): Promise<void> {
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}`,
+    `https://api.github.com/repos/${GITHUB_REPO}/git/refs/heads/${GITHUB_BRANCH}`,
     {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
@@ -105,25 +104,11 @@ async function pushBatchCommit(
   }
 }
 
-// ── Module file map ───────────────────────────────────────────────────────
+// ── Module file map (imported from @/data/constants) ────────────────────
 
-const MODULE_FILE_MAP: Record<string, string> = {
-  foundations: "src/data/modules/foundations.ts",
-  rag:         "src/data/modules/rag.ts",
-  finetune:    "src/data/modules/finetune.ts",
-  evaluation:  "src/data/modules/evaluation.ts",
-  deploy:      "src/data/modules/deploy.ts",
-  agent:       "src/data/modules/agent.ts",
-  emerging:    "src/data/modules/emerging.ts",
-  project:     "src/data/modules/project.ts",
-  aipm:        "src/data/modules/aipm.ts",
-  // Note: aipm100q is a standalone InterviewQuestion[] file, NOT a LearningModule.
-  // Do NOT add it here — it is not managed by the web editor.
-};
-
-/** Derive file path for a module — builtin uses the map, new modules get a dynamic path */
+/** Derive file path for a module — all modules follow the same convention. */
 function moduleFilePath(moduleId: string): string {
-  return MODULE_FILE_MAP[moduleId] ?? `src/data/modules/${moduleId}.ts`;
+  return `src/data/modules/${moduleId}.ts`;
 }
 
 // ── TypeScript serializer ─────────────────────────────────────────────────

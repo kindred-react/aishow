@@ -3,14 +3,14 @@ import { useState, useEffect } from "react";
 import { PenLine, Trash2, ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, OperationStep } from "@/data/types";
+import { LS_CONTENT_STORE_KEY } from "@/data/constants";
 
 // ── Read nodeEdits from unified content store ──
-const LS_STORE_KEY = "aishow_content_store";
 
 function loadNodeEdits(): Record<string, Partial<KnowledgeNode>> {
   if (typeof window === "undefined") return {};
   try {
-    const store = JSON.parse(localStorage.getItem(LS_STORE_KEY) ?? "{}");
+    const store = JSON.parse(localStorage.getItem(LS_CONTENT_STORE_KEY) ?? "{}");
     return store.nodeEdits ?? {};
   } catch { return {}; }
 }

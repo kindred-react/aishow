@@ -5,9 +5,8 @@
  * 上传后通过 /uploads/{folder}/filename 直接访问
  */
 
-const REPO = "kindred-react/aishow";
-const BRANCH = "main";
-const UPLOAD_BASE = "public/uploads";
+import { GITHUB_REPO, GITHUB_BRANCH, UPLOAD_BASE_DIR } from "@/data/constants";
+
 
 export async function uploadImageToGitHub(
   file: File,
@@ -23,7 +22,7 @@ export async function uploadImageToGitHub(
   const filename = `img-${timestamp}-${random}.${ext}`;
   // 按 folder 分类存放
   const safeFolder = folder.replace(/[^a-z0-9_-]/gi, "-").toLowerCase() || "misc";
-  const filePath = `${UPLOAD_BASE}/${safeFolder}/${filename}`;
+  const filePath = `${UPLOAD_BASE_DIR}/${safeFolder}/${filename}`;
 
   // 读取文件为 Base64
   const base64 = await fileToBase64(file);
@@ -31,7 +30,7 @@ export async function uploadImageToGitHub(
   try {
     // 检查文件是否已存在（获取 SHA）
     const getRes = await fetch(
-      `https://api.github.com/repos/${REPO}/contents/${filePath}?ref=${BRANCH}`,
+      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`,
       { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
     );
     let sha: string | undefined;
@@ -42,7 +41,7 @@ export async function uploadImageToGitHub(
 
     // 上传文件
     const putRes = await fetch(
-      `https://api.github.com/repos/${REPO}/contents/${filePath}`,
+      `https://api.github.com/repos/${GITHUB_REPO}/contents/${filePath}`,
       {
         method: "PUT",
         headers: {
@@ -54,7 +53,7 @@ export async function uploadImageToGitHub(
           message: `upload: add image ${filename}`,
           content: base64,
           sha,
-          branch: BRANCH,
+          branch: GITHUB_BRANCH,
         }),
       }
     );

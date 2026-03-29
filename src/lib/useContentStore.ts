@@ -21,9 +21,10 @@ import { pushAllChangesAsOneCommit, buildModuleEntries, buildCompareEntry, build
 export type { CommitTask } from "@/components/CommitProgressModal";
 import type { CommitTask } from "@/components/CommitProgressModal";
 
+import { LS_CONTENT_STORE_KEY } from "@/data/constants";
 import { WIDGET_MODULE_MAP, TAB_WIDGET } from "@/data/types";
 
-const LS_KEY = "aishow_content_store";
+// LS_CONTENT_STORE_KEY imported from @/data/constants
 
 type ModuleList<T> = Record<string, T[]>;
 type ItemRecord = Record<string, unknown>;
@@ -73,7 +74,7 @@ const DEFAULT_STORE: ContentStore = {
 function loadLocal(): ContentStore {
   if (typeof window === "undefined") return DEFAULT_STORE;
   try {
-    const persisted = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}") as Partial<ContentStore>;
+    const persisted = JSON.parse(localStorage.getItem(LS_CONTENT_STORE_KEY) ?? "{}") as Partial<ContentStore>;
     const localBlocks: CompareBlock[] = persisted.compareBlocks ?? [];
     const staticIds = new Set(staticCompareBlocks.map(b => b.id));
     const localOnly = localBlocks.filter(b => !staticIds.has(b.id));
@@ -86,7 +87,7 @@ function loadLocal(): ContentStore {
 }
 
 function saveLocal(store: ContentStore) {
-  localStorage.setItem(LS_KEY, JSON.stringify(store));
+  localStorage.setItem(LS_CONTENT_STORE_KEY, JSON.stringify(store));
   setTimeout(() => {
     window.dispatchEvent(new CustomEvent("content-store-updated", { detail: store }));
   }, 0);

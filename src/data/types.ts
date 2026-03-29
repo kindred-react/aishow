@@ -179,6 +179,7 @@ export interface CompareBlock {
 export const WIDGET_MODULE_MAP = [
   {
     widget: TAB_WIDGET.Knowledge,
+    desc: "Concept cards with metaphors, points, colors",
     field: "knowledgeNodes" as keyof LearningModule,
     defaultTab: "knowledge",
     typeLabel: "知识",
@@ -191,6 +192,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Operation,
+    desc: "Step-by-step instructions with tools",
     field: "operationSteps" as keyof LearningModule,
     defaultTab: "operation",
     typeLabel: "操作",
@@ -204,6 +206,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Case,
+    desc: "Scene-Problem-Solution-Result",
     field: "cases" as keyof LearningModule,
     defaultTab: "cases",
     typeLabel: "案例",
@@ -217,6 +220,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Tool,
+    desc: "Tool name, category, link",
     field: "tools" as keyof LearningModule,
     defaultTab: "tools",
     typeLabel: "工具",
@@ -230,6 +234,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Skill,
+    desc: "Skill dimensions and growth paths",
     field: "skills" as keyof LearningModule,
     defaultTab: "skills",
     typeLabel: "能力",
@@ -243,6 +248,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Interview,
+    desc: "Questions, frameworks, key points, sample answers",
     field: "interviewQuestions" as keyof LearningModule,
     defaultTab: "interview",
     typeLabel: "面试",
@@ -256,6 +262,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Path,
+    desc: "Prerequisites, duration, tips",
     field: "learningPath" as keyof LearningModule,
     defaultTab: "path",
     typeLabel: "路径",
@@ -267,6 +274,7 @@ export const WIDGET_MODULE_MAP = [
   },
   {
     widget: TAB_WIDGET.Career,
+    desc: "Phase, actions, deliverables",
     field: "careerPlan" as keyof LearningModule,
     defaultTab: "career",
     typeLabel: "职规",
@@ -278,6 +286,23 @@ export const WIDGET_MODULE_MAP = [
       i.actions?.some((a: string) => a.toLowerCase().includes(q)),
   },
 ] as const;
+
+/**
+ * Derived map: LearningModule field name → its default dimensionTab value.
+ * Use as fallback: `item.dimensionTab ?? FIELD_DEFAULT_TAB["knowledgeNodes"]`
+ * Avoids hardcoding defaultTab strings in components.
+ */
+export const FIELD_DEFAULT_TAB: Record<string, string> = Object.fromEntries(
+  WIDGET_MODULE_MAP.map(e => [e.field, e.defaultTab])
+);
+
+/**
+ * Derived map: defaultTab value → typeLabel (display name).
+ * Use for tab headers and labels instead of hardcoding strings.
+ */
+export const TAB_LABEL_MAP: Record<string, string> = Object.fromEntries(
+  WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel])
+);
 
 /**
  * 知识库合并规则（给 AI 分析 PPT/PDF 后写入时参考）：

@@ -1,8 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
-
-const EDIT_PASSWORD = "1111";
-const SESSION_KEY = "aishow_edit_mode";
+import { EDIT_PASSWORD, SESSION_EDIT_KEY } from "@/data/constants";
 
 export function useEditMode() {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -19,7 +17,7 @@ export function useEditMode() {
   // Restore edit mode from sessionStorage on mount
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
-    if (sessionStorage.getItem(SESSION_KEY) === "1") setIsEditMode(true);
+    if (sessionStorage.getItem(SESSION_EDIT_KEY) === "1") setIsEditMode(true);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -31,7 +29,7 @@ export function useEditMode() {
         if (!canExit) return;
       }
       setIsEditMode(false);
-      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_EDIT_KEY);
       return;
     }
     setInput("");
@@ -42,7 +40,7 @@ export function useEditMode() {
   const submitPassword = useCallback(() => {
     if (input === EDIT_PASSWORD) {
       setIsEditMode(true);
-      sessionStorage.setItem(SESSION_KEY, "1");
+      sessionStorage.setItem(SESSION_EDIT_KEY, "1");
       setShowPrompt(false);
       setError(false);
     } else {

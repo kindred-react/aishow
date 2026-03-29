@@ -2,25 +2,14 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, LayoutGrid } from "lucide-react";
 import type { LearningModule, DimensionTab, TabConfig, TabWidget } from "@/data/types";
-import { WIDGET_MODULE_MAP, TAB_WIDGET } from "@/data/types";
+import { MODULE_ICONS } from "@/data/constants";
+import { WIDGET_MODULE_MAP, TAB_WIDGET, FIELD_DEFAULT_TAB, TAB_LABEL_MAP } from "@/data/types";
 import { TAB_FIELD_MAP } from "@/lib/useContentStore";
 import { useI18n } from "@/lib/i18n";
 
-const ICONS = ["📚","🔍","⚙️","🚀","🤖","🧠","💡","🎯","📊","🛠️","🌐","💼","🔬","📝","🎨","⚡"];
-
-// Derived from WIDGET_MODULE_MAP — no manual maintenance needed
-const WIDGET_DESCS: Record<string, string> = {
-  knowledge: "Concept cards with metaphors, points, colors",
-  operation: "Step-by-step instructions with tools",
-  case:      "Scene-Problem-Solution-Result",
-  skill:     "Skill dimensions and growth paths",
-  path:      "Prerequisites, duration, tips",
-  interview: "Questions, frameworks, key points, sample answers",
-  career:    "Phase, actions, deliverables",
-  tool:      "Tool name, category, link",
-};
+// Widget descriptions derived from WIDGET_MODULE_MAP — no manual maintenance needed
 export const ALL_WIDGETS: { key: TabWidget; label: string; desc: string }[] = [
-  ...WIDGET_MODULE_MAP.map(e => ({ key: e.widget, label: e.typeLabel, desc: WIDGET_DESCS[e.widget] ?? "" })),
+  ...WIDGET_MODULE_MAP.map(e => ({ key: e.widget, label: e.typeLabel, desc: e.desc })),
   { key: TAB_WIDGET.Compare, label: "Compare Block", desc: "Multi-column comparison table" },
 ];
 
@@ -56,10 +45,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
   const isNew = module === null;
   const { t } = useI18n();
 
-  // Derived from WIDGET_MODULE_MAP — no manual maintenance needed
-  const TAB_LABEL_MAP: Record<string, string> = Object.fromEntries(
-    WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel])
-  );
+  // TAB_LABEL_MAP imported from @/data/types
 
   const [name, setName] = useState(module?.name ?? "");
   const [icon, setIcon] = useState(module?.icon ?? "📚");
@@ -77,7 +63,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
       n += items.filter(i => (i.dimensionTab ?? tabKey) === key).length;
     }
     // knowledge nodes
-    n += moduleData.knowledgeNodes.filter(i => (i.dimensionTab ?? "knowledge") === key).length;
+    n += moduleData.knowledgeNodes.filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["knowledgeNodes"]) === key).length;
     return n;
   };
 
@@ -180,7 +166,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
           <div className="note-field">
             <label className="note-label">{t.moduleIcon}</label>
             <div className="module-icon-grid">
-              {ICONS.map(ic => (
+              {MODULE_ICONS.map(ic => (
                 <button key={ic} type="button"
                   className={`module-icon-btn ${icon === ic && !customIcon ? "active" : ""}`}
                   onClick={() => { setIcon(ic); setCustomIcon(""); }}

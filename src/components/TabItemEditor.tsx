@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from "react";
 import { X, Save, Trash2, Plus } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { WIDGET_MODULE_MAP } from "@/data/types";
+import { TAB_LABEL_MAP } from "@/data/types";
 import { TAB_FORM_SCHEMA_MAP } from "@/components/formSchemas";
 import type { FieldDef } from "@/components/formSchemas";
 
@@ -235,8 +235,7 @@ const setState = useCallback((k: string, v: unknown) =>
   );
 }
 
-// Module-level constant — avoids rebuilding on every render
-const TAB_LABEL_MAP = Object.fromEntries(WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel]));
+// TAB_LABEL_MAP imported from @/data/types
 
 // ── TabItemEditor ─────────────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { LS_KB_LOCALE_KEY } from "@/data/constants";
 
 export type Locale = "zh" | "en";
 
@@ -804,14 +805,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   // After mount, sync from localStorage to avoid SSR/client hydration mismatch
   useEffect(() => {
-    const saved = localStorage.getItem("kb-locale") as Locale | null;
+    const saved = localStorage.getItem(LS_KB_LOCALE_KEY) as Locale | null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved === "en" || saved === "zh") setLocaleState(saved);
   }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("kb-locale", l);
+    localStorage.setItem(LS_KB_LOCALE_KEY, l);
   }, []);
 
   return (

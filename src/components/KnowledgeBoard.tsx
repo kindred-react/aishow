@@ -35,7 +35,9 @@ import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, LearningModule, CompareBlock, DimensionTab, TabConfig, TabWidget } from "@/data/types";
-import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS, TAB_WIDGET } from "@/data/types";
+import { FILTER_ALL, LS_CONTENT_STORE_KEY, LS_KB_THEME_KEY, LS_KB_MODULE_KEY, LS_KB_DIMENSION_KEY, LS_KB_LEVEL_KEY } from "@/data/constants";
+import type { FilterAll } from "@/data/constants";
+import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS, TAB_WIDGET, FIELD_DEFAULT_TAB } from "@/data/types";
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
@@ -188,10 +190,9 @@ function CompareBlockList({
   );
 }
 
-const FILTER_ALL = "all" as const;
 const levelOrder = KNOWLEDGE_LEVELS;
 
-type KnowledgeLevelFilter = typeof FILTER_ALL | typeof KNOWLEDGE_LEVELS[number];
+type KnowledgeLevelFilter = FilterAll | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
   const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, commitTasks, hasDraftChanges, beginDraft, commitDraft, discardDraft, clearCommit } = useContentStore();
@@ -226,7 +227,7 @@ export function KnowledgeBoard() {
   const [isDark, setIsDark] = useState<boolean>(true);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsDark(localStorage.getItem("kb-theme") !== "light");
+    setIsDark(localStorage.getItem(LS_KB_THEME_KEY) !== "light");
   }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,7 +237,7 @@ export function KnowledgeBoard() {
   // Theme toggle with persistence
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-    localStorage.setItem("kb-theme", isDark ? "dark" : "light");
+    localStorage.setItem(LS_KB_THEME_KEY, isDark ? "dark" : "light");
   }, [isDark]);
 
   useEffect(() => {
@@ -295,9 +296,9 @@ export function KnowledgeBoard() {
 
   // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
   useEffect(() => {
-    const savedModule = localStorage.getItem("kb-module");
-    const savedDimension = localStorage.getItem("kb-dimension") as DimensionTab | null;
-    const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
+    const savedModule = localStorage.getItem(LS_KB_MODULE_KEY);
+    const savedDimension = localStorage.getItem(LS_KB_DIMENSION_KEY) as DimensionTab | null;
+    const savedLevel = localStorage.getItem(LS_KB_LEVEL_KEY) as KnowledgeLevelFilter | null;
     /* eslint-disable react-hooks/set-state-in-effect */
     if (savedModule) setActiveModuleId(savedModule);
     if (savedDimension && ([TAB_WIDGET.Knowledge, ...ALL_TAB_KEYS] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
@@ -403,9 +404,9 @@ export function KnowledgeBoard() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Persist to localStorage on change
-  useEffect(() => { localStorage.setItem("kb-module", activeModuleId); }, [activeModuleId]);
-  useEffect(() => { localStorage.setItem("kb-dimension", activeDimension); }, [activeDimension]);
-  useEffect(() => { localStorage.setItem("kb-level", levelFilter); }, [levelFilter]);
+  useEffect(() => { localStorage.setItem(LS_KB_MODULE_KEY, activeModuleId); }, [activeModuleId]);
+  useEffect(() => { localStorage.setItem(LS_KB_DIMENSION_KEY, activeDimension); }, [activeDimension]);
+  useEffect(() => { localStorage.setItem(LS_KB_LEVEL_KEY, levelFilter); }, [levelFilter]);
 
    
   const activeModule = useMemo(
@@ -426,7 +427,7 @@ export function KnowledgeBoard() {
   const visibleKnowledge = useMemo(() => {
     // Items with dimensionTab only show on their own tab; items without show on "knowledge"
     const forThisTab = activeModule.knowledgeNodes.filter(n =>
-      (n.dimensionTab ?? "knowledge") === activeDimension
+      (n.dimensionTab ?? FIELD_DEFAULT_TAB["knowledgeNodes"]) === activeDimension
     );
     if (levelFilter === FILTER_ALL) return forThisTab;
     return forThisTab.filter((item) => item.level === levelFilter);
@@ -518,14 +519,14 @@ export function KnowledgeBoard() {
               const tabCount = (() => {
                 const k = d.key;
                 let n = 0;
-                n += activeModule.knowledgeNodes.filter(i => (i.dimensionTab ?? "knowledge") === k).length;
-                n += activeModule.operationSteps.filter(i => (i.dimensionTab ?? "operation") === k).length;
-                n += (activeModule.cases ?? []).filter(i => (i.dimensionTab ?? "cases") === k).length;
-                n += (activeModule.tools ?? []).filter(i => (i.dimensionTab ?? "tools") === k).length;
-                n += (activeModule.skills ?? []).filter(i => (i.dimensionTab ?? "skills") === k).length;
-                n += (activeModule.learningPath ?? []).filter(i => (i.dimensionTab ?? "path") === k).length;
-                n += (activeModule.interviewQuestions ?? []).filter(i => (i.dimensionTab ?? "interview") === k).length;
-                n += (activeModule.careerPlan ?? []).filter(i => (i.dimensionTab ?? "career") === k).length;
+                n += activeModule.knowledgeNodes.filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["knowledgeNodes"]) === k).length;
+                n += activeModule.operationSteps.filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["operationSteps"]) === k).length;
+                n += (activeModule.cases ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["cases"]) === k).length;
+                n += (activeModule.tools ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["tools"]) === k).length;
+                n += (activeModule.skills ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["skills"]) === k).length;
+                n += (activeModule.learningPath ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["learningPath"]) === k).length;
+                n += (activeModule.interviewQuestions ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["interviewQuestions"]) === k).length;
+                n += (activeModule.careerPlan ?? []).filter(i => (i.dimensionTab ?? FIELD_DEFAULT_TAB["careerPlan"]) === k).length;
                 n += store.compareBlocks.filter(b => b.moduleId === activeModule.id && b.dimensionTab === k).length;
                 return n;
               })();
@@ -612,8 +613,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="timeline">
-                        {activeModule.operationSteps.filter(s => (s.dimensionTab ?? "operation") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyOperation}</p>}
-                        {activeModule.operationSteps.filter(s => (s.dimensionTab ?? "operation") === activeDimension).map((step, idx) => (
+                        {activeModule.operationSteps.filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["operationSteps"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyOperation}</p>}
+                        {activeModule.operationSteps.filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["operationSteps"]) === activeDimension).map((step, idx) => (
                           <article key={step.id} id={`item-${step.id}`}
                             ref={(el) => { opRefs.current[step.id] = el; }}
                             className={`timeline-item ${highlightOpId === step.id ? "highlighted" : ""}`}>
@@ -638,8 +639,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="cases-grid">
-                        {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? "cases") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCase}</p>}
-                        {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? "cases") === activeDimension).map((c) => (
+                        {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? FIELD_DEFAULT_TAB["cases"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCase}</p>}
+                        {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? FIELD_DEFAULT_TAB["cases"]) === activeDimension).map((c) => (
                           <article key={c.id} id={`item-${c.id}`} className="case-card">
                             <div className="card-edit-row"><h4>{c.title}</h4>
                               {isEditMode && <div className="card-edit-btns">
@@ -661,8 +662,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="skills-grid">
-                        {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).length === 0 && <p className="empty-hint">{t.emptySkillsModule}</p>}
-                        {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? "skills") === activeDimension).map((skill) => (
+                        {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["skills"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptySkillsModule}</p>}
+                        {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["skills"]) === activeDimension).map((skill) => (
                           <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
                             <div className="skill-header">
                               <span className="skill-dimension">{skill.dimension}</span>
@@ -684,8 +685,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="learning-path">
-                        {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyPathModule}</p>}
-                        {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? "path") === activeDimension).map((node, idx) => (
+                        {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? FIELD_DEFAULT_TAB["learningPath"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyPathModule}</p>}
+                        {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? FIELD_DEFAULT_TAB["learningPath"]) === activeDimension).map((node, idx) => (
                           <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
                             <div className="path-index">{String(idx + 1).padStart(2, "0")}</div>
                             <div className="path-content">
@@ -711,10 +712,10 @@ export function KnowledgeBoard() {
                   case TAB_WIDGET.Interview: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
-                      {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension).length === 0
+                      {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? FIELD_DEFAULT_TAB["interviewQuestions"]) === activeDimension).length === 0
                         ? <p className="empty-hint">{t.emptyInterviewModule}</p>
                         : <InterviewPanel
-                            questions={(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension)}
+                            questions={(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? FIELD_DEFAULT_TAB["interviewQuestions"]) === activeDimension)}
                             isEditMode={isEditMode}
                             onEdit={(q) => openTabItemModal(wTabKey, q)}
                             onDelete={(id) => getTabOps(wTabKey)?.del(activeModule.id, id)}
@@ -725,8 +726,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="career-timeline">
-                        {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCareerModule}</p>}
-                        {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? "career") === activeDimension).map((m) => (
+                        {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? FIELD_DEFAULT_TAB["careerPlan"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCareerModule}</p>}
+                        {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? FIELD_DEFAULT_TAB["careerPlan"]) === activeDimension).map((m) => (
                           <article key={m.id} id={`item-${m.id}`} className="career-card">
                             <div className="career-week">
                               <span className="career-week-label">{m.week}</span>
@@ -754,8 +755,8 @@ export function KnowledgeBoard() {
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="tool-heat-grid">
-                        {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? "tools") === activeDimension).length === 0 && <p className="empty-hint">{t.emptyToolsModule}</p>}
-                        {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? "tools") === activeDimension).map((tool) => (
+                        {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? FIELD_DEFAULT_TAB["tools"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyToolsModule}</p>}
+                        {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? FIELD_DEFAULT_TAB["tools"]) === activeDimension).map((tool) => (
                           <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
                             <div className="card-edit-row"><strong>{tool.name}</strong>
                               {isEditMode && <div className="card-edit-btns">
@@ -777,7 +778,17 @@ export function KnowledgeBoard() {
               };
               const tabCfg = (activeModule.enabledTabs ?? []).find(d => d.key === activeDimension);
               const tabLabel = tabCfg?.label ?? activeDimension;
-              const WLABEL: Record<string,string> = {knowledge:t.widgetKnowledge,operation:t.widgetOperation,case:t.widgetCase,skill:t.widgetSkill,path:t.widgetPath,interview:t.widgetInterview,career:t.widgetCareer,tool:t.widgetTool,compare:t.widgetCompare};
+              const WLABEL: Record<string,string> = {
+                [TAB_WIDGET.Knowledge]: t.widgetKnowledge,
+                [TAB_WIDGET.Operation]: t.widgetOperation,
+                [TAB_WIDGET.Case]:      t.widgetCase,
+                [TAB_WIDGET.Skill]:     t.widgetSkill,
+                [TAB_WIDGET.Path]:      t.widgetPath,
+                [TAB_WIDGET.Interview]: t.widgetInterview,
+                [TAB_WIDGET.Career]:    t.widgetCareer,
+                [TAB_WIDGET.Tool]:      t.widgetTool,
+                [TAB_WIDGET.Compare]:   t.widgetCompare,
+              };
               return (
                 <section key={widget} className="section-block in-shell">
                   <div className="section-title-row">
@@ -1116,7 +1127,7 @@ export function KnowledgeBoard() {
         title={t.clearCache}
         onClick={() => {
           if (confirm(t.clearCacheConfirm)) {
-            localStorage.removeItem("aishow_content_store");
+            localStorage.removeItem(LS_CONTENT_STORE_KEY);
             location.reload();
           }
         }}
