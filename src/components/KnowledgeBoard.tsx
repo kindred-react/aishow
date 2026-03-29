@@ -1197,7 +1197,14 @@ export function KnowledgeBoard() {
       {/* ── 清除缓存 悬浮按钮（右下角）── */}
       <button
         type="button"
-        title={t.clearCache}
+        title={(() => {
+          const hash = process.env.NEXT_PUBLIC_GIT_HASH;
+          const msg = process.env.NEXT_PUBLIC_GIT_MSG;
+          const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME;
+          if (!hash || hash === "unknown") return t.clearCache;
+          const dateStr = buildTime ? new Date(buildTime).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+          return `${t.clearCache}\n\n🕐 部署时间：${dateStr}\n📝 最近提交：${msg}\n🔖 版本：${hash}`;
+        })()}
         onClick={() => {
           if (confirm(t.clearCacheConfirm)) {
             localStorage.removeItem(LS_CONTENT_STORE_KEY);
