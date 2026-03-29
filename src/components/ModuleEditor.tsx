@@ -2,32 +2,36 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, LayoutGrid } from "lucide-react";
 import type { LearningModule, DimensionTab, TabConfig, TabWidget } from "@/data/types";
+import { WIDGET_MODULE_MAP } from "@/data/types";
+import { TAB_FIELD_MAP } from "@/lib/useContentStore";
 import { useI18n } from "@/lib/i18n";
 
 const ICONS = ["📚","🔍","⚙️","🚀","🤖","🧠","💡","🎯","📊","🛠️","🌐","💼","🔬","📝","🎨","⚡"];
 
+// Derived from WIDGET_MODULE_MAP — no manual maintenance needed
+const WIDGET_DESCS: Record<string, string> = {
+  knowledge: "Concept cards with metaphors, points, colors",
+  operation: "Step-by-step instructions with tools",
+  case:      "Scene-Problem-Solution-Result",
+  skill:     "Skill dimensions and growth paths",
+  path:      "Prerequisites, duration, tips",
+  interview: "Questions, frameworks, key points, sample answers",
+  career:    "Phase, actions, deliverables",
+  tool:      "Tool name, category, link",
+};
 export const ALL_WIDGETS: { key: TabWidget; label: string; desc: string }[] = [
-  { key: "knowledge", label: "Knowledge Cards",    desc: "Concept cards with metaphors, points, colors" },
-  { key: "operation", label: "Operation Steps",    desc: "Step-by-step instructions with tools" },
-  { key: "case",      label: "Case Studies",       desc: "Scene-Problem-Solution-Result" },
-  { key: "skill",     label: "Skill Radar",        desc: "Skill dimensions and growth paths" },
-  { key: "path",      label: "Learning Path",      desc: "Prerequisites, duration, tips" },
-  { key: "interview", label: "Interview Q&A",      desc: "Questions, frameworks, key points, sample answers" },
-  { key: "career",    label: "Career Milestones",  desc: "Phase, actions, deliverables" },
-  { key: "tool",      label: "Tool Cards",         desc: "Tool name, category, link" },
-  { key: "compare",   label: "Compare Block",      desc: "Multi-column comparison table" },
+  ...WIDGET_MODULE_MAP.map(e => ({ key: e.widget, label: e.typeLabel, desc: WIDGET_DESCS[e.widget] ?? "" })),
+  { key: "compare" as TabWidget, label: "Compare Block", desc: "Multi-column comparison table" },
 ];
 
-export const ALL_TABS: TabConfig[] = [
-  { key: "knowledge",  label: "Knowledge",    widgets: ["knowledge", "compare"] },
-  { key: "operation",  label: "Operations",   widgets: ["operation", "compare"] },
-  { key: "skills",     label: "Skills",       widgets: ["skill", "compare"] },
-  { key: "path",       label: "Learning Path",widgets: ["path", "compare"] },
-  { key: "interview",  label: "Interview",    widgets: ["interview", "compare"] },
-  { key: "career",     label: "Career",       widgets: ["career", "compare"] },
-  { key: "tools",      label: "Tools",        widgets: ["tool", "compare"] },
-  { key: "cases",      label: "Cases",        widgets: ["case", "compare"] },
-];
+// Default built-in tabs derived from WIDGET_MODULE_MAP
+export const ALL_TABS: TabConfig[] = WIDGET_MODULE_MAP.map(e => ({
+  key: e.defaultTab,
+  label: e.typeLabel,
+  widgets: e.widget === "knowledge"
+    ? ["knowledge", "compare"] as TabWidget[]
+    : [e.widget, "compare"] as TabWidget[],
+}));
 
 function genModuleId() {
   return "module-" + Math.random().toString(36).slice(2, 8);
@@ -52,11 +56,10 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
   const isNew = module === null;
   const { t } = useI18n();
 
-  const TAB_LABEL_MAP: Record<string, string> = {
-    knowledge: t.tabKnowledge, operation: t.tabOperation, skills: t.tabSkills,
-    path: t.tabPath, interview: t.tabInterview, career: t.tabCareer,
-    tools: t.tabTools, cases: t.tabCases,
-  };
+  // Derived from WIDGET_MODULE_MAP — no manual maintenance needed
+  const TAB_LABEL_MAP: Record<string, string> = Object.fromEntries(
+    WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel])
+  );
 
   const [name, setName] = useState(module?.name ?? "");
   const [icon, setIcon] = useState(module?.icon ?? "📚");
@@ -69,14 +72,12 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
   const countForTab = (key: string): number => {
     if (!moduleData) return 0;
     let n = 0;
+    for (const [tabKey, field] of Object.entries(TAB_FIELD_MAP)) {
+      const items = (moduleData[field] ?? []) as { dimensionTab?: string }[];
+      n += items.filter(i => (i.dimensionTab ?? tabKey) === key).length;
+    }
+    // knowledge nodes
     n += moduleData.knowledgeNodes.filter(i => (i.dimensionTab ?? "knowledge") === key).length;
-    n += moduleData.operationSteps.filter(i => (i.dimensionTab ?? "operation") === key).length;
-    n += (moduleData.cases ?? []).filter(i => (i.dimensionTab ?? "cases") === key).length;
-    n += (moduleData.tools ?? []).filter(i => (i.dimensionTab ?? "tools") === key).length;
-    n += (moduleData.skills ?? []).filter(i => (i.dimensionTab ?? "skills") === key).length;
-    n += (moduleData.learningPath ?? []).filter(i => (i.dimensionTab ?? "path") === key).length;
-    n += (moduleData.interviewQuestions ?? []).filter(i => (i.dimensionTab ?? "interview") === key).length;
-    n += (moduleData.careerPlan ?? []).filter(i => (i.dimensionTab ?? "career") === key).length;
     return n;
   };
 

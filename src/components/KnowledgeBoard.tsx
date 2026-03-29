@@ -30,11 +30,10 @@ import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
 import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockEditor";
 import { InterviewPanel } from "@/components/InterviewPanel";
 import { TabItemEditor } from "@/components/TabItemEditor";
-import type { TabItemType } from "@/components/TabItemEditor";
-import { useContentStore } from "@/lib/useContentStore";
+import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
-import type { KnowledgeNode, LearningModule, CompareBlock, OperationStep, CaseStudy, SkillItem, LearningPathNode, InterviewQuestion, CareerMilestone, ToolItem, DimensionTab, TabConfig, TabWidget } from "@/data/types";
+import type { KnowledgeNode, LearningModule, CompareBlock, DimensionTab, TabConfig, TabWidget } from "@/data/types";
 import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS } from "@/data/types";
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
@@ -127,19 +126,11 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
                   onChange={() => toggleWidget(row.key)}
                   style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
                 />
-                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={({
-                    knowledge: t.widgetKnowledgeDesc, operation: t.widgetOperationDesc,
-                    case: t.widgetCaseDesc, skill: t.widgetSkillDesc, path: t.widgetPathDesc,
-                    interview: t.widgetInterviewDesc, career: t.widgetCareerDesc,
-                    tool: t.widgetToolDesc, compare: t.widgetCompareDesc,
-                  } as Record<string,string>)[row.key]}>
+                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={
+                    (t as unknown as Record<string,string>)[`widget${row.key.charAt(0).toUpperCase()}${row.key.slice(1)}Desc`]
+                  }>
                   <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
-                  {({
-                    knowledge: t.widgetKnowledge, operation: t.widgetOperation,
-                    case: t.widgetCase, skill: t.widgetSkill, path: t.widgetPath,
-                    interview: t.widgetInterview, career: t.widgetCareer,
-                    tool: t.widgetTool, compare: t.widgetCompare,
-                  } as Record<string,string>)[row.key] ?? meta?.label ?? row.key}
+                  {(t as unknown as Record<string,string>)[`widget${row.key.charAt(0).toUpperCase()}${row.key.slice(1)}`] ?? meta?.label ?? row.key}
                   {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
                 </span>
                 <button type="button" disabled={idx === 0}
@@ -202,7 +193,7 @@ const levelOrder = KNOWLEDGE_LEVELS;
 type KnowledgeLevelFilter = typeof FILTER_ALL | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, addOperation, editOperation, deleteOperation, addCase, editCase, deleteCase, addSkill, editSkill, deleteSkill, addPathNode, editPathNode, deletePathNode, addInterview, editInterview, deleteInterview, addCareer, editCareer, deleteCareer, addTool, editTool, deleteTool, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt, registerOnBeforeExit } = useEditMode();
   const { t, locale, setLocale } = useI18n();
 
@@ -308,7 +299,7 @@ export function KnowledgeBoard() {
     const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
     /* eslint-disable react-hooks/set-state-in-effect */
     if (savedModule) setActiveModuleId(savedModule);
-    if (savedDimension && (["knowledge","operation","skills","path","interview","career","tools","cases"] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedDimension && (["knowledge", ...ALL_TAB_KEYS] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
     if (savedLevel && ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(savedLevel)) setLevelFilter(savedLevel as KnowledgeLevelFilter);
     /* eslint-enable react-hooks/set-state-in-effect */
     // Small delay so state settles before revealing UI (prevents jump)
@@ -330,27 +321,11 @@ export function KnowledgeBoard() {
       Object.keys(s.nodeEdits).length > 0 ||
       Object.values(s.addedNodes).some(a => a.length > 0) ||
       s.deletedNodes.length > 0 ||
-      Object.values(s.addedOperations).some(a => a.length > 0) ||
-      Object.keys(s.editedOperations).length > 0 ||
-      s.deletedOperations.length > 0 ||
-      Object.values(s.addedCases).some(a => a.length > 0) ||
-      Object.keys(s.editedCases).length > 0 ||
-      s.deletedCases.length > 0 ||
-      Object.values(s.addedSkills).some(a => a.length > 0) ||
-      Object.keys(s.editedSkills).length > 0 ||
-      s.deletedSkills.length > 0 ||
-      Object.values(s.addedPathNodes).some(a => a.length > 0) ||
-      Object.keys(s.editedPathNodes).length > 0 ||
-      s.deletedPathNodes.length > 0 ||
-      Object.values(s.addedInterviews).some(a => a.length > 0) ||
-      Object.keys(s.editedInterviews).length > 0 ||
-      s.deletedInterviews.length > 0 ||
-      Object.values(s.addedCareer).some(a => a.length > 0) ||
-      Object.keys(s.editedCareer).length > 0 ||
-      s.deletedCareer.length > 0 ||
-      Object.values(s.addedTools).some(a => a.length > 0) ||
-      Object.keys(s.editedTools).length > 0 ||
-      s.deletedTools.length > 0 ||
+      ALL_TAB_KEYS.some(k =>
+        Object.values(s.tabItems[k] ?? {}).some((a: unknown[]) => a.length > 0) ||
+        Object.keys(s.tabEdits[k] ?? {}).length > 0 ||
+        (s.tabDeleted[k] ?? []).length > 0
+      ) ||
       s.addedModules.length > 0 ||
       s.deletedModules.length > 0 ||
       Object.keys(s.moduleEdits).length > 0 ||
@@ -376,9 +351,8 @@ export function KnowledgeBoard() {
     };
   }, [ctxMenu, tabCtxMenu]);
 
-  type AnyTabItem = OperationStep | CaseStudy | SkillItem | LearningPathNode | InterviewQuestion | CareerMilestone | ToolItem;
-  const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: TabItemType; item: AnyTabItem | null }>({ open: false, tab: "operation", item: null });
-  const openTabItemModal = (tab: TabItemType, item: AnyTabItem | null = null) => setTabItemModal({ open: true, tab, item });
+  const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: string; item: Record<string, unknown> | null }>({ open: false, tab: "operation", item: null });
+  const openTabItemModal = (tab: string, item: { id: string } | null = null) => setTabItemModal({ open: true, tab, item });
   const closeTabItemModal = () => setTabItemModal(prev => ({ ...prev, open: false }));
 
   // Global keyboard shortcuts: Cmd/Ctrl+K = search, Escape = close all modals
@@ -404,28 +378,21 @@ export function KnowledgeBoard() {
     return () => window.removeEventListener("keydown", handler);
   }, [searchOpen, nodeModal.open, compareModal.open, tabItemModal.open, tabEditModal.open, moduleModal.open, showImageCleanup, ctxMenu, tabCtxMenu]);
 
-  const handleTabItemSave = (tab: TabItemType, saved: AnyTabItem) => {
+  const handleTabItemSave = (tab: string, saved: Record<string, unknown>) => {
     const mid = activeModule.id;
     const isNew = !tabItemModal.item;
     const withTab = isNew ? { ...saved, dimensionTab: activeDimension } : saved;
-    if (tab === "operation") { if (isNew) addOperation(mid, withTab as OperationStep); else editOperation(saved.id, saved as OperationStep); }
-    else if (tab === "cases")     { if (isNew) addCase(mid, withTab as CaseStudy);          else editCase(saved.id, saved as CaseStudy); }
-    else if (tab === "skills")    { if (isNew) addSkill(mid, withTab as SkillItem);         else editSkill(saved.id, saved as SkillItem); }
-    else if (tab === "path")      { if (isNew) addPathNode(mid, withTab as LearningPathNode); else editPathNode(saved.id, saved as LearningPathNode); }
-    else if (tab === "interview") { if (isNew) addInterview(mid, withTab as InterviewQuestion); else editInterview(saved.id, saved as InterviewQuestion); }
-    else if (tab === "career")    { if (isNew) addCareer(mid, withTab as CareerMilestone);   else editCareer(saved.id, saved as CareerMilestone); }
-    else if (tab === "tools")     { if (isNew) addTool(mid, withTab as ToolItem);            else editTool(saved.id, saved as ToolItem); }
+    const ops = getTabOps(tab);
+    if (!ops) return;
+    if (isNew) ops.add(mid, withTab as { id: string });
+    else ops.edit(mid, String(saved.id), saved);
   };
 
-  const handleTabItemDelete = (tab: TabItemType, id: string) => {
+  const handleTabItemDelete = (tab: string, id: string) => {
     const mid = activeModule.id;
-    if (tab === "operation") deleteOperation(mid, id);
-    else if (tab === "cases")     deleteCase(mid, id);
-    else if (tab === "skills")    deleteSkill(mid, id);
-    else if (tab === "path")      deletePathNode(mid, id);
-    else if (tab === "interview") deleteInterview(mid, id);
-    else if (tab === "career")    deleteCareer(mid, id);
-    else if (tab === "tools")     deleteTool(mid, id);
+    const ops = getTabOps(tab);
+    if (!ops) return;
+    ops.del(mid, id);
   };
 
   // Helper: open compare modal for a given tab
@@ -474,17 +441,17 @@ export function KnowledgeBoard() {
   }, [activeModule, activeDimension]);
   const tocItems = useMemo(() => {
     if (!activeModule) return [];
-    // Build toc from all active widgets in current tab
+    // Build toc from all active widgets in current tab using WIDGET_MODULE_MAP
     const items: { id: string; label: string }[] = [];
     for (const w of activeWidgets) {
-      if (w === "knowledge") visibleKnowledge.forEach(n => items.push({ id: n.id, label: n.title }));
-      else if (w === "operation") activeModule.operationSteps.forEach(s => items.push({ id: s.id, label: s.title }));
-      else if (w === "case") (activeModule.cases ?? []).forEach(c => items.push({ id: c.id, label: c.title }));
-      else if (w === "tool") (activeModule.tools ?? []).forEach(t => items.push({ id: t.id, label: t.name }));
-      else if (w === "skill") (activeModule.skills ?? []).forEach(s => items.push({ id: s.id, label: s.name }));
-      else if (w === "path") (activeModule.learningPath ?? []).forEach(p => items.push({ id: p.id, label: p.title }));
-      else if (w === "interview") (activeModule.interviewQuestions ?? []).forEach(q => items.push({ id: q.id, label: q.question.slice(0, 18) + (q.question.length > 18 ? "…" : "") }));
-      else if (w === "career") (activeModule.careerPlan ?? []).forEach(c => items.push({ id: c.id, label: c.week + " " + c.phase }));
+      if (w === "knowledge") {
+        visibleKnowledge.forEach(n => items.push({ id: n.id, label: n.title }));
+        continue;
+      }
+      const entry = WIDGET_MODULE_MAP.find(m => m.widget === w);
+      if (!entry) continue;
+      const list = (activeModule[entry.field as keyof typeof activeModule] as { id: string }[] | undefined) ?? [];
+      list.forEach(item => items.push({ id: item.id, label: String((entry.titleFn as (i: unknown) => string)(item)).slice(0, 40) }));
     }
     return items;
   }, [activeModule, activeWidgets, visibleKnowledge]);
@@ -591,16 +558,17 @@ export function KnowledgeBoard() {
               const addBtns: React.ReactNode[] = [];
               if (isEditMode) {
                 if (widget === "knowledge") addBtns.push(<button key="ak" type="button" className="section-add-btn" onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> {t.addKnowledgeNode}</button>);
-                if (widget === "operation") addBtns.push(<button key="aop" type="button" className="section-add-btn" onClick={() => openTabItemModal("operation")}><Plus size={13}/> {t.addOperation}</button>);
-                if (widget === "case")      addBtns.push(<button key="ac" type="button" className="section-add-btn" onClick={() => openTabItemModal("cases")}><Plus size={13}/> {t.addCase}</button>);
-                if (widget === "skill")     addBtns.push(<button key="ask" type="button" className="section-add-btn" onClick={() => openTabItemModal("skills")}><Plus size={13}/> {t.addSkill}</button>);
-                if (widget === "path")      addBtns.push(<button key="ap" type="button" className="section-add-btn" onClick={() => openTabItemModal("path")}><Plus size={13}/> {t.addPathNode}</button>);
-                if (widget === "interview") addBtns.push(<button key="aiq" type="button" className="section-add-btn" onClick={() => openTabItemModal("interview")}><Plus size={13}/> {t.addInterview}</button>);
-                if (widget === "career")    addBtns.push(<button key="aca" type="button" className="section-add-btn" onClick={() => openTabItemModal("career")}><Plus size={13}/> {t.addCareer}</button>);
-                if (widget === "tool")      addBtns.push(<button key="at" type="button" className="section-add-btn" onClick={() => openTabItemModal("tools")}><Plus size={13}/> {t.addTool}</button>);
+                else {
+                  const wEntry = WIDGET_MODULE_MAP.find(m => m.widget === widget);
+                  if (wEntry) {
+                    const tabKey = wEntry.defaultTab;
+                    addBtns.push(<button key={`a-${widget}`} type="button" className="section-add-btn" onClick={() => openTabItemModal(tabKey)}><Plus size={13}/> + {wEntry.typeLabel}</button>);
+                  }
+                }
                 addBtns.push(<button key="acmp" type="button" className="section-add-btn" onClick={() => openCompareModal(activeDimension)}><Plus size={13}/> {t.addCompare}</button>);
               }
               const renderContent = () => {
+                const wTabKey = WIDGET_MODULE_MAP.find(m => m.widget === widget)?.defaultTab ?? widget;
                 switch (widget) {
                   case "knowledge": return (
                     <>
@@ -652,8 +620,8 @@ export function KnowledgeBoard() {
                             <div className="timeline-content">
                               <div className="card-edit-row"><h4>{step.title}</h4>
                                 {isEditMode && <div className="card-edit-btns">
-                                  <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("operation", step)}><PenLine size={11}/></button>
-                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteOperation(activeModule.id, step.id); }}><Trash2 size={11}/></button>
+                                  <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, step)}><PenLine size={11}/></button>
+                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, step.id); }}><Trash2 size={11}/></button>
                                 </div>}
                               </div>
                               <p className="target">{t.targetLabel}{step.target}</p>
@@ -674,8 +642,8 @@ export function KnowledgeBoard() {
                           <article key={c.id} id={`item-${c.id}`} className="case-card">
                             <div className="card-edit-row"><h4>{c.title}</h4>
                               {isEditMode && <div className="card-edit-btns">
-                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("cases", c)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCase(activeModule.id, c.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, c)}><PenLine size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, c.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <div className="case-row"><em>{t.sceneLabel}</em><span>{c.scene}</span></div>
@@ -700,8 +668,8 @@ export function KnowledgeBoard() {
                               <strong>{skill.name}</strong>
                               <div className="skill-level-bar">{[1,2,3,4,5].map((n) => <span key={n} className={`skill-dot ${n <= skill.level ? "filled" : ""}`}/>)}</div>
                               {isEditMode && <div className="card-edit-btns">
-                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("skills", skill)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteSkill(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, skill)}><PenLine size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, skill.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <p className="skill-desc">{skill.description}</p>
@@ -725,8 +693,8 @@ export function KnowledgeBoard() {
                                 <span className="path-level-badge">{node.level}</span>
                                 {node.estimatedHours && <span className="path-hours">≈ {node.estimatedHours}h</span>}
                                 {isEditMode && <div className="card-edit-btns">
-                                  <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("path", node)}><PenLine size={11}/></button>
-                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deletePathNode(activeModule.id, node.id); }}><Trash2 size={11}/></button>
+                                  <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, node)}><PenLine size={11}/></button>
+                                  <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, node.id); }}><Trash2 size={11}/></button>
                                 </div>}
                               </div>
                               {node.prerequisite && node.prerequisite.length > 0 && (
@@ -747,8 +715,8 @@ export function KnowledgeBoard() {
                         : <InterviewPanel
                             questions={(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension)}
                             isEditMode={isEditMode}
-                            onEdit={(q) => openTabItemModal("interview", q)}
-                            onDelete={(id) => deleteInterview(activeModule.id, id)}
+                            onEdit={(q) => openTabItemModal(wTabKey, q)}
+                            onDelete={(id) => getTabOps(wTabKey)?.del(activeModule.id, id)}
                           />}
                     </>
                   );
@@ -763,8 +731,8 @@ export function KnowledgeBoard() {
                               <span className="career-week-label">{m.week}</span>
                               <span className="career-phase">{m.phase}</span>
                               {isEditMode && <div className="card-edit-btns">
-                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("career", m)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteCareer(activeModule.id, m.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, m)}><PenLine size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, m.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <div className="career-body">
@@ -790,8 +758,8 @@ export function KnowledgeBoard() {
                           <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
                             <div className="card-edit-row"><strong>{tool.name}</strong>
                               {isEditMode && <div className="card-edit-btns">
-                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal("tools", tool)}><PenLine size={11}/></button>
-                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) deleteTool(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
+                                <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, tool)}><PenLine size={11}/></button>
+                                <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteCompareConfirm)) getTabOps(wTabKey)?.del(activeModule.id, tool.id); }}><Trash2 size={11}/></button>
                               </div>}
                             </div>
                             <span className="tool-category">{tool.category}{tool.isPaid ? t.toolPaid : t.toolFree}</span>
@@ -992,8 +960,8 @@ export function KnowledgeBoard() {
         <TabItemEditor
           tab={tabItemModal.tab}
           item={tabItemModal.item}
-          onSave={(saved) => handleTabItemSave(tabItemModal.tab, saved as AnyTabItem)}
-          onDelete={tabItemModal.item ? () => handleTabItemDelete(tabItemModal.tab, tabItemModal.item!.id) : undefined}
+          onSave={(saved) => handleTabItemSave(tabItemModal.tab, saved)}
+          onDelete={tabItemModal.item ? () => handleTabItemDelete(tabItemModal.tab, String(tabItemModal.item!.id)) : undefined}
           onClose={closeTabItemModal}
         />
       )}
