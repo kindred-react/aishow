@@ -59,6 +59,20 @@ export const ragModule: LearningModule = {
       updatedAt: "2025-03-25",
       version: 1,
     },
+    {
+      id: "node-lp337f",
+      title: "1122",
+      summary: "",
+      level: "基础",
+      metaphor: "",
+      points: [],
+      color: "var(--c-neon)",
+      relatedOps: [],
+      updatedAt: "2026-03-29",
+      version: 1,
+      imageUrl: "/uploads/rag-knowledge/img-1774768788095-svem.jpg",
+      dimensionTab: "knowledge",
+    },
   ],
   operationSteps: [
     {
