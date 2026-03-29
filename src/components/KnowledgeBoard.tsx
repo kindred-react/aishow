@@ -35,7 +35,7 @@ import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
 import type { KnowledgeNode, LearningModule, CompareBlock, DimensionTab, TabConfig, TabWidget } from "@/data/types";
-import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS } from "@/data/types";
+import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS, TAB_WIDGET } from "@/data/types";
 import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
@@ -66,8 +66,8 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
     const saved = init?.widgets;
     if (!saved || saved.length === 0) {
       const defaults = isBuiltin
-        ? (ALL_TABS.find(t => t.key === init?.key)?.widgets ?? ["compare"])
-        : ["compare" as TabWidget];
+        ? (ALL_TABS.find(t => t.key === init?.key)?.widgets ?? [TAB_WIDGET.Compare])
+        : [TAB_WIDGET.Compare as TabWidget];
       // enabled = in defaults, rest disabled
       return ALL_WIDGETS.map(w => ({ key: w.key, enabled: defaults.includes(w.key) }));
     }
@@ -220,7 +220,7 @@ export function KnowledgeBoard() {
   );
 
   const [activeModuleId, setActiveModuleId] = useState<string>("");
-  const [activeDimension, setActiveDimension] = useState<DimensionTab>("knowledge");
+  const [activeDimension, setActiveDimension] = useState<DimensionTab>(TAB_WIDGET.Knowledge);
   const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(FILTER_ALL);
   const [isMounted, setIsMounted] = useState(false);
   const [isDark, setIsDark] = useState<boolean>(true);
@@ -300,7 +300,7 @@ export function KnowledgeBoard() {
     const savedLevel = localStorage.getItem("kb-level") as KnowledgeLevelFilter | null;
     /* eslint-disable react-hooks/set-state-in-effect */
     if (savedModule) setActiveModuleId(savedModule);
-    if (savedDimension && (["knowledge", ...ALL_TAB_KEYS] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
+    if (savedDimension && ([TAB_WIDGET.Knowledge, ...ALL_TAB_KEYS] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
     if (savedLevel && ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(savedLevel)) setLevelFilter(savedLevel as KnowledgeLevelFilter);
     /* eslint-enable react-hooks/set-state-in-effect */
     // Small delay so state settles before revealing UI (prevents jump)
@@ -310,7 +310,7 @@ export function KnowledgeBoard() {
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moduleModal, setModuleModal] = useState<{ open: boolean; module: LearningModule | null }>({ open: false, module: null });
   const [showImageCleanup, setShowImageCleanup] = useState(false);
-  const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: "knowledge" });
+  const [compareModal, setCompareModal] = useState<{ open: boolean; block: CompareBlock | null; dimensionTab: string }>({ open: false, block: null, dimensionTab: TAB_WIDGET.Knowledge });
   const [ctxMenu, setCtxMenu] = useState<{ moduleId: string; x: number; y: number } | null>(null);
   const [tabCtxMenu, setTabCtxMenu] = useState<{ tab: TabConfig; x: number; y: number } | null>(null);
   const [tabEditModal, setTabEditModal] = useState<{ open: boolean; tab: TabConfig | null }>({ open: false, tab: null });
@@ -352,7 +352,7 @@ export function KnowledgeBoard() {
     };
   }, [ctxMenu, tabCtxMenu]);
 
-  const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: string; item: Record<string, unknown> | null }>({ open: false, tab: "operation", item: null });
+  const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: string; item: Record<string, unknown> | null }>({ open: false, tab: TAB_WIDGET.Operation, item: null });
   const openTabItemModal = (tab: string, item: { id: string } | null = null) => setTabItemModal({ open: true, tab, item });
   const closeTabItemModal = () => setTabItemModal(prev => ({ ...prev, open: false }));
 
@@ -419,7 +419,7 @@ export function KnowledgeBoard() {
     const enabled = activeModule.enabledTabs;
     if (enabled && !enabled.some(t => t.key === activeDimension)) {
       /* eslint-disable react-hooks/set-state-in-effect */
-      setActiveDimension(enabled[0]?.key ?? "knowledge");
+      setActiveDimension(enabled[0]?.key ?? TAB_WIDGET.Knowledge);
       /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [activeModule, activeDimension]);
@@ -438,14 +438,14 @@ export function KnowledgeBoard() {
     const _activeTabCfg = _dims.find(d => d.key === activeDimension);
     return _activeTabCfg?.widgets
       ?? ALL_TABS.find(t => t.key === activeDimension)?.widgets
-      ?? ["compare"];
+      ?? [TAB_WIDGET.Compare];
   }, [activeModule, activeDimension]);
   const tocItems = useMemo(() => {
     if (!activeModule) return [];
     // Build toc from all active widgets in current tab using WIDGET_MODULE_MAP
     const items: { id: string; label: string }[] = [];
     for (const w of activeWidgets) {
-      if (w === "knowledge") {
+      if (w === TAB_WIDGET.Knowledge) {
         visibleKnowledge.forEach(n => items.push({ id: n.id, label: n.title }));
         continue;
       }
@@ -463,7 +463,7 @@ export function KnowledgeBoard() {
   }
 
   function jumpToOp(opId: string) {
-    setActiveDimension("operation");
+    setActiveDimension(TAB_WIDGET.Operation);
     setHighlightOpId(opId);
     setTimeout(() => {
       const el = opRefs.current[opId];
@@ -495,7 +495,7 @@ export function KnowledgeBoard() {
             <div key={module.id} className="module-btn-wrap">
               <button type="button"
                 className={`module-btn ${activeModuleId === module.id ? "active" : ""}`}
-                onClick={() => { setActiveModuleId(module.id); setActiveDimension("knowledge"); setLevelFilter(FILTER_ALL); }}
+                onClick={() => { setActiveModuleId(module.id); setActiveDimension(TAB_WIDGET.Knowledge); setLevelFilter(FILTER_ALL); }}
                 onContextMenu={isEditMode ? (e) => { e.preventDefault(); setCtxMenu({ moduleId: module.id, x: e.clientX, y: e.clientY }); } : undefined}
               >
                 <span className="module-icon">{module.icon}</span>{module.name}
@@ -555,10 +555,10 @@ export function KnowledgeBoard() {
 
             {/* ── Unified widget-driven rendering — fully data-driven ── */}
             {activeWidgets.map((widget) => {
-              if (widget === "compare") return null;
+              if (widget === TAB_WIDGET.Compare) return null;
               const addBtns: React.ReactNode[] = [];
               if (isEditMode) {
-                if (widget === "knowledge") addBtns.push(<button key="ak" type="button" className="section-add-btn" onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> {t.addKnowledgeNode}</button>);
+                if (widget === TAB_WIDGET.Knowledge) addBtns.push(<button key="ak" type="button" className="section-add-btn" onClick={() => setNodeModal({ open: true, node: null, moduleId: activeModule.id })}><Plus size={13}/> {t.addKnowledgeNode}</button>);
                 else {
                   const wEntry = WIDGET_MODULE_MAP.find(m => m.widget === widget);
                   if (wEntry) {
@@ -571,7 +571,7 @@ export function KnowledgeBoard() {
               const renderContent = () => {
                 const wTabKey = WIDGET_MODULE_MAP.find(m => m.widget === widget)?.defaultTab ?? widget;
                 switch (widget) {
-                  case "knowledge": return (
+                  case TAB_WIDGET.Knowledge: return (
                     <>
                       <div className="sub-filter">
                         {([FILTER_ALL, ...levelOrder] as KnowledgeLevelFilter[]).map((item) => (
@@ -608,7 +608,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "operation": return (
+                  case TAB_WIDGET.Operation: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="timeline">
@@ -634,7 +634,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "case": return (
+                  case TAB_WIDGET.Case: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="cases-grid">
@@ -657,7 +657,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "skill": return (
+                  case TAB_WIDGET.Skill: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="skills-grid">
@@ -680,7 +680,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "path": return (
+                  case TAB_WIDGET.Path: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="learning-path">
@@ -708,7 +708,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "interview": return (
+                  case TAB_WIDGET.Interview: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       {(activeModule.interviewQuestions ?? []).filter(q => (q.dimensionTab ?? "interview") === activeDimension).length === 0
@@ -721,7 +721,7 @@ export function KnowledgeBoard() {
                           />}
                     </>
                   );
-                  case "career": return (
+                  case TAB_WIDGET.Career: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="career-timeline">
@@ -750,7 +750,7 @@ export function KnowledgeBoard() {
                       </div>
                     </>
                   );
-                  case "tool": return (
+                  case TAB_WIDGET.Tool: return (
                     <>
                       <CompareBlockList blocks={store.compareBlocks} moduleId={activeModule.id} dimensionTab={activeDimension} isEditMode={isEditMode} onEdit={(b) => openCompareModal(activeDimension, b)} onDelete={deleteCompareBlock} />
                       <div className="tool-heat-grid">
@@ -782,7 +782,7 @@ export function KnowledgeBoard() {
                 <section key={widget} className="section-block in-shell">
                   <div className="section-title-row">
                     <FileText size={17}/>
-                    <h2>{tabLabel}{activeWidgets.filter(w => w !== "compare").length > 1 ? <span style={{fontSize:"0.72rem",color:"#5a7898",marginLeft:"0.4rem",fontWeight:400}}>· {WLABEL[widget] ?? widget}</span> : null}</h2>
+                    <h2>{tabLabel}{activeWidgets.filter(w => w !== TAB_WIDGET.Compare).length > 1 ? <span style={{fontSize:"0.72rem",color:"#5a7898",marginLeft:"0.4rem",fontWeight:400}}>· {WLABEL[widget] ?? widget}</span> : null}</h2>
                     {isEditMode && addBtns.length > 0 && (
                       <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
                         {addBtns}
@@ -953,7 +953,7 @@ export function KnowledgeBoard() {
             }
           }}
           onDelete={compareModal.block ? () => deleteCompareBlock(compareModal.block!.id) : undefined}
-          onClose={() => setCompareModal({ open: false, block: null, dimensionTab: "knowledge" })}
+          onClose={() => setCompareModal({ open: false, block: null, dimensionTab: TAB_WIDGET.Knowledge })}
         />
       )}
 
@@ -1053,7 +1053,7 @@ export function KnowledgeBoard() {
             if (!confirm(t.ctxDeleteTabConfirm(tabCtxMenu.tab.label))) return;
             const next = (activeModule.enabledTabs ?? ALL_TABS).filter(t => t.key !== tabCtxMenu.tab.key);
             editModule(activeModule.id, { enabledTabs: next });
-            if (activeDimension === tabCtxMenu.tab.key) setActiveDimension(next[0]?.key ?? "knowledge");
+            if (activeDimension === tabCtxMenu.tab.key) setActiveDimension(next[0]?.key ?? TAB_WIDGET.Knowledge);
           }}><Trash2 size={12}/> {t.ctxDeleteTab}</button>
         </div>,
         document.body

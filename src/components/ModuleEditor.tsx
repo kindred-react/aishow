@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Plus, LayoutGrid } from "lucide-react";
 import type { LearningModule, DimensionTab, TabConfig, TabWidget } from "@/data/types";
-import { WIDGET_MODULE_MAP } from "@/data/types";
+import { WIDGET_MODULE_MAP, TAB_WIDGET } from "@/data/types";
 import { TAB_FIELD_MAP } from "@/lib/useContentStore";
 import { useI18n } from "@/lib/i18n";
 
@@ -21,16 +21,16 @@ const WIDGET_DESCS: Record<string, string> = {
 };
 export const ALL_WIDGETS: { key: TabWidget; label: string; desc: string }[] = [
   ...WIDGET_MODULE_MAP.map(e => ({ key: e.widget, label: e.typeLabel, desc: WIDGET_DESCS[e.widget] ?? "" })),
-  { key: "compare" as TabWidget, label: "Compare Block", desc: "Multi-column comparison table" },
+  { key: TAB_WIDGET.Compare, label: "Compare Block", desc: "Multi-column comparison table" },
 ];
 
 // Default built-in tabs derived from WIDGET_MODULE_MAP
 export const ALL_TABS: TabConfig[] = WIDGET_MODULE_MAP.map(e => ({
   key: e.defaultTab,
   label: e.typeLabel,
-  widgets: e.widget === "knowledge"
-    ? ["knowledge", "compare"] as TabWidget[]
-    : [e.widget, "compare"] as TabWidget[],
+  widgets: e.widget === TAB_WIDGET.Knowledge
+    ? [TAB_WIDGET.Knowledge, TAB_WIDGET.Compare] as TabWidget[]
+    : [e.widget, TAB_WIDGET.Compare] as TabWidget[],
 }));
 
 function genModuleId() {

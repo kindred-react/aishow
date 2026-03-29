@@ -223,7 +223,7 @@ const setState = useCallback((k: string, v: unknown) =>
     onSave(processed);
   };
 
-  const firstFieldIndex = schema.fields.findIndex(f => f.type !== "row" || true);
+  const firstFieldIndex = schema.fields.findIndex(f => f.type !== "row");
   return (
     <>
       {schema.fields.map((f, i) => {
@@ -234,6 +234,9 @@ const setState = useCallback((k: string, v: unknown) =>
     </>
   );
 }
+
+// Module-level constant — avoids rebuilding on every render
+const TAB_LABEL_MAP = Object.fromEntries(WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel]));
 
 // ── TabItemEditor ─────────────────────────────────────────────────────────
 
@@ -252,7 +255,6 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
   const { t } = useI18n();
 
   const tRecord = t as unknown as Record<string, unknown>;
-  const TAB_LABEL_MAP = Object.fromEntries(WIDGET_MODULE_MAP.map(e => [e.defaultTab, e.typeLabel]));
   const label = TAB_LABEL_MAP[tab] ?? tab;
 
   const handleSave = (saved: Record<string, unknown>) => {

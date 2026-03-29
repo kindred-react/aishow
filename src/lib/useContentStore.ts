@@ -18,14 +18,10 @@ import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
 import { pushAllChangesAsOneCommit, buildModuleEntries, buildCompareEntry, buildIndexEntry } from "@/lib/githubNotes";
 
 // ── Commit progress task type ──────────────────────────────────────────────
-export type CommitTask = {
-  id: string;
-  label: string;
-  status: "pending" | "running" | "done" | "error";
-  message?: string;
-};
+export type { CommitTask } from "@/components/CommitProgressModal";
+import type { CommitTask } from "@/components/CommitProgressModal";
 
-import { WIDGET_MODULE_MAP } from "@/data/types";
+import { WIDGET_MODULE_MAP, TAB_WIDGET } from "@/data/types";
 
 const LS_KEY = "aishow_content_store";
 
@@ -38,7 +34,7 @@ type ItemRecord = Record<string, unknown>;
 export const TAB_FIELD_MAP: Record<string, keyof LearningModule> =
   Object.fromEntries(
     WIDGET_MODULE_MAP
-      .filter(e => e.defaultTab !== "knowledge") // knowledge handled separately
+      .filter(e => e.defaultTab !== TAB_WIDGET.Knowledge) // knowledge handled separately
       .map(e => [e.defaultTab, e.field])
   );
 

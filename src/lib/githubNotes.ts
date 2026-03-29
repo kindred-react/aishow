@@ -332,7 +332,7 @@ export async function pushCompareBlocksToGitHub(
 
 // ── Legacy compat ─────────────────────────────────────────────────────────
 export async function saveModuleNodesToGitHub(): Promise<{ ok: boolean; message: string }> {
-  return { ok: false, message: "请使用 saveModuleToGitHub" };
+  return { ok: false, message: "请使用 pushAllChangesAsOneCommit" };
 }
 export async function saveNotesToGitHub(): Promise<{ ok: boolean; message: string }> {
   return { ok: false, message: "已废弃" };

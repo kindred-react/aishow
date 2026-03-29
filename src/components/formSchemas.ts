@@ -9,7 +9,7 @@
  *   2. Add an entry to WIDGET_MODULE_MAP in types.ts
  *   3. Add a schema entry here — no other changes needed.
  */
-import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT, INTERVIEW_DIFFICULTIES, INTERVIEW_DIFFICULTY_DEFAULT } from "@/data/types";
+import { KNOWLEDGE_LEVELS, TAB_WIDGET, KNOWLEDGE_LEVEL_DEFAULT, INTERVIEW_DIFFICULTIES, INTERVIEW_DIFFICULTY_DEFAULT } from "@/data/types";
 
 // ── Field Types ────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export interface TabFormSchema {
 
 export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
   {
-    tabKey: "operation",
+    tabKey: TAB_WIDGET.Operation,
     idPrefix: "op",
     requiredKey: "title",
     fields: [
@@ -44,7 +44,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "cases",
+    tabKey: TAB_WIDGET.Cases,
     idPrefix: "case",
     requiredKey: "title",
     fields: [
@@ -59,7 +59,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "skills",
+    tabKey: TAB_WIDGET.Skills,
     idPrefix: "skill",
     requiredKey: "name",
     fields: [
@@ -73,7 +73,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "path",
+    tabKey: TAB_WIDGET.Path,
     idPrefix: "path",
     requiredKey: "title",
     fields: [
@@ -86,7 +86,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "interview",
+    tabKey: TAB_WIDGET.Interview,
     idPrefix: "iq",
     requiredKey: "question",
     fields: [
@@ -102,7 +102,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "career",
+    tabKey: TAB_WIDGET.Career,
     idPrefix: "career",
     requiredKey: "week",
     fields: [
@@ -118,7 +118,7 @@ export const TAB_FORM_SCHEMAS: TabFormSchema[] = [
     ],
   },
   {
-    tabKey: "tools",
+    tabKey: TAB_WIDGET.Tools,
     idPrefix: "tool",
     requiredKey: "name",
     fields: [

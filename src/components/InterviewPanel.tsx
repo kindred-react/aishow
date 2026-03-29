@@ -17,7 +17,10 @@ export function InterviewPanel({
 }) {
   const { t } = useI18n();
 
-  const DIFFICULTIES = [t.interviewDiffAll, t.interviewDiffBeginner, t.interviewDiffIntermediate, t.interviewDiffAdvanced] as const;
+  const DIFFICULTIES = useMemo(() =>
+    [t.interviewDiffAll, t.interviewDiffBeginner, t.interviewDiffIntermediate, t.interviewDiffAdvanced] as const,
+    [t.interviewDiffAll, t.interviewDiffBeginner, t.interviewDiffIntermediate, t.interviewDiffAdvanced]
+  );
 
   const categories = useMemo(() => [
     t.interviewDiffAll,

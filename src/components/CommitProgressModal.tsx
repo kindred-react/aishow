@@ -1,6 +1,13 @@
 "use client";
 import { createPortal } from "react-dom";
-import type { CommitTask } from "@/lib/useContentStore";
+
+// ── CommitTask type ───────────────────────────────────────────────────────
+export type CommitTask = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "done" | "error";
+  message?: string;
+};
 
 interface CommitProgressModalProps {
   tasks: CommitTask[];

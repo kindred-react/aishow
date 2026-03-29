@@ -89,16 +89,22 @@ export interface CareerMilestone {
 
 export type DimensionTab = string; // built-in: "knowledge"|"operation"|"skills"|"path"|"interview"|"career"|"tools"|"cases" — or any custom key
 
-export type TabWidget =
-  | "knowledge"   // 知识点卡片
-  | "operation"   // 操作步骤卡片
-  | "case"        // 案例卡片
-  | "skill"       // 能力雷达项
-  | "path"        // 成长路径节点
-  | "interview"   // 面试题
-  | "career"      // 职业规划里程碑
-  | "tool"        // 工具卡片
-  | "compare";    // 对比组件
+export const TAB_WIDGET = {
+  Knowledge:  "knowledge",
+  Operation:  "operation",
+  Case:       "case",
+  Cases:      "cases",
+  Skill:      "skill",
+  Skills:     "skills",
+  Path:       "path",
+  Interview:  "interview",
+  Career:     "career",
+  Tool:       "tool",
+  Tools:      "tools",
+  Compare:    "compare",
+} as const;
+
+export type TabWidget = typeof TAB_WIDGET[keyof typeof TAB_WIDGET];
 
 export interface TabConfig {
   key: DimensionTab;
@@ -172,7 +178,7 @@ export interface CompareBlock {
  */
 export const WIDGET_MODULE_MAP = [
   {
-    widget: "knowledge" as TabWidget,
+    widget: TAB_WIDGET.Knowledge,
     field: "knowledgeNodes" as keyof LearningModule,
     defaultTab: "knowledge",
     typeLabel: "知识",
@@ -184,7 +190,7 @@ export const WIDGET_MODULE_MAP = [
       i.points?.some((p: string) => p.toLowerCase().includes(q)),
   },
   {
-    widget: "operation" as TabWidget,
+    widget: TAB_WIDGET.Operation,
     field: "operationSteps" as keyof LearningModule,
     defaultTab: "operation",
     typeLabel: "操作",
@@ -197,7 +203,7 @@ export const WIDGET_MODULE_MAP = [
       i.tools?.some((t: string) => t.toLowerCase().includes(q)),
   },
   {
-    widget: "case" as TabWidget,
+    widget: TAB_WIDGET.Case,
     field: "cases" as keyof LearningModule,
     defaultTab: "cases",
     typeLabel: "案例",
@@ -210,7 +216,7 @@ export const WIDGET_MODULE_MAP = [
       i.solution?.toLowerCase().includes(q),
   },
   {
-    widget: "tool" as TabWidget,
+    widget: TAB_WIDGET.Tool,
     field: "tools" as keyof LearningModule,
     defaultTab: "tools",
     typeLabel: "工具",
@@ -223,7 +229,7 @@ export const WIDGET_MODULE_MAP = [
       i.category?.toLowerCase().includes(q),
   },
   {
-    widget: "skill" as TabWidget,
+    widget: TAB_WIDGET.Skill,
     field: "skills" as keyof LearningModule,
     defaultTab: "skills",
     typeLabel: "能力",
@@ -236,7 +242,7 @@ export const WIDGET_MODULE_MAP = [
       i.howTo?.some((h: string) => h.toLowerCase().includes(q)),
   },
   {
-    widget: "interview" as TabWidget,
+    widget: TAB_WIDGET.Interview,
     field: "interviewQuestions" as keyof LearningModule,
     defaultTab: "interview",
     typeLabel: "面试",
@@ -249,7 +255,7 @@ export const WIDGET_MODULE_MAP = [
       i.framework?.toLowerCase().includes(q),
   },
   {
-    widget: "path" as TabWidget,
+    widget: TAB_WIDGET.Path,
     field: "learningPath" as keyof LearningModule,
     defaultTab: "path",
     typeLabel: "路径",
@@ -260,7 +266,7 @@ export const WIDGET_MODULE_MAP = [
       i.tip?.toLowerCase().includes(q),
   },
   {
-    widget: "career" as TabWidget,
+    widget: TAB_WIDGET.Career,
     field: "careerPlan" as keyof LearningModule,
     defaultTab: "career",
     typeLabel: "职规",
