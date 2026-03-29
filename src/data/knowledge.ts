@@ -7,7 +7,6 @@ import { deployModule } from "./modules/deploy";
 import { agentModule } from "./modules/agent";
 import { projectModule } from "./modules/project";
 import { aipmModule } from "./modules/aipm";
-import { moduleJcrb6eModule } from "./modules/module-jcrb6e";
 
 export type { KnowledgeLevel, KnowledgeNode, CaseStudy, OperationStep, LearningModule } from "./types";
 
@@ -20,5 +19,4 @@ export const learningModules: LearningModule[] = [
   agentModule,
   projectModule,
   aipmModule,
-  moduleJcrb6eModule,
 ];

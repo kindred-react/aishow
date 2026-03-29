@@ -3,69 +3,6 @@ import type { CompareBlock } from "@/data/types";
 // 此文件由 Web 编辑器自动生成，请勿手动修改
 export const compareBlocks: CompareBlock[] = [
   {
-    id: "mcw79qz",
-    moduleId: "foundations",
-    dimensionTab: "knowledge",
-    title: "111",
-    rows: [
-      {
-        label: "11111",
-        key: "row_0",
-      },
-      {
-        label: "2222",
-        key: "row_1",
-      },
-      {
-        label: "3333",
-        key: "row_2",
-      },
-    ],
-    items: [
-      {
-        id: "k45nx1q",
-        name: "111",
-        nameEn: "",
-        color: "var(--c-cyan)",
-        accent: "rgba(102,201,255,0.10)",
-        tags: {
-          row_0: "1",
-          row_1: "2",
-        },
-        flow: [],
-        keyPoints: [],
-      },
-      {
-        id: "0tidlqn",
-        name: "112",
-        nameEn: "221",
-        color: "var(--c-cyan)",
-        accent: "rgba(102,201,255,0.12)",
-        tags: {
-          row_0: "2223",
-          row_1: "3334",
-        },
-        flow: [],
-        keyPoints: [],
-      },
-      {
-        id: "vmechk6",
-        name: "3333",
-        nameEn: "333",
-        color: "var(--c-lime)",
-        accent: "rgba(176,255,112,0.12)",
-        tags: {
-          row_2: "33",
-          row_1: "33",
-          row_0: "333",
-        },
-        flow: [],
-        keyPoints: [],
-      },
-    ],
-    order: 1774694895650,
-  },
-  {
     id: "1ad2rqf",
     moduleId: "foundations",
     dimensionTab: "path",

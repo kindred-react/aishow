@@ -59,19 +59,6 @@ export const ragModule: LearningModule = {
       updatedAt: "2025-03-25",
       version: 1,
     },
-    {
-      id: "node-iufwy7",
-      title: "111",
-      summary: "",
-      level: "基础",
-      metaphor: "",
-      points: [],
-      color: "var(--c-neon)",
-      relatedOps: [],
-      updatedAt: "2026-03-29",
-      version: 1,
-      dimensionTab: "knowledge",
-    },
   ],
   operationSteps: [
     {
