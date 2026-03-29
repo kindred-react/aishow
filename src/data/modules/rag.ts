@@ -60,8 +60,8 @@ export const ragModule: LearningModule = {
       version: 1,
     },
     {
-      id: "node-lp337f",
-      title: "1122",
+      id: "node-iufwy7",
+      title: "111",
       summary: "",
       level: "基础",
       metaphor: "",
@@ -70,7 +70,6 @@ export const ragModule: LearningModule = {
       relatedOps: [],
       updatedAt: "2026-03-29",
       version: 1,
-      imageUrl: "/uploads/rag-knowledge/img-1774768788095-svem.jpg",
       dimensionTab: "knowledge",
     },
   ],
