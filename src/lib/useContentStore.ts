@@ -11,7 +11,7 @@
  * and one entry to TAB_FIELD_MAP below. No other changes needed.
  */
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { KnowledgeNode, LearningModule, CompareBlock } from "@/data/types";
 import { learningModules } from "@/data/knowledge";
 import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
@@ -43,7 +43,7 @@ export interface ContentStore {
   // ── Knowledge nodes ──
   nodeEdits:    Record<string, Partial<KnowledgeNode> & { __mid?: string }>;
   addedNodes:   ModuleList<KnowledgeNode>;
-  deletedNodes: string[];
+  deletedNodes: Record<string, string[]>; // moduleId → deleted node ids
   // ── Modules ──
   addedModules:  LearningModule[];
   deletedModules: string[];
@@ -60,7 +60,7 @@ const mkTabDefaults = (val: () => unknown) =>
   Object.fromEntries(ALL_TAB_KEYS.map(k => [k, val()]));
 
 const DEFAULT_STORE: ContentStore = {
-  nodeEdits: {}, addedNodes: {}, deletedNodes: [],
+  nodeEdits: {}, addedNodes: {}, deletedNodes: {},
   addedModules: [], deletedModules: [], moduleEdits: {},
   compareBlocks: staticCompareBlocks,
   tabItems:   mkTabDefaults(() => ({}))  as Record<string, ModuleList<ItemRecord>>,
@@ -86,9 +86,9 @@ function loadLocal(): ContentStore {
 
 function saveLocal(store: ContentStore) {
   localStorage.setItem(LS_CONTENT_STORE_KEY, JSON.stringify(store));
-  setTimeout(() => {
+  queueMicrotask(() => {
     window.dispatchEvent(new CustomEvent("content-store-updated", { detail: store }));
-  }, 0);
+  });
 }
 
 function mergeList<T extends { id: string }>(
@@ -112,7 +112,7 @@ function getMergedNodes(moduleId: string, store: ContentStore): KnowledgeNode[] 
     base?.knowledgeNodes ?? [],
     store.addedNodes[moduleId] ?? [],
     store.nodeEdits as Record<string, Partial<KnowledgeNode>>,
-    store.deletedNodes
+    store.deletedNodes[moduleId] ?? []
   );
 }
 
@@ -197,12 +197,8 @@ export function useContentStore() {
             ).map(m => m.id)
           );
         }),
-        // deletedNodes: reverse-lookup
-        ...prev.deletedNodes.flatMap(id =>
-          mergedModules.filter(m =>
-            learningModules.find(b => b.id === m.id)?.knowledgeNodes.some(n => n.id === id)
-          ).map(m => m.id)
-        ),
+        // deletedNodes: already scoped by moduleId
+        ...Object.keys(prev.deletedNodes),
         ...prev.deletedModules,
       ]);
 
@@ -283,7 +279,7 @@ export function useContentStore() {
   const deleteNode = useCallback((moduleId: string, nodeId: string) => {
     updateDraft(s => ({
       ...s,
-      deletedNodes: [...s.deletedNodes.filter(id => id !== nodeId), nodeId],
+      deletedNodes: { ...s.deletedNodes, [moduleId]: [...(s.deletedNodes[moduleId] ?? []).filter(id => id !== nodeId), nodeId] },
       addedNodes: Object.fromEntries(
         Object.entries(s.addedNodes).map(([mid, nodes]) => [mid, nodes.filter(n => n.id !== nodeId)])
       ),
@@ -293,7 +289,7 @@ export function useContentStore() {
   const restoreNode = useCallback((moduleId: string, nodeId: string) => {
     updateDraft(s => ({
       ...s,
-      deletedNodes: s.deletedNodes.filter(id => id !== nodeId),
+      deletedNodes: { ...s.deletedNodes, [moduleId]: (s.deletedNodes[moduleId] ?? []).filter(id => id !== nodeId) },
       nodeEdits: Object.fromEntries(Object.entries(s.nodeEdits).filter(([id]) => id !== nodeId)),
     }));
   }, [updateDraft]);
@@ -350,13 +346,13 @@ export function useContentStore() {
     };
   }, [updateDraft]);
 
-  // ── Computed: merged modules list ──
-  const mergedModules: LearningModule[] = [
+  // ── Computed: merged modules list (memoised — only recomputes when store changes) ──
+  const mergedModules: LearningModule[] = useMemo(() => [
     ...learningModules
       .filter(m => !store.deletedModules.includes(m.id))
       .map(m => getMergedModule(m, store)),
     ...store.addedModules.filter(m => !store.deletedModules.includes(m.id)),
-  ];
+  ], [store]);
 
   return {
     store, mergedModules, syncStatus, syncMsg, commitTasks,
