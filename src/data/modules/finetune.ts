@@ -136,5 +136,10 @@ export const finetuneModule: LearningModule = {
       label: "Cases",
       widgets: ["case", "compare"],
     },
+    {
+      key: "custom-22-x35",
+      label: "22",
+      widgets: ["compare"],
+    },
   ],
 };
