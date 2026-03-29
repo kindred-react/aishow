@@ -17,6 +17,14 @@ import { learningModules } from "@/data/knowledge";
 import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
 import { pushChangesToGitHub, pushCompareBlocksToGitHub, pushKnowledgeIndexToGitHub } from "@/lib/githubNotes";
 
+// ── Commit progress task type ──────────────────────────────────────────────
+export type CommitTask = {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "done" | "error";
+  message?: string;
+};
+
 import { WIDGET_MODULE_MAP } from "@/data/types";
 
 const LS_KEY = "aishow_content_store";
@@ -135,6 +143,7 @@ export function useContentStore() {
   const store = draftStore ?? savedStore;
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [syncMsg, setSyncMsg] = useState("");
+  const [commitTasks, setCommitTasks] = useState<CommitTask[]>([]);
 
   useEffect(() => {
     const initial = loadLocal();
@@ -207,16 +216,48 @@ export function useContentStore() {
       const hasModuleStructureChanges = prev.addedModules.length > 0 || prev.deletedModules.length > 0;
       if (ids.length > 0 || hasCompareChanges || hasModuleStructureChanges) {
         setSyncStatus("syncing"); setSyncMsg("正在推送到 GitHub…");
-        const pushTasks: Promise<{ ok: boolean; message: string }>[] = [];
-        if (ids.length > 0)               pushTasks.push(pushChangesToGitHub(ids, mergedModules));
-        if (hasCompareChanges)            pushTasks.push(pushCompareBlocksToGitHub(prev.compareBlocks));
-        if (hasModuleStructureChanges)    pushTasks.push(pushKnowledgeIndexToGitHub(mergedModules));
-        Promise.all(pushTasks).then(results => {
-          const failed = results.filter(r => !r.ok);
-          setSyncStatus(failed.length === 0 ? "done" : "error");
-          setSyncMsg(failed.length === 0 ? results.map(r => r.message).join("；") : failed.map(r => r.message).join("；"));
-          setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); }, 6000);
-        });
+
+        // Build task list for progress modal
+        const tasks: CommitTask[] = [];
+        if (ids.length > 0) {
+          const moduleNames = ids.map(id => mergedModules.find(m => m.id === id)?.name ?? id);
+          tasks.push({ id: "modules", label: `模块内容 (${moduleNames.join("、")})`, status: "pending" });
+        }
+        if (hasCompareChanges) tasks.push({ id: "compare", label: "对比组件", status: "pending" });
+        if (hasModuleStructureChanges) tasks.push({ id: "index", label: "知识库索引", status: "pending" });
+        setCommitTasks(tasks);
+
+        // Run tasks sequentially to show live progress
+        (async () => {
+          let allOk = true;
+          const finalMsgs: string[] = [];
+
+          if (ids.length > 0) {
+            setCommitTasks(t => t.map(x => x.id === "modules" ? { ...x, status: "running" } : x));
+            const r = await pushChangesToGitHub(ids, mergedModules);
+            allOk = allOk && r.ok;
+            finalMsgs.push(r.message);
+            setCommitTasks(t => t.map(x => x.id === "modules" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
+          }
+          if (hasCompareChanges) {
+            setCommitTasks(t => t.map(x => x.id === "compare" ? { ...x, status: "running" } : x));
+            const r = await pushCompareBlocksToGitHub(prev.compareBlocks);
+            allOk = allOk && r.ok;
+            finalMsgs.push(r.message);
+            setCommitTasks(t => t.map(x => x.id === "compare" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
+          }
+          if (hasModuleStructureChanges) {
+            setCommitTasks(t => t.map(x => x.id === "index" ? { ...x, status: "running" } : x));
+            const r = await pushKnowledgeIndexToGitHub(mergedModules);
+            allOk = allOk && r.ok;
+            finalMsgs.push(r.message);
+            setCommitTasks(t => t.map(x => x.id === "index" ? { ...x, status: r.ok ? "done" : "error", message: r.message } : x));
+          }
+
+          setSyncStatus(allOk ? "done" : "error");
+          setSyncMsg(finalMsgs.join("；"));
+          setTimeout(() => { setSyncStatus("idle"); setSyncMsg(""); setCommitTasks([]); }, 8000);
+        })();
       }
       return null;
     });
@@ -324,7 +365,7 @@ export function useContentStore() {
   ];
 
   return {
-    store, mergedModules, syncStatus, syncMsg,
+    store, mergedModules, syncStatus, syncMsg, commitTasks,
     hasDraftChanges, beginDraft, commitDraft, discardDraft,
     editNode, addNode, deleteNode, restoreNode,
     addModule, deleteModule, editModule,

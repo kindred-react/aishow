@@ -30,6 +30,7 @@ import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
 import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockEditor";
 import { InterviewPanel } from "@/components/InterviewPanel";
 import { TabItemEditor } from "@/components/TabItemEditor";
+import { CommitProgressModal } from "@/components/CommitProgressModal";
 import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
@@ -193,7 +194,7 @@ const levelOrder = KNOWLEDGE_LEVELS;
 type KnowledgeLevelFilter = typeof FILTER_ALL | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
-  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
+  const { mergedModules, deleteNode, addNode, editNode, addModule, deleteModule, editModule, addCompareBlock, editCompareBlock, deleteCompareBlock, getTabOps, store, syncStatus, syncMsg, commitTasks, hasDraftChanges, beginDraft, commitDraft, discardDraft } = useContentStore();
   const { isEditMode, showPrompt, input, setInput, error, requestEdit, submitPassword, cancelPrompt, registerOnBeforeExit } = useEditMode();
   const { t, locale, setLocale } = useI18n();
 
@@ -1023,8 +1024,15 @@ export function KnowledgeBoard() {
         </div>
       )}
 
-      {/* GitHub sync status toast */}
-      {syncStatus !== "idle" && typeof document !== "undefined" && createPortal(
+      {/* GitHub commit progress modal */}
+      <CommitProgressModal
+        tasks={commitTasks}
+        syncStatus={syncStatus}
+        onClose={() => {}}
+      />
+
+      {/* Legacy sync toast (shown when no tasks, e.g. immediate errors) */}
+      {syncStatus !== "idle" && commitTasks.length === 0 && typeof document !== "undefined" && createPortal(
         <div className="note-toast">
           {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> {syncMsg}</span>}
           {syncStatus === "done"    && <span className="note-ok">☁ {syncMsg}</span>}
