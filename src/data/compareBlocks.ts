@@ -7,7 +7,16 @@ export const compareBlocks: CompareBlock[] = [
     moduleId: "foundations",
     dimensionTab: "knowledge",
     title: "111",
-    rows: [],
+    rows: [
+      {
+        label: "11111",
+        key: "row_0",
+      },
+      {
+        label: "2222",
+        key: "row_1",
+      },
+    ],
     items: [
       {
         id: "k45nx1q",
@@ -15,7 +24,23 @@ export const compareBlocks: CompareBlock[] = [
         nameEn: "",
         color: "var(--c-cyan)",
         accent: "rgba(102,201,255,0.10)",
-        tags: {},
+        tags: {
+          row_0: "1",
+          row_1: "2",
+        },
+        flow: [],
+        keyPoints: [],
+      },
+      {
+        id: "0tidlqn",
+        name: "112",
+        nameEn: "221",
+        color: "var(--c-cyan)",
+        accent: "rgba(102,201,255,0.12)",
+        tags: {
+          row_0: "2223",
+          row_1: "3334",
+        },
         flow: [],
         keyPoints: [],
       },
