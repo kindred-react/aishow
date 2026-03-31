@@ -300,11 +300,15 @@ export function KnowledgeBoard() {
     setActiveDimension(r.tabKey as DimensionTab);
     closeSearch();
     if (r.itemId) {
-      setHighlightItemId(r.itemId);
+      if (highlightItemId === r.itemId) return;
+      startHighlight(r.itemId);
       setTimeout(() => {
         const el = document.getElementById(`item-${r.itemId}`);
-        if (el && scrollRef.current) scrollRef.current.scrollTo({ top: (el as HTMLElement).offsetTop - 80, behavior: "smooth" });
-        setTimeout(() => setHighlightItemId(null), 1800);
+        if (el && scrollRef.current) {
+          const containerTop = scrollRef.current.getBoundingClientRect().top;
+          const elTop = el.getBoundingClientRect().top;
+          scrollRef.current.scrollBy({ top: elTop - containerTop - 80, behavior: "smooth" });
+        }
       }, 120);
     }
   };
@@ -448,6 +452,7 @@ export function KnowledgeBoard() {
     setCompareModal({ open: true, block, dimensionTab: tab });
   const opRefs = useRef<Record<string, HTMLElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist to localStorage on change
   useEffect(() => { localStorage.setItem(LS_KB_MODULE_KEY, activeModuleId); }, [activeModuleId]);
@@ -504,22 +509,41 @@ export function KnowledgeBoard() {
     return items;
   }, [activeModule, activeWidgets, visibleKnowledge]);
 
+  const startHighlight = (id: string, isOp = false) => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightItemId(id);
+    if (isOp) setHighlightOpId(id);
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightItemId(null);
+      if (isOp) setHighlightOpId(null);
+      highlightTimerRef.current = null;
+    }, 1800);
+  };
+
   function scrollToId(id: string) {
+    if (highlightItemId === id) return;
     const el = document.getElementById(`item-${id}`);
-    if (el && scrollRef.current) scrollRef.current.scrollTo({ top: el.offsetTop - 12, behavior: "smooth" });
+    if (el && scrollRef.current) {
+      const containerTop = scrollRef.current.getBoundingClientRect().top;
+      const elTop = el.getBoundingClientRect().top;
+      scrollRef.current.scrollBy({ top: elTop - containerTop - 80, behavior: "smooth" });
+    }
+    startHighlight(id);
   }
 
   function jumpToOp(opId: string) {
+    if (highlightItemId === opId) return;
     setActiveDimension(TAB_WIDGET.Operation);
-    setHighlightOpId(opId);
+    startHighlight(opId, true);
     setTimeout(() => {
-      const el = opRefs.current[opId];
-      if (el && scrollRef.current) scrollRef.current.scrollTo({ top: (el as HTMLElement).offsetTop - 12, behavior: "smooth" });
-      setTimeout(() => setHighlightOpId(null), 1800);
+      const el = opRefs.current[opId] ?? document.getElementById(`item-${opId}`);
+      if (el && scrollRef.current) {
+        const containerTop = scrollRef.current.getBoundingClientRect().top;
+        const elTop = (el as HTMLElement).getBoundingClientRect().top;
+        scrollRef.current.scrollBy({ top: elTop - containerTop - 80, behavior: "smooth" });
+      }
     }, 80);
   }
-
-  if (!activeModule) return null;
 
   const allDimensions: TabConfig[] = ALL_TABS;
   const dimensions: TabConfig[] = activeModule.enabledTabs ?? allDimensions;
@@ -665,7 +689,7 @@ export function KnowledgeBoard() {
                         {activeModule.operationSteps.filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["operationSteps"]) === activeDimension).map((step, idx) => (
                           <article key={step.id} id={`item-${step.id}`}
                             ref={(el) => { opRefs.current[step.id] = el; }}
-                            className={`timeline-item ${highlightOpId === step.id ? "highlighted" : ""}`}>
+                            className={`timeline-item ${(highlightOpId === step.id || highlightItemId === step.id) ? "highlighted" : ""}`}>
                             <div className="timeline-index">0{idx + 1}</div>
                             <div className="timeline-content">
                               <div className="card-edit-row"><h4>{step.title}</h4>
