@@ -571,6 +571,15 @@
 [data-theme="light"] .timeline-item.highlighted {
   outline-color: rgba(58,143,216,0.6);
 }
+
+[data-theme="light"] .concept-card.highlighted,
+[data-theme="light"] .case-card.highlighted,
+[data-theme="light"] .skill-card.highlighted,
+[data-theme="light"] .path-node.highlighted,
+[data-theme="light"] .career-card.highlighted,
+[data-theme="light"] .tool-heat-card.highlighted {
+  outline-color: rgba(58,143,216,0.6);
+}
 [data-theme="light"] .tool-tags span {
   border-color: rgba(0,160,100,0.3);
   color: #0a6040;
@@ -1612,6 +1621,24 @@ body {
   outline: 2px solid rgba(99, 243, 255, 0.7);
   border-radius: 12px;
   transition: outline 0.3s ease;
+}
+
+.concept-card.highlighted,
+.case-card.highlighted,
+.skill-card.highlighted,
+.path-node.highlighted,
+.career-card.highlighted,
+.tool-heat-card.highlighted {
+  outline: 2px solid rgba(99, 243, 255, 0.7);
+  border-radius: 12px;
+  transition: outline 0.3s ease;
+  animation: highlight-pulse 1.8s ease forwards;
+}
+
+@keyframes highlight-pulse {
+  0%   { outline-color: rgba(99, 243, 255, 0.85); box-shadow: 0 0 0 4px rgba(99,243,255,0.15); }
+  60%  { outline-color: rgba(99, 243, 255, 0.6);  box-shadow: 0 0 0 8px rgba(99,243,255,0.06); }
+  100% { outline-color: rgba(99, 243, 255, 0);    box-shadow: none; }
 }
 
 .cases-grid {

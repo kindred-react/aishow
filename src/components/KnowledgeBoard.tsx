@@ -248,7 +248,7 @@ export function KnowledgeBoard() {
   }, [searchOpen]);
 
   // Build search index from all merged modules
-  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; type: string; tags?: string[]; }
+  interface SearchResult { moduleId: string; moduleName: string; tabKey: string; tabLabel: string; title: string; subtitle?: string; type: string; tags?: string[]; itemId?: string; }
   const [searchCursor, setSearchCursor] = useState(-1);
   const [searchModuleFilter, setSearchModuleFilter] = useState("");
   const searchResultsRef = useRef<HTMLDivElement>(null);
@@ -273,6 +273,7 @@ export function KnowledgeBoard() {
               subtitle: entry.subtitleFn?.(item as never) ?? "",
               type: entry.typeLabel,
               tags: (item as { tags?: string[] }).tags,
+              itemId: (item as { id?: string }).id,
             });
         });
       }
@@ -298,6 +299,14 @@ export function KnowledgeBoard() {
     setActiveModuleId(r.moduleId);
     setActiveDimension(r.tabKey as DimensionTab);
     closeSearch();
+    if (r.itemId) {
+      setHighlightItemId(r.itemId);
+      setTimeout(() => {
+        const el = document.getElementById(`item-${r.itemId}`);
+        if (el && scrollRef.current) scrollRef.current.scrollTo({ top: (el as HTMLElement).offsetTop - 80, behavior: "smooth" });
+        setTimeout(() => setHighlightItemId(null), 1800);
+      }, 120);
+    }
   };
 
   const openMoveModal = (node: KnowledgeNode, fromModuleId: string, fromTab: string) => {
@@ -340,6 +349,7 @@ export function KnowledgeBoard() {
     return () => clearTimeout(timer);
   }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
+  const [highlightItemId, setHighlightItemId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
   const [moveModal, setMoveModal] = useState<{ open: boolean; node: KnowledgeNode | null; fromModuleId: string; fromTab: string }>({ open: false, node: null, fromModuleId: "", fromTab: "" });
   const [moveTargetModuleId, setMoveTargetModuleId] = useState("");
@@ -638,6 +648,7 @@ export function KnowledgeBoard() {
                         {visibleKnowledge.map((rawNode) => (
                           <KnowledgeCard key={rawNode.id} rawNode={rawNode}
                             operationSteps={activeModule.operationSteps} onJumpToOp={jumpToOp}
+                            isHighlighted={highlightItemId === rawNode.id}
                             onEdit={isEditMode ? (node) => setNodeModal({ open: true, node, moduleId: activeModule.id }) : undefined}
                             onMove={isEditMode ? (node) => openMoveModal(node, activeModule.id, rawNode.dimensionTab ?? activeDimension) : undefined}
                             onDelete={isEditMode ? (nodeId) => deleteNode(activeModule.id, nodeId) : undefined}
@@ -678,7 +689,7 @@ export function KnowledgeBoard() {
                       <div className="cases-grid">
                         {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? FIELD_DEFAULT_TAB["cases"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCase}</p>}
                         {(activeModule.cases ?? []).filter(c => (c.dimensionTab ?? FIELD_DEFAULT_TAB["cases"]) === activeDimension).map((c) => (
-                          <article key={c.id} id={`item-${c.id}`} className="case-card">
+                          <article key={c.id} id={`item-${c.id}`} className={`case-card${highlightItemId === c.id ? " highlighted" : ""}`}>
                             <div className="card-edit-row"><h4>{c.title}</h4>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, c)}><PenLine size={11}/></button>
@@ -701,7 +712,7 @@ export function KnowledgeBoard() {
                       <div className="skills-grid">
                         {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["skills"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptySkillsModule}</p>}
                         {(activeModule.skills ?? []).filter(s => (s.dimensionTab ?? FIELD_DEFAULT_TAB["skills"]) === activeDimension).map((skill) => (
-                          <article key={skill.id} id={`item-${skill.id}`} className="skill-card">
+                          <article key={skill.id} id={`item-${skill.id}`} className={`skill-card${highlightItemId === skill.id ? " highlighted" : ""}`}>
                             <div className="skill-header">
                               <span className="skill-dimension">{skill.dimension}</span>
                               <strong>{skill.name}</strong>
@@ -724,7 +735,7 @@ export function KnowledgeBoard() {
                       <div className="learning-path">
                         {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? FIELD_DEFAULT_TAB["learningPath"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyPathModule}</p>}
                         {(activeModule.learningPath ?? []).filter(p => (p.dimensionTab ?? FIELD_DEFAULT_TAB["learningPath"]) === activeDimension).map((node, idx) => (
-                          <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}`}>
+                          <article key={node.id} id={`item-${node.id}`} className={`path-node path-${node.level}${highlightItemId === node.id ? " highlighted" : ""}`}>
                             <div className="path-index">{String(idx + 1).padStart(2, "0")}</div>
                             <div className="path-content">
                               <div className="path-header">
@@ -765,7 +776,7 @@ export function KnowledgeBoard() {
                       <div className="career-timeline">
                         {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? FIELD_DEFAULT_TAB["careerPlan"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyCareerModule}</p>}
                         {(activeModule.careerPlan ?? []).filter(m => (m.dimensionTab ?? FIELD_DEFAULT_TAB["careerPlan"]) === activeDimension).map((m) => (
-                          <article key={m.id} id={`item-${m.id}`} className="career-card">
+                          <article key={m.id} id={`item-${m.id}`} className={`career-card${highlightItemId === m.id ? " highlighted" : ""}`}>
                             <div className="career-week">
                               <span className="career-week-label">{m.week}</span>
                               <span className="career-phase">{m.phase}</span>
@@ -794,7 +805,7 @@ export function KnowledgeBoard() {
                       <div className="tool-heat-grid">
                         {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? FIELD_DEFAULT_TAB["tools"]) === activeDimension).length === 0 && <p className="empty-hint">{t.emptyToolsModule}</p>}
                         {(activeModule.tools ?? []).filter(tool => (tool.dimensionTab ?? FIELD_DEFAULT_TAB["tools"]) === activeDimension).map((tool) => (
-                          <article key={tool.id} id={`item-${tool.id}`} className="tool-heat-card">
+                          <article key={tool.id} id={`item-${tool.id}`} className={`tool-heat-card${highlightItemId === tool.id ? " highlighted" : ""}`}>
                             <div className="card-edit-row"><strong>{tool.name}</strong>
                               {isEditMode && <div className="card-edit-btns">
                                 <button type="button" className="cb-action-btn" onClick={() => openTabItemModal(wTabKey, tool)}><PenLine size={11}/></button>

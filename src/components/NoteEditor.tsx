@@ -51,6 +51,7 @@ export function KnowledgeCard({
   onEdit,
   onMove,
   onDelete,
+  isHighlighted,
 }: {
   rawNode: KnowledgeNode;
   operationSteps: OperationStep[];
@@ -58,11 +59,12 @@ export function KnowledgeCard({
   onEdit?: (node: KnowledgeNode) => void;
   onMove?: (node: KnowledgeNode) => void;
   onDelete?: (nodeId: string) => void;
+  isHighlighted?: boolean;
 }) {
   const { t } = useI18n();
   const node = useMergedNode(rawNode);
   return (
-    <article id={`item-${node.id}`} className="concept-card">
+    <article id={`item-${node.id}`} className={`concept-card${isHighlighted ? " highlighted" : ""}`}>
       <div className="card-top" style={{ borderColor: node.color }}>
         <strong>{node.title}</strong>
         <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
