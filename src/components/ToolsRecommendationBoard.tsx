@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ExternalLink, Sparkles } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 type ToolItem = {
   name: string;
@@ -190,23 +190,6 @@ function renderDescription(text: string, highlights?: string[]) {
 export function ToolsRecommendationBoard() {
   return (
     <section className="tools-board-shell">
-      <motion.div
-        className="tools-board-header"
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div>
-          <p className="tools-board-eyebrow">Product Delivery Stack</p>
-          <h2 className="tools-board-title">产品研发工具推荐矩阵</h2>
-          <p className="tools-board-subtitle">把规划、需求、原型、协作、验收与复盘串成一条可执行的 PM 工具链。</p>
-        </div>
-        <div className="tools-board-badge">
-          <Sparkles size={14} />
-          React Native View
-        </div>
-      </motion.div>
-
       <div className="tools-board-grid">
         {TOOL_ROWS.map((row, index) => (
           <motion.article
