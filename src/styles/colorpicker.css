@@ -1,0 +1,82 @@
+/* ── ColorPicker component ── */
+.cp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cp-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.cp-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  appearance: none;
+  padding: 0;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  flex-shrink: 0;
+}
+
+.cp-swatch:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+.cp-swatch.active {
+  border-color: #fff;
+  transform: scale(1.22);
+  box-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+
+.cp-custom-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255,255,255,0.4);
+  cursor: pointer;
+  appearance: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.12s, transform 0.12s;
+  position: relative;
+}
+
+.cp-custom-btn:hover,
+.cp-custom-btn.open {
+  border-color: #fff;
+  transform: scale(1.1);
+}
+
+.cp-custom-icon {
+  font-size: 10px;
+  color: rgba(255,255,255,0.8);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.cp-native-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+}
+
