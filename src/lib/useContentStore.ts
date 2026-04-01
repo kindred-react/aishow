@@ -18,8 +18,8 @@ import { compareBlocks as staticCompareBlocks } from "@/data/compareBlocks";
 import { pushAllChangesAsOneCommit, buildModuleEntries, buildCompareEntry, buildIndexEntry } from "@/lib/githubNotes";
 
 // ── Commit progress task type ──────────────────────────────────────────────
-export type { CommitTask } from "@/components/CommitProgressModal";
-import type { CommitTask } from "@/components/CommitProgressModal";
+export type { CommitTask } from "@/components/knowledge/CommitProgressModal";
+import type { CommitTask } from "@/components/knowledge/CommitProgressModal";
 
 import { LS_CONTENT_STORE_KEY } from "@/data/constants";
 import { WIDGET_MODULE_MAP } from "@/data/types";

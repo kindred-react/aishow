@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Grid3X3, GitBranch, BookOpen } from "lucide-react";
-import { AtlasRouteSwitch } from "@/components/AtlasRouteSwitch";
-import { ToolsRecommendationBoard } from "@/components/ToolsRecommendationBoard";
-import { WorkflowBoard } from "@/components/WorkflowBoard";
-import { CasesTabView } from "@/components/CasesTabView";
+import { AtlasRouteSwitch } from "@/components/shared/AtlasRouteSwitch";
+import { ToolsRecommendationBoard } from "@/components/tools/ToolsRecommendationBoard";
+import { WorkflowBoard } from "@/components/tools/WorkflowBoard";
+import { CasesTabView } from "@/components/tools/CasesTabView";
+import { useHydratedLocalStorageState } from "@/lib/hooks";
 
 type TabType = "matrix" | "workflow" | "cases";
 
@@ -26,25 +26,14 @@ const TAB_META: Record<TabType, { title: string; subtitle: string }> = {
 };
 
 const STORAGE_KEY = "tools-page-active-tab";
+const isTabType = (value: string): TabType => value in TAB_META ? (value as TabType) : "matrix";
 
 export function ToolsPageView() {
-  const [activeTab, setActiveTab] = useState<TabType>("matrix" as TabType);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as TabType | null;
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (stored && stored in TAB_META) setActiveTab(stored);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    const timer = setTimeout(() => setIsMounted(true), 80);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem(STORAGE_KEY, activeTab);
-    }
-  }, [activeTab, isMounted]);
+  const [activeTab, setActiveTab, isMounted] = useHydratedLocalStorageState<TabType>(
+    STORAGE_KEY,
+    "matrix",
+    { validate: isTabType },
+  );
 
   return (
     <main className={`page-shell${isMounted ? " mounted" : ""}`}>

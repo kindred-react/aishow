@@ -18,19 +18,19 @@ import {
   Moon,
 } from "lucide-react";
 import { useRef, useMemo, useState, useEffect } from "react";
-import { useFocusOnMount } from "@/lib/hooks";
-import { KnowledgeCard } from "@/components/NoteEditor";
-import { NodeEditorModal } from "@/components/NodeEditor";
-import { ModuleEditorModal, AddModuleButton } from "@/components/ModuleEditor";
-import { ImageCleanupModal } from "@/components/ImageCleanup";
-import { AgentPatternCompare } from "@/components/AgentPatternCompare";
-import { MLAlgorithmCompare } from "@/components/MLAlgorithmCompare";
-import { AgentFrameworkCompare } from "@/components/AgentFrameworkCompare";
-import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockEditor";
-import { InterviewPanel } from "@/components/InterviewPanel";
-import { TabItemEditor } from "@/components/TabItemEditor";
-import { CommitProgressModal } from "@/components/CommitProgressModal";
-import { AtlasRouteSwitch } from "@/components/AtlasRouteSwitch";
+import { useFocusOnMount, useHydratedLocalStorageState } from "@/lib/hooks";
+import { KnowledgeCard } from "@/components/knowledge/NoteEditor";
+import { NodeEditorModal } from "@/components/knowledge/NodeEditor";
+import { ModuleEditorModal, AddModuleButton } from "@/components/knowledge/ModuleEditor";
+import { ImageCleanupModal } from "@/components/knowledge/ImageCleanup";
+import { AgentPatternCompare } from "@/components/knowledge/AgentPatternCompare";
+import { MLAlgorithmCompare } from "@/components/knowledge/MLAlgorithmCompare";
+import { AgentFrameworkCompare } from "@/components/knowledge/AgentFrameworkCompare";
+import { CompareBlockView, CompareBlockEditor } from "@/components/knowledge/CompareBlockEditor";
+import { InterviewPanel } from "@/components/knowledge/InterviewPanel";
+import { TabItemEditor } from "@/components/knowledge/TabItemEditor";
+import { CommitProgressModal } from "@/components/knowledge/CommitProgressModal";
+import { AtlasRouteSwitch } from "@/components/shared/AtlasRouteSwitch";
 import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
@@ -38,7 +38,7 @@ import type { KnowledgeNode, LearningModule, CompareBlock, DimensionTab, TabConf
 import { FILTER_ALL, LS_CONTENT_STORE_KEY, LS_KB_THEME_KEY, LS_KB_MODULE_KEY, LS_KB_DIMENSION_KEY, LS_KB_LEVEL_KEY } from "@/data/constants";
 import type { FilterAll } from "@/data/constants";
 import { WIDGET_MODULE_MAP, KNOWLEDGE_LEVELS, TAB_WIDGET, FIELD_DEFAULT_TAB } from "@/data/types";
-import { ALL_TABS, ALL_WIDGETS } from "@/components/ModuleEditor";
+import { ALL_TABS, ALL_WIDGETS } from "@/components/knowledge/ModuleEditor";
 
 // ── Standalone compare block list (avoids React Compiler memoization issue) ──
 function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
@@ -192,6 +192,15 @@ function CompareBlockList({
 
 const levelOrder = KNOWLEDGE_LEVELS;
 
+const isDimensionTab = (value: string): DimensionTab =>
+  ([TAB_WIDGET.Knowledge, ...ALL_TAB_KEYS] as string[]).includes(value) ? (value as DimensionTab) : TAB_WIDGET.Knowledge;
+
+const isKnowledgeLevelFilter = (value: string): KnowledgeLevelFilter =>
+  ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(value) ? (value as KnowledgeLevelFilter) : FILTER_ALL;
+
+const isThemeMode = (value: string): "dark" | "light" =>
+  value === "dark" || value === "light" ? (value as "dark" | "light") : "dark";
+
 type KnowledgeLevelFilter = FilterAll | typeof KNOWLEDGE_LEVELS[number];
 
 export function KnowledgeBoard() {
@@ -220,15 +229,25 @@ export function KnowledgeBoard() {
     [mergedModules]
   );
 
-  const [activeModuleId, setActiveModuleId] = useState<string>("");
-  const [activeDimension, setActiveDimension] = useState<DimensionTab>(TAB_WIDGET.Knowledge);
-  const [levelFilter, setLevelFilter] = useState<KnowledgeLevelFilter>(FILTER_ALL);
-  const [isMounted, setIsMounted] = useState(false);
-  const [isDark, setIsDark] = useState<boolean>(true);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsDark(localStorage.getItem(LS_KB_THEME_KEY) !== "light");
-  }, []);
+  const [activeModuleId, setActiveModuleId, isMounted] = useHydratedLocalStorageState<string>(
+    LS_KB_MODULE_KEY,
+    "",
+  );
+  const [activeDimension, setActiveDimension] = useHydratedLocalStorageState<DimensionTab>(
+    LS_KB_DIMENSION_KEY,
+    TAB_WIDGET.Knowledge,
+    { validate: isDimensionTab },
+  );
+  const [levelFilter, setLevelFilter] = useHydratedLocalStorageState<KnowledgeLevelFilter>(
+    LS_KB_LEVEL_KEY,
+    FILTER_ALL,
+    { validate: isKnowledgeLevelFilter },
+  );
+  const [isDark, setIsDark] = useHydratedLocalStorageState<"dark" | "light">(
+    LS_KB_THEME_KEY,
+    "dark",
+    { validate: isThemeMode },
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -236,8 +255,7 @@ export function KnowledgeBoard() {
 
   // Theme toggle with persistence
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-    localStorage.setItem(LS_KB_THEME_KEY, isDark ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", isDark === "dark" ? "dark" : "light");
   }, [isDark]);
 
   useEffect(() => {
@@ -336,21 +354,6 @@ export function KnowledgeBoard() {
     setActiveModuleId(moveTargetModuleId);
     setActiveDimension(moveTargetTab as DimensionTab);
   };
-
-  // Restore from localStorage after hydration (must be after mount to avoid SSR mismatch)
-  useEffect(() => {
-    const savedModule = localStorage.getItem(LS_KB_MODULE_KEY);
-    const savedDimension = localStorage.getItem(LS_KB_DIMENSION_KEY) as DimensionTab | null;
-    const savedLevel = localStorage.getItem(LS_KB_LEVEL_KEY) as KnowledgeLevelFilter | null;
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (savedModule) setActiveModuleId(savedModule);
-    if (savedDimension && ([TAB_WIDGET.Knowledge, ...ALL_TAB_KEYS] as string[]).includes(savedDimension)) setActiveDimension(savedDimension);
-    if (savedLevel && ([FILTER_ALL, ...KNOWLEDGE_LEVELS] as string[]).includes(savedLevel)) setLevelFilter(savedLevel as KnowledgeLevelFilter);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    // Small delay so state settles before revealing UI (prevents jump)
-    const timer = setTimeout(() => setIsMounted(true), 80);
-    return () => clearTimeout(timer);
-  }, []);
   const [highlightOpId, setHighlightOpId] = useState<string | null>(null);
   const [highlightItemId, setHighlightItemId] = useState<string | null>(null);
   const [nodeModal, setNodeModal] = useState<{ open: boolean; node: KnowledgeNode | null; moduleId: string }>({ open: false, node: null, moduleId: "" });
@@ -404,6 +407,7 @@ export function KnowledgeBoard() {
   const [tabItemModal, setTabItemModal] = useState<{ open: boolean; tab: string; item: Record<string, unknown> | null }>({ open: false, tab: TAB_WIDGET.Operation, item: null });
   const openTabItemModal = (tab: string, item: { id: string } | null = null) => setTabItemModal({ open: true, tab, item });
   const closeTabItemModal = () => setTabItemModal(prev => ({ ...prev, open: false }));
+  const toggleTheme = () => setIsDark(current => current === "dark" ? "light" : "dark");
 
   // Global keyboard shortcuts: Cmd/Ctrl+K = search, Escape = close all modals
   useEffect(() => {
@@ -453,11 +457,6 @@ export function KnowledgeBoard() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Persist to localStorage on change
-  useEffect(() => { localStorage.setItem(LS_KB_MODULE_KEY, activeModuleId); }, [activeModuleId]);
-  useEffect(() => { localStorage.setItem(LS_KB_DIMENSION_KEY, activeDimension); }, [activeDimension]);
-  useEffect(() => { localStorage.setItem(LS_KB_LEVEL_KEY, levelFilter); }, [levelFilter]);
-
    
   const activeModule = useMemo(
     () => sortedModules.find((m) => m.id === activeModuleId) ?? sortedModules[0],
@@ -469,11 +468,9 @@ export function KnowledgeBoard() {
     if (!activeModule) return;
     const enabled = activeModule.enabledTabs;
     if (enabled && !enabled.some(t => t.key === activeDimension)) {
-      /* eslint-disable react-hooks/set-state-in-effect */
       setActiveDimension(enabled[0]?.key ?? TAB_WIDGET.Knowledge);
-      /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [activeModule, activeDimension]);
+  }, [activeModule, activeDimension, setActiveDimension]);
   const visibleKnowledge = useMemo(() => {
     // Items with dimensionTab only show on their own tab; items without show on "knowledge"
     const forThisTab = activeModule.knowledgeNodes.filter(n =>
@@ -997,10 +994,10 @@ export function KnowledgeBoard() {
         <button
           type="button"
           className="edit-mode-lock-btn"
-          title={isMounted ? (isDark ? t.themeLight : t.themeDark) : ""}
-          onClick={() => setIsDark(d => !d)}
+          title={isMounted ? (isDark === "dark" ? t.themeLight : t.themeDark) : ""}
+          onClick={toggleTheme}
         >
-          {isMounted ? (isDark ? <Sun size={14} /> : <Moon size={14} />) : <Sun size={14} />}
+          {isMounted ? (isDark === "dark" ? <Sun size={14} /> : <Moon size={14} />) : <Sun size={14} />}
         </button>
         <button
           type="button"

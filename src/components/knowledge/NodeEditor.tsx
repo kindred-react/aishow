@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { X, Save, Trash2, Plus, PenLine, ImagePlus, Loader } from "lucide-react";
 import type { KnowledgeNode, KnowledgeLevel } from "@/data/types";
 import { KNOWLEDGE_LEVELS, KNOWLEDGE_LEVEL_DEFAULT } from "@/data/types";
-import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
+import { ColorPicker, THEME_PRESETS } from "@/components/shared/ColorPicker";
 import { uploadImageToGitHub, getImagePreviewUrl } from "@/lib/githubUpload";
 import { useI18n } from "@/lib/i18n";
 import { useFocusOnMount, genId } from "@/lib/hooks";

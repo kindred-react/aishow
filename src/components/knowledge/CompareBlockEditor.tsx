@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import { useFocusOnMount } from "@/lib/hooks";
-import { ColorPicker, THEME_PRESETS } from "@/components/ColorPicker";
+import { ColorPicker, THEME_PRESETS } from "@/components/shared/ColorPicker";
 import {
   ChevronUp, ChevronDown, X, Save, Trash2,
   Plus, Pencil, BarChart2, GripVertical, Minus,

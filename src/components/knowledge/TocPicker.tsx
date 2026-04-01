@@ -37,7 +37,10 @@ export function TocPicker({ items, onSelect, activeId }: TocPickerProps) {
   useEffect(() => {
     if (!activeId) return;
     const i = items.findIndex((it) => it.id === activeId);
-    if (i >= 0) setActiveIdx(i);
+    if (i >= 0) {
+      // 使用 requestAnimationFrame 延迟状态更新，避免同步调用 setState 导致的级联渲染
+      requestAnimationFrame(() => setActiveIdx(i));
+    }
   }, [activeId, items]);
 
   useEffect(() => {

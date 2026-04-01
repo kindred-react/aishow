@@ -3,9 +3,9 @@ import React, { useState, useCallback } from "react";
 import { X, Save, Trash2, Plus } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { TAB_LABEL_MAP } from "@/data/types";
-import { TAB_FORM_SCHEMA_MAP } from "@/components/formSchemas";
+import { TAB_FORM_SCHEMA_MAP } from "@/components/knowledge/formSchemas";
 import { genId } from "@/lib/hooks";
-import type { FieldDef } from "@/components/formSchemas";
+import type { FieldDef } from "@/components/knowledge/formSchemas";
 
 type T = ReturnType<typeof useI18n>["t"];
 type FormState = Record<string, unknown>;
