@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Grid3X3, GitBranch } from "lucide-react";
+import { Grid3X3, GitBranch, BookOpen } from "lucide-react";
 import { AtlasRouteSwitch } from "@/components/AtlasRouteSwitch";
 import { ToolsRecommendationBoard } from "@/components/ToolsRecommendationBoard";
 import { WorkflowBoard } from "@/components/WorkflowBoard";
+import { CasesTabView } from "@/components/CasesTabView";
 
-type TabType = "matrix" | "workflow";
+type TabType = "matrix" | "workflow" | "cases";
 
 const TAB_META: Record<TabType, { title: string; subtitle: string }> = {
   matrix: {
@@ -17,6 +18,10 @@ const TAB_META: Record<TabType, { title: string; subtitle: string }> = {
   workflow: {
     title: "工作流",
     subtitle: "从规划到迭代，查看各角色在不同产品阶段的职责、交付物与推荐工具",
+  },
+  cases: {
+    title: "案例中心",
+    subtitle: "查看实际项目案例，了解产品生命周期各阶段的文档输出",
   },
 };
 
@@ -65,12 +70,27 @@ export function ToolsPageView() {
                       />
                     )}
                   </button>
+                  <button
+                    className={`tools-tab${activeTab === "cases" ? " active" : ""}`}
+                    onClick={() => setActiveTab("cases")}
+                  >
+                    <BookOpen size={16} />
+                    <span>案例</span>
+                    {activeTab === "cases" && (
+                      <motion.div
+                        className="tools-tab-indicator"
+                        layoutId="toolsTabIndicator"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                      />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
 
             {activeTab === "matrix" && <ToolsRecommendationBoard />}
             {activeTab === "workflow" && <WorkflowBoard />}
+            {activeTab === "cases" && <CasesTabView />}
           </div>
         </div>
       </section>
