@@ -99,7 +99,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
 
         <div className="note-modal-header">
           <span><PenLine size={14} /> {isNew ? t.addKnowledgeCard : t.editKnowledgeCard(node.title)}</span>
-          <div style={{ display: "flex", gap: "0.3rem" }}>
+          <div className="flex gap-2">
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}>
                 <Trash2 size={13} /> {t.deleteCard}
@@ -112,7 +112,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
         <div className="note-edit-body">
           {/* Title */}
           <div className="note-field">
-            <label className="note-label">{t.nodeTitle} <span style={{color:"#f06060"}}>*</span></label>
+            <label className="note-label">{t.nodeTitle} <span className="text-red-400">*</span></label>
             <input ref={titleRef} className="note-input" value={title} onChange={e => setTitle(e.target.value)} placeholder={t.nodeTitlePlaceholder} />
           </div>
 
@@ -123,7 +123,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
           </div>
 
           {/* Level + Metaphor */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
+          <div className="grid gap-[0.7rem]" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <div className="note-field">
               <label className="note-label">{t.nodeDifficulty}</label>
               <div className="node-level-btns">
@@ -169,10 +169,10 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
               <button type="button" className="node-img-upload-btn" onClick={() => fileRef.current?.click()}>
                 <ImagePlus size={16} />
                 <span>{t.nodeImageUpload}</span>
-                <span style={{fontSize:"0.65rem",color:"#3a5070"}}>JPG / PNG / GIF / WebP</span>
+                <span className="text-[0.65rem] text-[#3a5070]">JPG / PNG / GIF / WebP</span>
               </button>
             )}
-            {uploadMsg && <p style={{fontSize:"0.7rem",marginTop:"0.25rem",color: uploadMsg.startsWith("✓") ? "var(--c-neon)" : "#f06060"}}>{uploadMsg}</p>}
+            {uploadMsg && <p className={`text-xs mt-1 ${uploadMsg.startsWith("✓") ? "text-[var(--c-neon)]" : "text-red-400"}`}>{uploadMsg}</p>}
             <input
               ref={fileRef}
               type="file"

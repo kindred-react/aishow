@@ -26,7 +26,7 @@ export function MLAlgorithmCompare() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22 }}
-            style={{ overflow: "hidden" }}
+            className="overflow-hidden"
           >
             <div className="apc-table-wrap">
               <table className="apc-table">
@@ -34,7 +34,7 @@ export function MLAlgorithmCompare() {
                   <tr>
                     <th>{t.compareDimension}</th>
                     {mlAlgorithms.map(a => (
-                      <th key={a.id} style={{ color: a.color }}>
+                      <th key={a.id} className="text-sm" style={{ color: a.color }}>
                         {a.name}
                         <span className="apc-th-en">{a.nameEn}</span>
                       </th>
@@ -54,7 +54,7 @@ export function MLAlgorithmCompare() {
               </table>
             </div>
 
-            <div className="apc-cards" style={{ gridTemplateColumns: "repeat(6, 1fr)", marginTop: "0.6rem" }}>
+            <div className="apc-cards mt-3" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
               {mlAlgorithms.map((a, i) => (
                 <motion.article
                   key={a.id}

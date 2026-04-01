@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #080a10;
+  --color-bg-soft: #0f1320;
+  --color-text: #eaf0ff;
+  --color-muted: #a5afc9;
+  --color-line: rgba(160, 178, 255, 0.2);
+  --color-card: rgba(22, 28, 44, 0.72);
+
+  --color-neon: #63f3ff;
+  --color-lime: #b0ff70;
+  --color-cyan: #66c9ff;
+  --color-orange: #ffb454;
+  --color-violet: #9e8dff;
+  --color-pink: #ff80bf;
+
+  --color-bg-light: #f5f7ff;
+  --color-bg-soft-light: #ffffff;
+  --color-bg-panel-light: #eef1fb;
+  --color-text-light: #0d1530;
+  --color-muted-light: #5a6490;
+  --color-line-light: rgba(80, 110, 200, 0.13);
+  --color-card-light: rgba(255, 255, 255, 0.95);
+
+  --color-neon-light: #0080a0;
+  --color-lime-light: #2e7d00;
+  --color-cyan-light: #005fa0;
+  --color-orange-light: #b05500;
+  --color-violet-light: #4030b0;
+  --color-pink-light: #980050;
+}
+
+:root {
+  --bg: #080a10;
+  --bg-soft: #0f1320;
+  --text: #eaf0ff;
+  --muted: #a5afc9;
+  --line: rgba(160, 178, 255, 0.2);
+  --card: rgba(22, 28, 44, 0.72);
+
+  --c-neon: #63f3ff;
+  --c-lime: #b0ff70;
+  --c-cyan: #66c9ff;
+  --c-orange: #ffb454;
+  --c-violet: #9e8dff;
+  --c-pink: #ff80bf;
+}
+
+[data-theme="light"] {
+  --bg: #f5f7ff;
+  --bg-soft: #ffffff;
+  --bg-panel: #eef1fb;
+  --text: #0d1530;
+  --muted: #5a6490;
+  --line: rgba(80, 110, 200, 0.13);
+  --card: rgba(255, 255, 255, 0.95);
+  --c-neon: #0080a0;
+  --c-lime: #2e7d00;
+  --c-cyan: #005fa0;
+  --c-orange: #b05500;
+  --c-violet: #4030b0;
+  --c-pink: #980050;
+  --shadow: 0 2px 16px rgba(60,80,180,0.10);
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--bg)] text-[var(--text)];
+  }
+}
+
+@layer components {
+  .note-field {
+    @apply flex flex-col gap-1 mb-3;
+  }
+
+  .note-label {
+    @apply text-xs font-medium text-[var(--muted)];
+  }
+
+  .note-label-row {
+    @apply flex items-center justify-between gap-2;
+  }
+
+  .note-input {
+    @apply bg-[rgba(8,12,28,0.6)] border-b border-[rgba(60,80,140,0.3)] text-[var(--text)] text-sm px-2 py-1.5 rounded focus:outline-none focus:border-[var(--c-neon)] transition-colors placeholder:text-[rgba(42,58,90)] w-full;
+  }
+
+  .note-textarea {
+    @apply bg-[rgba(8,12,28,0.6)] border-b border-[rgba(60,80,140,0.3)] text-[var(--text)] text-sm px-2 py-1.5 rounded focus:outline-none focus:border-[var(--c-neon)] transition-colors placeholder:text-[rgba(42,58,90)] resize-none;
+  }
+
+  .note-btn {
+    @apply appearance-none bg-transparent border border-[rgba(100,140,255,0.2)] rounded text-[#4a6090] text-xs px-2 py-1 cursor-pointer transition-all hover:border-[var(--c-neon)] hover:text-[var(--c-neon)] hover:bg-[rgba(100,220,255,0.06)];
+  }
+
+  .note-btn-danger {
+    @apply border-[rgba(255,100,100,0.25)] text-[rgba(255,100,100,0.6)] hover:border-red-400 hover:text-red-400 hover:bg-red-500/5;
+  }
+
+  .note-save-btn {
+    @apply appearance-none bg-[rgba(40,80,200,0.25)] border border-[rgba(80,130,255,0.4)] rounded-lg text-[#a0c0ff] text-xs px-3 py-1.5 cursor-pointer transition-all hover:bg-[rgba(60,100,220,0.4)] hover:border-[rgba(100,160,255,0.6)];
+  }
+
+  .note-save-btn-active {
+    @apply bg-[rgba(40,100,220,0.4)] border-[rgba(100,160,255,0.7)] text-[#d0e4ff];
+  }
+
+  .note-save-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .note-add-point {
+    @apply text-xs text-[var(--c-neon)] bg-transparent border-none cursor-pointer px-1 py-0.5 hover:underline;
+  }
+
+  .note-remove-point {
+    @apply text-xs text-[rgba(255,100,100,0.5)] bg-transparent border-none cursor-pointer hover:text-red-400;
+  }
+
+  .note-points-list {
+    @apply list-none p-0 m-0 flex flex-col gap-1;
+  }
+
+  .note-point-item {
+    @apply flex items-center gap-2;
+  }
+
+  .note-overlay {
+    @apply fixed inset-0 bg-black/55 z-[200] flex items-center justify-center p-4;
+  }
+
+  .note-modal {
+    @apply bg-[rgba(12,18,36,0.98)] border border-[rgba(80,120,220,0.4)] rounded-xl w-full max-w-[520px] flex flex-col max-h-[85vh];
+  }
+
+  .note-modal-wide {
+    @apply max-w-[600px];
+  }
+
+  .note-modal-header {
+    @apply flex items-center justify-between px-4 py-3 border-b border-[rgba(60,80,140,0.3)];
+  }
+
+  .note-modal-header span {
+    @apply flex items-center gap-2;
+  }
+
+  .note-modal-footer {
+    @apply flex items-center justify-between px-4 py-2.5 gap-2 border-t border-[rgba(60,80,140,0.3)];
+  }
+
+  .note-edit-body {
+    @apply flex flex-col p-4 overflow-y-auto;
+  }
+
+  .note-delete-btn {
+    @apply appearance-none bg-transparent border border-[rgba(255,100,100,0.3)] rounded text-[rgba(255,100,100,0.7)] text-xs px-2 py-1 cursor-pointer transition-all hover:border-red-400 hover:text-red-400;
+  }
+
+  .note-close {
+    @apply appearance-none bg-transparent border-none text-[var(--muted)] cursor-pointer p-1 rounded hover:text-[var(--text)] transition-colors;
+  }
+
+  .node-level-btns {
+    @apply flex gap-1;
+  }
+
+  .node-level-btn {
+    @apply appearance-none bg-[rgba(30,45,80,0.5)] border border-[rgba(80,120,220,0.25)] rounded text-[var(--muted)] text-xs px-2 py-1 cursor-pointer transition-all hover:border-[var(--c-neon)] hover:text-[var(--c-neon)];
+  }
+
+  .node-level-btn.active {
+    @apply bg-[rgba(99,102,241,0.2)] border-[var(--c-neon)] text-[var(--c-neon)];
+  }
+
+  .note-saved {
+    @apply text-[#50a870] text-xs;
+  }
+
+  .note-overlay-light {
+    @apply bg-[rgba(160,180,230,0.45)];
+  }
+}

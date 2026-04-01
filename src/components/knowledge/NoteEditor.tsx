@@ -65,9 +65,9 @@ export function KnowledgeCard({
   const node = useMergedNode(rawNode);
   return (
     <article id={`item-${node.id}`} className={`concept-card${isHighlighted ? " highlighted" : ""}`}>
-      <div className="card-top" style={{ borderColor: node.color }}>
+      <div className="card-top border-l-2" style={{ borderColor: node.color }}>
         <strong>{node.title}</strong>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+        <div className="flex items-center gap-1 flex-wrap">
           <span>{node.level} · {node.metaphor}</span>
           {onEdit && (
             <button type="button" className="note-btn" title={t.editCard} onClick={() => onEdit(node)}>

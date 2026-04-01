@@ -142,7 +142,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 
         <div className="note-modal-header">
           <span><LayoutGrid size={14} /> {isNew ? t.newModule : t.editModule(module.name)}</span>
-          <div style={{ display: "flex", gap: "0.3rem" }}>
+          <div className="flex gap-2">
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}>
                 <Trash2 size={13} /> {t.deleteModule}
@@ -154,7 +154,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 
         <div className="note-edit-body">
           <div className="note-field">
-            <label className="note-label">{t.moduleName} <span style={{color:"#f06060"}}>*</span></label>
+            <label className="note-label">{t.moduleName} <span className="text-red-400">*</span></label>
             <input ref={nameRef} className="note-input" value={name} onChange={e => setName(e.target.value)} placeholder={t.moduleNamePlaceholder} />
           </div>
 
@@ -174,8 +174,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
               ))}
             </div>
             <input
-              className="note-input"
-              style={{ marginTop: "0.4rem" }}
+              className="note-input mt-1"
               value={customIcon}
               onChange={e => setCustomIcon(e.target.value)}
               placeholder={t.moduleIconCustomPlaceholder}
@@ -185,41 +184,34 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 
           <div className="note-field">
             <label className="note-label">{t.enabledTabs} <span style={{color:"#8aaccc",fontWeight:400}}>{t.enabledTabsHint}</span></label>
-            <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+            <div className="flex flex-col gap-1">
               {tabRows.map((row, idx) => {
                 const isCustom = !ALL_TABS.some(t => t.key === row.tab.key);
                 return (
-                  <div key={row.tab.key} style={{
-                    display:"flex",alignItems:"center",gap:"0.4rem",
-                    background: row.enabled ? "rgba(40,70,120,0.22)" : "rgba(20,35,60,0.12)",
-                    border: `1px solid ${row.enabled ? "rgba(80,130,220,0.28)" : "rgba(60,90,140,0.15)"}`,
-                    borderRadius:"7px",padding:"0.28rem 0.55rem",
-                    opacity: row.enabled ? 1 : 0.5,
-                    transition:"opacity 0.15s,background 0.15s"
-                  }}>
+                  <div key={row.tab.key} className={`flex items-center gap-2 p-2 rounded-lg transition-all ${row.enabled ? "bg-[rgba(40,70,120,0.22)] border border-[rgba(80,130,220,0.28)] opacity-100" : "bg-[rgba(20,35,60,0.12)] border border-[rgba(60,90,140,0.15)] opacity-50"}`}>
                     <input type="checkbox" checked={row.enabled}
                       onChange={() => toggleTab(row.tab.key)}
-                      style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
+                      className="shrink-0 w-3 h-3 accent-[var(--c-neon)] cursor-pointer"
                     />
-                    <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}}>
-                      <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
+                    <span className="flex-1 text-[0.78rem]" style={{ color: row.enabled ? "#a0c4f0" : "#5a7898" }}>
+                      <span className="text-[#4a6888] mr-1 font-variant-numeric: tabular-nums text-[0.7rem]">{String(idx+1).padStart(2,"0")}</span>
                       {TAB_LABEL_MAP[row.tab.key] ?? row.tab.label}
-                      {isCustom && <span style={{fontSize:"0.65rem",color:"#5a7898",marginLeft:"0.3rem"}}>{t.customLabel}</span>}
-                      {(() => { const c = countForTab(row.tab.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
+                      {isCustom && <span className="text-[0.65rem] text-[#5a7898] ml-1">{t.customLabel}</span>}
+                      {(() => { const c = countForTab(row.tab.key); return c > 0 ? <span className="text-[0.65rem] text-[#4a8898] ml-1 font-variant-numeric: tabular-nums">{t.items(c)}</span> : null; })()}
                     </span>
                     <button type="button" disabled={idx === 0}
                       onClick={() => moveTab(idx, -1)}
-                      style={{appearance:"none",background:"none",border:"none",color: idx===0?"#2a4060":"#7aaad0",cursor:idx===0?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                      className={`appearance-none bg-transparent border-none text-[0.8rem] leading-1 p-0 ${idx === 0 ? "text-[#2a4060] cursor-default" : "text-[#7aaad0] cursor-pointer"}`}
                       title={t.moveUp}
                     >▲</button>
                     <button type="button" disabled={idx === tabRows.length - 1}
                       onClick={() => moveTab(idx, 1)}
-                      style={{appearance:"none",background:"none",border:"none",color: idx===tabRows.length-1?"#2a4060":"#7aaad0",cursor:idx===tabRows.length-1?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                      className={`appearance-none bg-transparent border-none text-[0.8rem] leading-1 p-0 ${idx === tabRows.length - 1 ? "text-[#2a4060] cursor-default" : "text-[#7aaad0] cursor-pointer"}`}
                       title={t.moveDown}
                     >▼</button>
                     {isCustom && (
                       <button type="button" onClick={() => removeCustomTab(row.tab.key)}
-                        style={{appearance:"none",background:"none",border:"none",color:"#f08080",cursor:"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.85rem"}}
+                        className="appearance-none bg-transparent border-none text-[#f08080] cursor-pointer text-[0.85rem] leading-1 p-0"
                         title={t.deleteCustomTab}
                       >×</button>
                     )}
@@ -227,14 +219,14 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
                 );
               })}
             </div>
-            <div style={{display:"flex",gap:"0.4rem",marginTop:"0.5rem"}}>
-              <input className="note-input" style={{flex:1}} value={newTabLabel}
+            <div className="flex gap-2 mt-2">
+              <input className="note-input flex-1" value={newTabLabel}
                 onChange={e => setNewTabLabel(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomTab(); } }}
                 placeholder={t.customTabPlaceholder} />
               <button type="button" className="section-add-btn" onClick={addCustomTab}><Plus size={12}/> {t.addCustomTab}</button>
             </div>
-            <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.3rem",display:"block"}}>
+            <span className="text-[0.72rem] text-[#5a7898] mt-1 block">
               {t.tabFooterHint}
             </span>
           </div>

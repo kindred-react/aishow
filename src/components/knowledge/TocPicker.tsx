@@ -64,7 +64,7 @@ export function TocPicker({ items, onSelect, activeId }: TocPickerProps) {
 
   return (
     <div ref={containerRef} className="toc-picker-wrap">
-      <p className="toc-title" style={{ margin: "0 0 0.4rem", padding: "0 0.5rem" }}>{t.tocTitle}</p>
+      <p className="toc-title my-1 px-2">{t.tocTitle}</p>
       <div className="toc-picker" style={{ height: pickerHeight }}>
         <div className="toc-picker-fade toc-picker-fade-top" />
         <div className="toc-picker-fade toc-picker-fade-bottom" />
@@ -74,7 +74,7 @@ export function TocPicker({ items, onSelect, activeId }: TocPickerProps) {
         />
         <div ref={listRef} className="toc-picker-list" style={{ height: pickerHeight }}>
           {paddedItems.map((item, i) => {
-            if (!item) return <div key={`pad-${i}`} style={{ height: ITEM_HEIGHT, flexShrink: 0 }} />;
+            if (!item) return <div key={`pad-${i}`} className="h-7 shrink-0" />;
             const realIdx = i - pad;
             const dist = Math.abs(realIdx - activeIdx);
             const isActive = realIdx === activeIdx;

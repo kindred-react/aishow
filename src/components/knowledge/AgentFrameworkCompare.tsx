@@ -30,7 +30,7 @@ export function AgentFrameworkCompare() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22 }}
-            style={{ overflow: "hidden" }}
+            className="overflow-hidden"
           >
             <div className="apc-table-wrap">
               <table className="apc-table">
@@ -63,7 +63,7 @@ export function AgentFrameworkCompare() {
                   key={f.id}
                   type="button"
                   className={`afc-tab ${activeId === f.id ? "afc-tab-active" : ""}`}
-                  style={{ borderColor: activeId === f.id ? f.color : undefined, color: activeId === f.id ? f.color : undefined }}
+                  style={{ borderColor: activeId === f.id ? f.color : "transparent", color: activeId === f.id ? f.color : undefined }}
                   onClick={() => setActiveId(f.id)}
                 >
                   {f.name}

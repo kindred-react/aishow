@@ -57,7 +57,7 @@ export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewPr
           <motion.div key="cb-body"
             initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }}
-            style={{ overflow: "hidden" }}
+            className="overflow-hidden"
           >
             {block.rows.length > 0 && (
               <div className="apc-table-wrap">
@@ -87,8 +87,8 @@ export function CompareBlockView({ block, onEdit, onDelete }: CompareBlockViewPr
               </div>
             )}
 
-            <div className="apc-cards"
-              style={{ gridTemplateColumns: `repeat(${Math.min(block.items.length, 6)}, 1fr)`, marginTop: "0.6rem" }}
+            <div className="apc-cards mt-3"
+              style={{ gridTemplateColumns: `repeat(${Math.min(block.items.length, 6)}, 1fr)` }}
             >
               {block.items.map((item, i) => (
                 <motion.article key={item.id}
@@ -209,7 +209,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
 
         <div className="note-modal-header">
           <span><BarChart2 size={14} /> {isNew ? t.addCompareBtn : t.editCompareTitle(block.title)}</span>
-          <div style={{ display: "flex", gap: "0.3rem" }}>
+          <div className="flex gap-2">
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13} /> {t.deleteCompareBtn}</button>
             )}
@@ -222,7 +222,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
           {/* LEFT: title + rows + item tabs */}
           <div className="cb-editor-left">
             <div className="note-field">
-              <label className="note-label">{t.compareBlockTitleLabel} <span style={{ color:"#f06060" }}>*</span></label>
+              <label className="note-label">{t.compareBlockTitleLabel} <span className="text-red-400">*</span></label>
               <input ref={titleRef}
                 className={`note-input ${titleError ? "note-input-error" : ""}`}
                 value={title} onChange={e => { setTitle(e.target.value); setTitleError(false); }}
@@ -258,7 +258,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
                   <div key={item.id} className="cb-item-tab-wrap">
                     <button type="button"
                       className={`cb-item-tab ${activeItemIdx === idx ? "active" : ""}`}
-                      style={{ borderColor: activeItemIdx === idx ? item.color : undefined }}
+                      style={{ borderColor: activeItemIdx === idx ? item.color : "transparent" }}
                       onClick={() => setActiveItemIdx(idx)}
                     >
                       <span className="cb-item-tab-dot" style={{ background: item.color }} />
@@ -279,7 +279,7 @@ export function CompareBlockEditor({ block, moduleId, dimensionTab, onSave, onDe
           {activeItem && (
             <div className="cb-editor-right">
               <div className="note-field">
-                <label className="note-label">{t.compareItemNameLabel} <span style={{ color:"#f06060" }}>*</span></label>
+                <label className="note-label">{t.compareItemNameLabel} <span className="text-red-400">*</span></label>
                 <input className="note-input" placeholder={t.compareItemNamePh}
                   value={activeItem.name}
                   onChange={e => updateItem(activeItemIdx, { name: e.target.value })} />

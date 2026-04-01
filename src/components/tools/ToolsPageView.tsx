@@ -41,7 +41,7 @@ export function ToolsPageView() {
       <AtlasRouteSwitch title="产品研发工具推荐矩阵" />
       <section className="content-shell">
         <div className="content-body">
-          <div className="content-scroll" style={{ padding: "0.2rem 0.1rem 0.4rem" }}>
+          <div className="content-scroll px-1 py-1">
             <div className="tools-tabs-container">
               <div className="tools-tabs-header">
                 <div className="tools-tabs-titles">

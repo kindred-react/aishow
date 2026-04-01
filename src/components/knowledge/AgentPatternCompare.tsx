@@ -26,7 +26,7 @@ export function AgentPatternCompare() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22 }}
-            style={{ overflow: "hidden" }}
+            className="overflow-hidden"
           >
             <div className="apc-table-wrap">
               <table className="apc-table">

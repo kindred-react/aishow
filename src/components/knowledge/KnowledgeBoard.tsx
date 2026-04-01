@@ -105,52 +105,45 @@ function TabLabelEditor({ init, isBuiltin, onSave, moduleData }: {
   return (
     <>
       <div className="note-field">
-        <label className="note-label">{t.tabName}{isBuiltin && <span style={{color:"#5a7898",marginLeft:"0.3rem",fontWeight:400}}>{t.tabNameBuiltinHint}</span>}</label>
+        <label className="note-label">{t.tabName}{isBuiltin && <span className="text-[#5a7898] ml-1 font-normal">{t.tabNameBuiltinHint}</span>}</label>
         <input ref={ref} className="note-input" value={label} onChange={e => setLabel(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); save(); } }}
           placeholder={t.tabName} />
       </div>
       <div className="note-field">
-        <label className="note-label">{t.tabWidgetLabel} <span style={{color:"#5a7898",fontWeight:400}}>{t.tabWidgetHint}</span></label>
-        <div style={{display:"flex",flexDirection:"column",gap:"0.25rem"}}>
+        <label className="note-label">{t.tabWidgetLabel} <span className="text-[#5a7898] font-normal">{t.tabWidgetHint}</span></label>
+        <div className="flex flex-col gap-1">
           {widgetRows.map((row, idx) => {
             const meta = ALL_WIDGETS.find(w => w.key === row.key);
             return (
-              <div key={row.key} style={{
-                display:"flex",alignItems:"center",gap:"0.4rem",
-                background: row.enabled ? "rgba(40,70,120,0.22)" : "rgba(20,35,60,0.12)",
-                border: `1px solid ${row.enabled ? "rgba(80,130,220,0.28)" : "rgba(60,90,140,0.15)"}`,
-                borderRadius:"7px",padding:"0.28rem 0.55rem",
-                opacity: row.enabled ? 1 : 0.5,
-                transition:"opacity 0.15s,background 0.15s"
-              }}>
+              <div key={row.key} className={`flex items-center gap-2 p-2 rounded-lg transition-all ${row.enabled ? "bg-[rgba(40,70,120,0.22)] border border-[rgba(80,130,220,0.28)] opacity-100" : "bg-[rgba(20,35,60,0.12)] border border-[rgba(60,90,140,0.15)] opacity-50"}`}>
                 <input type="checkbox" checked={row.enabled}
                   onChange={() => toggleWidget(row.key)}
-                  style={{accentColor:"var(--c-neon)",cursor:"pointer",width:"13px",height:"13px",flexShrink:0}}
+                  className="shrink-0 w-3 h-3 accent-[var(--c-neon)] cursor-pointer"
                 />
-                <span style={{flex:1,fontSize:"0.78rem",color: row.enabled ? "#a0c4f0" : "#5a7898"}} title={
+                <span className="flex-1 text-[0.78rem]" style={{ color: row.enabled ? "#a0c4f0" : "#5a7898" }} title={
                     (() => { const wm = WIDGET_MODULE_MAP.find(m => m.widget === row.key); return wm ? (t as Record<string, unknown>)[`${wm.i18nKey}Desc`] as string : undefined; })()
                   }>
-                  <span style={{color:"#4a6888",marginRight:"0.4rem",fontVariantNumeric:"tabular-nums",fontSize:"0.7rem"}}>{String(idx+1).padStart(2,"0")}</span>
+                  <span className="text-[#4a6888] mr-1 font-variant-numeric: tabular-nums text-[0.7rem]">{String(idx+1).padStart(2,"0")}</span>
                   {(() => { const wm = WIDGET_MODULE_MAP.find(m => m.widget === row.key); return wm ? (t as Record<string, unknown>)[wm.i18nKey] as string : meta?.label ?? row.key; })()
                   }
-                  {(() => { const c = countForWidget(row.key); return c > 0 ? <span style={{fontSize:"0.65rem",color:"#4a8898",marginLeft:"0.35rem",fontVariantNumeric:"tabular-nums"}}>{t.items(c)}</span> : null; })()}
+                  {(() => { const c = countForWidget(row.key); return c > 0 ? <span className="text-[0.65rem] text-[#4a8898] ml-1 font-variant-numeric: tabular-nums">{t.items(c)}</span> : null; })()}
                 </span>
                 <button type="button" disabled={idx === 0}
                   onClick={() => moveWidget(idx, -1)}
-                  style={{appearance:"none",background:"none",border:"none",color:idx===0?"#2a4060":"#7aaad0",cursor:idx===0?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                  className={`appearance-none bg-transparent border-none text-[0.8rem] leading-1 p-0 ${idx === 0 ? "text-[#2a4060] cursor-default" : "text-[#7aaad0] cursor-pointer"}`}
                   title={t.moveUp}
                 >▲</button>
                 <button type="button" disabled={idx === widgetRows.length - 1}
                   onClick={() => moveWidget(idx, 1)}
-                  style={{appearance:"none",background:"none",border:"none",color:idx===widgetRows.length-1?"#2a4060":"#7aaad0",cursor:idx===widgetRows.length-1?"default":"pointer",padding:"0 0.1rem",lineHeight:1,fontSize:"0.8rem"}}
+                  className={`appearance-none bg-transparent border-none text-[0.8rem] leading-1 p-0 ${idx === widgetRows.length - 1 ? "text-[#2a4060] cursor-default" : "text-[#7aaad0] cursor-pointer"}`}
                   title={t.moveDown}
                 >▼</button>
               </div>
             );
           })}
         </div>
-        <span style={{fontSize:"0.72rem",color:"#5a7898",marginTop:"0.4rem",display:"block"}}>
+        <span className="text-[0.72rem] text-[#5a7898] mt-2 block">
           {t.widgetFooterHint}
         </span>
       </div>
@@ -645,13 +638,13 @@ export function KnowledgeBoard() {
                         <div style={{ marginBottom: "1.2rem" }}>
                           <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>{t.agentPatternLabel}</p>
                           <AgentPatternCompare />
-                          <p style={{ fontSize: "0.8rem", color: "var(--c-neon)", marginBottom: "0.5rem", marginTop: "1rem", fontWeight: 600 }}>{t.agentFrameworkLabel}</p>
+                          <p className="text-[0.8rem] text-[var(--c-neon)] mb-2 mt-4 font-semibold">{t.agentFrameworkLabel}</p>
                           <AgentFrameworkCompare />
                         </div>
                       )}
                       {activeModule.id === "foundations" && (
-                        <div style={{ marginBottom: "1.2rem" }}>
-                          <p style={{ fontSize: "0.8rem", color: "var(--c-cyan)", marginBottom: "0.5rem", fontWeight: 600 }}>{t.mlAlgorithmLabel}</p>
+                        <div className="mb-3">
+                          <p className="text-[0.8rem] text-[var(--c-cyan)] mb-2 font-semibold">{t.mlAlgorithmLabel}</p>
                           <MLAlgorithmCompare />
                         </div>
                       )}
@@ -826,9 +819,9 @@ export function KnowledgeBoard() {
                               </div>}
                             </div>
                             <span className="tool-category">{tool.category}{tool.isPaid ? t.toolPaid : t.toolFree}</span>
-                            {tool.description && <p style={{fontSize:"0.75rem",color:"#8aa0c8",margin:"0.3rem 0 0"}}>{tool.description}</p>}
-                            {tool.url && <a href={tool.url} target="_blank" rel="noreferrer" style={{fontSize:"0.7rem",color:"var(--c-neon)",display:"block",marginTop:"0.25rem"}}>{tool.url}</a>}
-                            {tool.tags.length > 0 && <div className="tool-tags" style={{marginTop:"0.3rem"}}>{tool.tags.map(tg => <span key={tg}>{tg}</span>)}</div>}
+                            {tool.description && <p className="text-[0.75rem] text-[#8aa0c8] mt-1">{tool.description}</p>}
+                            {tool.url && <a href={tool.url} target="_blank" rel="noreferrer" className="text-[0.7rem] text-[var(--c-neon)] block mt-1">{tool.url}</a>}
+                            {tool.tags.length > 0 && <div className="tool-tags mt-1">{tool.tags.map(tg => <span key={tg}>{tg}</span>)}</div>}
                           </article>
                         ))}
                       </div>
@@ -854,9 +847,9 @@ export function KnowledgeBoard() {
                 <section key={widget} className="section-block in-shell">
                   <div className="section-title-row">
                     <FileText size={17}/>
-                    <h2>{tabLabel}{activeWidgets.filter(w => w !== TAB_WIDGET.Compare).length > 1 ? <span style={{fontSize:"0.72rem",color:"#5a7898",marginLeft:"0.4rem",fontWeight:400}}>· {WLABEL[widget] ?? widget}</span> : null}</h2>
+                    <h2>{tabLabel}{activeWidgets.filter(w => w !== TAB_WIDGET.Compare).length > 1 ? <span className="text-[0.72rem] text-[#5a7898] ml-1 font-normal">· {WLABEL[widget] ?? widget}</span> : null}</h2>
                     {isEditMode && addBtns.length > 0 && (
-                      <div style={{ marginLeft: "auto", display: "flex", gap: "0.35rem" }}>
+                      <div className="ml-auto flex gap-1">
                         {addBtns}
                       </div>
                     )}

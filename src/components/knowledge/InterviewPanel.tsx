@@ -85,7 +85,7 @@ export function InterviewPanel({
               <span className="interview-cat">{q.category}</span>
               <span className={`interview-diff diff-${q.difficulty}`}>{q.difficulty}</span>
               {isEditMode && (
-                <div className="card-edit-btns" style={{ marginLeft: "auto" }}>
+                <div className="card-edit-btns ml-auto">
                   <button type="button" className="cb-action-btn" onClick={() => onEdit?.(q)}><PenLine size={11}/></button>
                   <button type="button" className="cb-action-btn cb-action-delete" onClick={() => { if(confirm(t.deleteInterviewQ)) onDelete?.(q.id); }}><Trash2 size={11}/></button>
                 </div>

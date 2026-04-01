@@ -51,7 +51,7 @@ function renderField(
   if (field.type === "row") {
     let firstInRow = isFirst;
     return (
-      <div key="row" style={{display:"grid",gridTemplateColumns:`repeat(${field.fields.length},1fr)`,gap:"0.7rem"}}>
+      <div key="row" className="grid gap-[0.7rem]" style={{ gridTemplateColumns: `repeat(${field.fields.length}, 1fr)` }}>
         {field.fields.map((f, i) => {
           const node = renderField(f, state, setState, t, firstInRow);
           if (firstInRow && f.type !== "row") firstInRow = false;
@@ -74,7 +74,7 @@ function renderField(
   if (field.type === "text") {
     return (
       <div className="note-field">
-        <label className="note-label">{label}{isRequired && <span style={{color:"#f06060"}}> *</span>}</label>
+        <label className="note-label">{label}{isRequired && <span className="text-red-400"> *</span>}</label>
         <input
            
           autoFocus={shouldAutoFocus}
@@ -126,7 +126,7 @@ function renderField(
     return (
       <div className="note-field">
         <label className="note-label">{label}</label>
-        <div className="node-level-btns" style={{flexWrap:"wrap"}}>
+        <div className="node-level-btns flex-wrap">
           {options.map(opt => (
             <button key={opt} type="button"
               className={`node-level-btn ${current===opt?"active":""}`}
@@ -142,7 +142,7 @@ function renderField(
     return (
       <div className="note-field">
         <label className="note-label">
-          <input type="checkbox" checked={Boolean(val)} onChange={e => setState(field.key, e.target.checked)} style={{marginRight:"0.4rem"}} />
+          <input type="checkbox" checked={Boolean(val)} onChange={e => setState(field.key, e.target.checked)} className="mr-1" />
           {label}
         </label>
       </div>
@@ -192,7 +192,7 @@ const setState = useCallback((k: string, v: unknown) =>
     setStateRaw(prev => ({ ...prev, [k]: v })), []);
 
   if (!schema) {
-    return <p style={{color:"#8aaccc",fontSize:"0.85rem"}}>No editor available for: {tabKey}</p>;
+    return <p className="text-[#8aaccc] text-sm">No editor available for: {tabKey}</p>;
   }
 
   const save = () => {
@@ -276,7 +276,7 @@ export function TabItemEditor({ tab, item, onSave, onDelete, onClose }: TabItemE
       <div className="note-modal note-modal-wide" onClick={e => e.stopPropagation()}>
         <div className="note-modal-header">
           <span>{titleMsg}</span>
-          <div style={{display:"flex",gap:"0.3rem"}}>
+          <div className="flex gap-2">
             {!isNew && onDelete && (
               <button type="button" className="note-delete-btn" onClick={handleDelete}><Trash2 size={13}/> {t.deleteNode}</button>
             )}

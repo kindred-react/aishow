@@ -127,8 +127,8 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
 
         <div className="note-edit-body">
           {!scanned && (
-            <div style={{ textAlign: "center", padding: "1rem 0" }}>
-              <p style={{ fontSize: "0.8rem", color: "#5a7090", marginBottom: "1rem" }}>
+            <div className="text-center py-4">
+              <p className="text-[0.8rem] text-[#5a7090] mb-4">
                 {t.imageCleanupDesc}<code>public/uploads/</code>{t.imageCleanupDescSuffix}
               </p>
               <button type="button" className="note-save-btn note-save-btn-active" onClick={handleScan} disabled={loading}>
@@ -139,8 +139,8 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
 
           {scanned && orphans.length > 0 && (
             <>
-              <p style={{ fontSize: "0.75rem", color: "#5a7090", marginBottom: "0.5rem" }}>
-                {t.imageCleanupFound()}<strong style={{ color: "#f06060" }}>{orphans.length}</strong>{t.imageCleanupFoundSuffix}
+              <p className="text-[0.75rem] text-[#5a7090] mb-2">
+                {t.imageCleanupFound()}<strong className="text-red-400">{orphans.length}</strong>{t.imageCleanupFoundSuffix}
               </p>
               <div className="orphan-img-grid">
                 {orphans.map(img => (
@@ -157,7 +157,7 @@ export function ImageCleanupModal({ onClose }: { onClose: () => void }) {
             </>
           )}
 
-          {msg && <p style={{ fontSize: "0.75rem", color: msg.includes("✓") || msg.startsWith(t.imageCleanupDeleted(0,0).slice(0,2)) ? "var(--c-neon)" : "#f06060", marginTop: "0.5rem" }}>{msg}</p>}
+          {msg && <p className={`text-xs mt-2 ${msg.includes("✓") || msg.startsWith(t.imageCleanupDeleted(0,0).slice(0,2)) ? "text-[var(--c-neon)]" : "text-red-400"}`}>{msg}</p>}
         </div>
 
         {scanned && orphans.length > 0 && (

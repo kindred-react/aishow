@@ -182,7 +182,7 @@ export function WorkflowBoard() {
       <AnimatePresence>
         {contextMenu.visible && contextMenu.roleId && (
           <motion.div
-            className="role-context-menu"
+            className="role-context-menu absolute z-50 bg-[#111c30] border border-[rgba(80,140,220,0.35)] rounded-lg shadow-xl overflow-hidden min-w-[200px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
