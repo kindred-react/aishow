@@ -123,7 +123,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
           </div>
 
           {/* Level + Metaphor */}
-          <div className="grid gap-[0.7rem]" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid gap-[0.7rem] grid-cols-2">
             <div className="note-field">
               <label className="note-label">{t.nodeDifficulty}</label>
               <div className="node-level-btns">
@@ -173,13 +173,7 @@ export function NodeEditorModal({ node, moduleId, tabKey, onSave, onDelete, onCl
               </button>
             )}
             {uploadMsg && <p className={`text-xs mt-1 ${uploadMsg.startsWith("✓") ? "text-[var(--c-neon)]" : "text-red-400"}`}>{uploadMsg}</p>}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleImageSelect}
-            />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           </div>
 
           {/* Points */}

@@ -183,7 +183,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
           </div>
 
           <div className="note-field">
-            <label className="note-label">{t.enabledTabs} <span style={{color:"#8aaccc",fontWeight:400}}>{t.enabledTabsHint}</span></label>
+            <label className="note-label">{t.enabledTabs} <span className="text-[#8aaccc] font-normal">{t.enabledTabsHint}</span></label>
             <div className="flex flex-col gap-1">
               {tabRows.map((row, idx) => {
                 const isCustom = !ALL_TABS.some(t => t.key === row.tab.key);
@@ -248,8 +248,7 @@ export function ModuleEditorModal({ module, moduleData, onSave, onDelete, onClos
 export function AddModuleButton({ onClick }: { onClick: () => void }) {
   const { t } = useI18n();
   return (
-    <button type="button" className="add-module-btn" title={t.addModule} onClick={onClick}
-      style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <button type="button" className="add-module-btn flex items-center justify-center" title={t.addModule} onClick={onClick}>
       <Plus size={13} />
     </button>
   );

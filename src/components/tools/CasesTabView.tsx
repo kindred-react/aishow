@@ -160,10 +160,7 @@ export function CasesTabView() {
               setViewState((prev) => ({ ...prev, selectedCase: null }))
             }
           >
-            <ChevronRight
-              size={16}
-              style={{ transform: "rotate(180deg)" }}
-            />
+            <ChevronRight size={16} className="rotate-180" />
             <span>返回案例</span>
           </button>
           <div className="cases-current-case">

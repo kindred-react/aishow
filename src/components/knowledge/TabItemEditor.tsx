@@ -88,7 +88,7 @@ function renderField(
   if (field.type === "textarea") {
     return (
       <div className="note-field">
-        <label className="note-label">{label}{isRequired && <span style={{color:"#f06060"}}> *</span>}</label>
+        <label className="note-label">{label}{isRequired && <span className="text-[#f06060]"> *</span>}</label>
         <textarea
            
           autoFocus={shouldAutoFocus}

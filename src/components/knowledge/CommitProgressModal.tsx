@@ -72,11 +72,8 @@ export function CommitProgressModal({ tasks, syncStatus, onClose }: CommitProgre
               style={{
                 borderColor: task.status === "error" ? "rgba(240,128,128,0.2)" : task.status === "done" ? "rgba(80,208,160,0.15)" : "rgba(60,90,140,0.2)"
               }}>
-              <span className="text-sm shrink-0 mt-0.5"
-                style={{
-                  color: STATUS_COLOR[task.status],
-                  animation: task.status === "running" ? "spin 1s linear infinite" : "none"
-                }}>
+              <span className={`text-sm shrink-0 mt-0.5 ${task.status === "running" ? "animate-spin" : ""}`}
+                style={{ color: STATUS_COLOR[task.status] }}>
                 {STATUS_ICON[task.status]}
               </span>
               <div>
@@ -110,10 +107,6 @@ export function CommitProgressModal({ tasks, syncStatus, onClose }: CommitProgre
           </div>
         )}
       </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>,
     document.body
   );

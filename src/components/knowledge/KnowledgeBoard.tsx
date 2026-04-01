@@ -171,7 +171,7 @@ function CompareBlockList({
   return (
     <>
       {filtered.map(block => (
-        <div key={block.id} style={{ marginBottom: "1rem" }}>
+        <div key={block.id} className="mb-4">
           <CompareBlockView
             block={block}
             onEdit={isEditMode ? () => onEdit(block) : undefined}
@@ -589,13 +589,12 @@ export function KnowledgeBoard() {
                   onContextMenu={isEditMode ? (e) => { e.preventDefault(); setTabCtxMenu({ tab: d, x: e.clientX, y: e.clientY }); } : undefined}
                 >
                   {d.label}
-                  {tabCount > 0 && <span style={{fontSize:"0.65rem",opacity:0.65,marginLeft:"0.3rem",fontVariantNumeric:"tabular-nums"}}>{tabCount}</span>}
+                  {tabCount > 0 && <span className="text-[0.65rem] opacity-65 ml-2 tabular-nums">{tabCount}</span>}
                 </button>
               );
             })}
             {isEditMode && (
-              <button type="button" className="dimension-btn" title={t.addTab}
-                style={{opacity:0.5,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 0.6rem"}}
+              <button type="button" className="dimension-btn opacity-50 flex items-center justify-center px-[0.6rem]" title={t.addTab}
                 onClick={() => setTabEditModal({ open: true, tab: null })}>
                 <Plus size={13}/>
               </button>
@@ -635,8 +634,8 @@ export function KnowledgeBoard() {
                         ))}
                       </div>
                       {activeModule.id === "agent" && (
-                        <div style={{ marginBottom: "1.2rem" }}>
-                          <p style={{ fontSize: "0.8rem", color: "var(--c-violet)", marginBottom: "0.5rem", fontWeight: 600 }}>{t.agentPatternLabel}</p>
+                        <div className="mb-4">
+                          <p className="text-[0.8rem] text-[var(--c-violet)] mb-2 font-semibold">{t.agentPatternLabel}</p>
                           <AgentPatternCompare />
                           <p className="text-[0.8rem] text-[var(--c-neon)] mb-2 mt-4 font-semibold">{t.agentFrameworkLabel}</p>
                           <AgentFrameworkCompare />
@@ -896,7 +895,7 @@ export function KnowledgeBoard() {
       {/* ── Move Node Modal ── */}
       {moveModal.open && moveModal.node && (
         <div className="note-overlay" onClick={() => setMoveModal(m => ({ ...m, open: false }))}>
-          <div className="note-modal" onClick={e => e.stopPropagation()} style={{maxWidth:"360px"}}>
+          <div className="note-modal max-w-[360px]" onClick={e => e.stopPropagation()}>
             <div className="note-modal-header">
               <span>{t.moveItemTitle}: <strong>{moveModal.node.title}</strong></span>
               <button type="button" className="note-close" onClick={() => setMoveModal(m => ({ ...m, open: false }))}><X size={14}/></button>
@@ -919,7 +918,7 @@ export function KnowledgeBoard() {
                 </select>
               </div>
               {moveTargetModuleId === moveModal.fromModuleId && moveTargetTab === moveModal.fromTab && (
-                <p style={{fontSize:"0.75rem",color:"var(--muted)",margin:"0"}}>{t.moveItemSameLocation}</p>
+                <p className="text-[0.75rem] text-[var(--muted)] m-0">{t.moveItemSameLocation}</p>
               )}
             </div>
             <div className="note-modal-footer">
@@ -977,10 +976,9 @@ export function KnowledgeBoard() {
         </button>
         <button
           type="button"
-          className="edit-mode-lock-btn"
+          className="edit-mode-lock-btn text-[0.65rem] font-semibold tracking-wide"
           title={isMounted ? t.langToggle : ""}
           onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-          style={{fontSize:"0.65rem",fontWeight:600,letterSpacing:"0.02em"}}
         >
           {isMounted ? (locale === "zh" ? "EN" : "中") : "EN"}
         </button>
@@ -1072,7 +1070,7 @@ export function KnowledgeBoard() {
       {/* ── Password prompt modal ── */}
       {showPrompt && (
         <div className="note-overlay" onClick={cancelPrompt}>
-          <div className="note-modal" style={{maxWidth:320}} onClick={e => e.stopPropagation()}>
+          <div className="note-modal max-w-[320px]" onClick={e => e.stopPropagation()}>
             <div className="note-modal-header">
               <span><Lock size={14}/> {t.passwordPromptTitle}</span>
               <button type="button" className="note-close" onClick={cancelPrompt}><X size={14}/></button>
@@ -1088,7 +1086,7 @@ export function KnowledgeBoard() {
                   placeholder={t.passwordPlaceholder}
                   autoFocus
                 />
-                {error && <p style={{color:"#f06060",fontSize:"0.72rem",margin:"0.2rem 0 0"}}>{t.passwordError}</p>}
+                {error && <p className="text-[0.72rem] text-[#f06060] mt-1">{t.passwordError}</p>}
               </div>
             </div>
             <div className="note-modal-footer">
@@ -1104,16 +1102,15 @@ export function KnowledgeBoard() {
       {/* Save/discard confirmation when exiting edit mode */}
       {savePrompt && (
         <div className="note-overlay" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}>
-          <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+          <div className="note-modal max-w-[360px]" onClick={e => e.stopPropagation()}>
             <div className="note-modal-header">
               <span>{t.exitEditModeTitle}</span>
               <button type="button" className="note-close" onClick={() => { savePrompt.resolve(false); setSavePrompt(null); }}><X size={14}/></button>
             </div>
-            <div style={{ padding: "1.2rem 1rem", color: "#a0b8d8", fontSize: "0.85rem", lineHeight: 1.6 }}>
-              {t.unsavedChanges}
+            <div className="note-modal-body-custom">{t.unsavedChanges}
             </div>
-            <div className="note-modal-footer" style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", padding: "0 1rem 1rem" }}>
-              <button type="button" className="note-save-btn" style={{ background: "rgba(180,40,40,0.15)", borderColor: "rgba(220,80,80,0.3)", color: "#f08080" }}
+            <div className="note-modal-footer flex gap-2 justify-end px-4 pb-4">
+              <button type="button" className="note-save-btn bg-[rgba(180,40,40,0.15)] border-[rgba(220,80,80,0.3)] text-[#f08080]"
                 onClick={() => { discardDraft(); savePrompt.resolve(true); setSavePrompt(null); }}>
                 {t.discardAndExit}
               </button>
@@ -1136,7 +1133,7 @@ export function KnowledgeBoard() {
       {/* Legacy sync toast (shown when no tasks, e.g. immediate errors) */}
       {syncStatus !== "idle" && commitTasks.length === 0 && typeof document !== "undefined" && createPortal(
         <div className="note-toast">
-          {syncStatus === "syncing" && <span><span className="note-spin" style={{display:"inline-block"}}>⟳</span> {syncMsg}</span>}
+          {syncStatus === "syncing" && <span><span className="note-spin inline-block">⟳</span> {syncMsg}</span>}
           {syncStatus === "done"    && <span className="note-ok">☁ {syncMsg}</span>}
           {syncStatus === "error"   && <span className="note-err">✗ {syncMsg}</span>}
         </div>,
@@ -1164,7 +1161,7 @@ export function KnowledgeBoard() {
       {/* Tab edit/add modal */}
       {tabEditModal.open && (
         <div className="note-overlay" onClick={() => setTabEditModal({ open: false, tab: null })}>
-          <div className="note-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 360 }}>
+          <div className="note-modal max-w-[360px]" onClick={e => e.stopPropagation()}>
             <div className="note-modal-header">
               <span>{tabEditModal.tab ? t.editTab : t.newTab}</span>
               <button type="button" className="note-close" onClick={() => setTabEditModal({ open: false, tab: null })}><X size={14}/></button>
@@ -1229,13 +1226,7 @@ export function KnowledgeBoard() {
             location.reload();
           }
         }}
-        style={{
-          position: "fixed",
-          bottom: "1.5rem",
-          right: "1.5rem",
-          zIndex: 999,
-        }}
-        className="refresh-fab"
+        className="refresh-fab fixed bottom-[1.5rem] right-[1.5rem] z-[999]"
       >
         <RefreshCw size={14} />
       </button>
@@ -1245,7 +1236,7 @@ export function KnowledgeBoard() {
         <div className="search-overlay" onClick={closeSearch}>
           <div className="search-panel" onClick={e => e.stopPropagation()}>
             <div className="search-input-row">
-              <Search size={16} style={{color:"var(--muted)",flexShrink:0}} />
+              <Search size={16} className="text-[var(--muted)] shrink-0" />
               <input
                 ref={searchInputRef}
                 value={searchQuery}
@@ -1253,13 +1244,13 @@ export function KnowledgeBoard() {
                 onKeyDown={handleSearchKeyDown}
                 placeholder={t.searchPlaceholder}
               />
-              {searchQuery && <button type="button" onClick={() => { setSearchQuery(""); setSearchCursor(-1); }} style={{appearance:"none",background:"none",border:"none",color:"var(--muted)",cursor:"pointer",padding:0}}><X size={14}/></button>}
+              {searchQuery && <button type="button" onClick={() => { setSearchQuery(""); setSearchCursor(-1); }} className="appearance-none bg-transparent border-none text-[var(--muted)] cursor-pointer p-0"><X size={14}/></button>}
             </div>
-            <div className="search-filter-row" style={{display:"flex",alignItems:"center",gap:"0.5rem",padding:"0.3rem 0.9rem 0"}}>
+            <div className="search-filter-row flex items-center gap-2 px-3 pt-1">
               <select
                 value={searchModuleFilter}
                 onChange={e => { setSearchModuleFilter(e.target.value); setSearchCursor(-1); }}
-                style={{fontSize:"0.72rem",background:"var(--bg-card)",color:"var(--fg)",border:"1px solid var(--border)",borderRadius:"5px",padding:"0.15rem 0.4rem",cursor:"pointer",flex:1,maxWidth:"200px"}}
+                className="text-[0.72rem] bg-[var(--bg-card)] text-[var(--fg)] border border-[var(--border)] rounded-[5px] px-1 py-0.5 cursor-pointer flex-1 max-w-[200px]"
               >
                 <option value="">{t.searchFilterAll}</option>
                 {sortedModules.map(m => (
@@ -1267,13 +1258,13 @@ export function KnowledgeBoard() {
                 ))}
               </select>
               {searchQuery.trim() !== "" && searchResults.length > 0 && (
-                <span style={{fontSize:"0.68rem",color:"var(--muted)",marginLeft:"auto",whiteSpace:"nowrap"}}>{t.searchResultCount(searchResults.length)}</span>
+                <span className="text-[0.68rem] text-[var(--muted)] ml-auto whitespace-nowrap">{t.searchResultCount(searchResults.length)}</span>
               )}
-              <span style={{fontSize:"0.65rem",color:"var(--muted)",opacity:0.5,whiteSpace:"nowrap",marginLeft:"auto"}}>{t.searchNavHint}</span>
+              <span className="text-[0.65rem] text-[var(--muted)] opacity-50 whitespace-nowrap ml-auto">{t.searchNavHint}</span>
             </div>
             <div className="search-results" ref={searchResultsRef}>
               {searchQuery.trim() === "" && (
-                <div className="search-empty">{t.searchEmpty}<br/><span style={{fontSize:"0.7rem",opacity:0.5}}>{t.searchShortcutHint}</span></div>
+                <div className="search-empty">{t.searchEmpty}<br/><span className="text-[0.7rem] opacity-50">{t.searchShortcutHint}</span></div>
               )}
               {searchQuery.trim() !== "" && searchResults.length === 0 && (
                 <div className="search-empty">{t.searchNoResult(searchQuery)}</div>
@@ -1290,11 +1281,11 @@ export function KnowledgeBoard() {
                     onClick={() => jumpToResult(r)}
                     onMouseEnter={() => setSearchCursor(i)}
                   >
-                    <div style={{display:"flex",alignItems:"center",gap:"0.45rem",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"0.6rem",fontWeight:600,padding:"0.05rem 0.35rem",borderRadius:"3px",background:"rgba(80,140,220,0.18)",color:"#6ab0f5",flexShrink:0,letterSpacing:"0.02em"}}>{r.type}</span>
+                    <div className="flex items-center gap-[0.45rem] flex-wrap">
+                      <span className="text-[0.6rem] font-semibold px-[0.35rem] py-[0.05rem] rounded-[3px] bg-[rgba(80,140,220,0.18)] text-[#6ab0f5] shrink-0 tracking-wide">{r.type}</span>
                       <div className="search-result-title">{hi(r.title)}</div>
                       {r.tags && r.tags.length > 0 && r.tags.slice(0,3).map(tag => (
-                        <span key={tag} style={{fontSize:"0.58rem",padding:"0.02rem 0.3rem",borderRadius:"3px",background:"rgba(60,120,80,0.18)",color:"#7dcfa0",flexShrink:0}}>{tag}</span>
+                        <span key={tag} className="text-[0.58rem] px-[0.3rem] py-[0.02rem] rounded-[3px] bg-[rgba(60,120,80,0.18)] text-[#7dcfa0] shrink-0">{tag}</span>
                       ))}
                     </div>
                     <div className="search-result-meta">{r.moduleName} · {r.tabLabel}{r.subtitle ? <> · {hi(r.subtitle.slice(0,60))}</> : ""}</div>
