@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Grid3X3, GitBranch, BookOpen } from "lucide-react";
 import { AtlasRouteSwitch } from "@/components/AtlasRouteSwitch";
@@ -25,11 +25,29 @@ const TAB_META: Record<TabType, { title: string; subtitle: string }> = {
   },
 };
 
+const STORAGE_KEY = "tools-page-active-tab";
+
 export function ToolsPageView() {
-  const [activeTab, setActiveTab] = useState<TabType>("matrix");
+  const [activeTab, setActiveTab] = useState<TabType>("matrix" as TabType);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY) as TabType | null;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (stored && stored in TAB_META) setActiveTab(stored);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    const timer = setTimeout(() => setIsMounted(true), 80);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem(STORAGE_KEY, activeTab);
+    }
+  }, [activeTab, isMounted]);
 
   return (
-    <main className="page-shell mounted">
+    <main className={`page-shell${isMounted ? " mounted" : ""}`}>
       <div className="ambient" aria-hidden />
       <AtlasRouteSwitch title="产品研发工具推荐矩阵" />
       <section className="content-shell">

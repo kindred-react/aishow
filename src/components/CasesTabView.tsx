@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, ChevronRight, ChevronDown, FileText, FolderOpen, FolderOpenDot } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, FolderOpenDot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { LIFECYCLE_STAGES, LifecycleStage, LifecycleDoc } from "@/data/cases";
+
+interface LifecycleDoc {
+  id: string;
+  name: string;
+  icon: string;
+  docsPath: string;
+}
+
+interface LifecycleStage {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  docs: LifecycleDoc[];
+}
 
 interface CaseStudy {
   id: string;
@@ -13,17 +27,12 @@ interface CaseStudy {
   description: string;
   icon: string;
   color: string;
+  lifecycleStages: LifecycleStage[];
 }
 
-const CASE_STUDIES: CaseStudy[] = [
-  {
-    id: "douyin-creator-filter",
-    name: "抖音关注博主筛选助手",
-    description: "帮助用户管理抖音关注列表，通过智能分层和AI辅助，实现关注治理与内容筛选",
-    icon: "📱",
-    color: "#fe2c55",
-  },
-];
+interface CasesManifest {
+  cases: CaseStudy[];
+}
 
 type ViewState = {
   selectedCase: CaseStudy | null;
@@ -34,7 +43,9 @@ type ViewState = {
 };
 
 export function CasesTabView() {
-  const [state, setState] = useState<ViewState>({
+  const [cases, setCases] = useState<CaseStudy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewState, setViewState] = useState<ViewState>({
     selectedCase: null,
     expandedStages: new Set(["01", "02"]),
     selectedDoc: null,
@@ -42,8 +53,20 @@ export function CasesTabView() {
     loading: false,
   });
 
+  useEffect(() => {
+    fetch("/api/cases")
+      .then((res) => res.json())
+      .then((data: CasesManifest) => {
+        setCases(data.cases || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
   const handleCaseSelect = (caseStudy: CaseStudy) => {
-    setState((prev) => ({
+    setViewState((prev) => ({
       ...prev,
       selectedCase: caseStudy,
       expandedStages: new Set(["01", "02"]),
@@ -53,7 +76,7 @@ export function CasesTabView() {
   };
 
   const toggleStage = (stageId: string) => {
-    setState((prev) => {
+    setViewState((prev) => {
       const newExpanded = new Set(prev.expandedStages);
       if (newExpanded.has(stageId)) {
         newExpanded.delete(stageId);
@@ -65,18 +88,18 @@ export function CasesTabView() {
   };
 
   const handleDocSelect = async (stage: LifecycleStage, doc: LifecycleDoc) => {
-    setState((prev) => ({ ...prev, loading: true, selectedDoc: null }));
+    setViewState((prev) => ({ ...prev, loading: true, selectedDoc: null }));
     try {
       const response = await fetch(doc.docsPath);
       const text = await response.text();
-      setState((prev) => ({
+      setViewState((prev) => ({
         ...prev,
         selectedDoc: { stage, doc },
         docContent: text,
         loading: false,
       }));
     } catch {
-      setState((prev) => ({
+      setViewState((prev) => ({
         ...prev,
         selectedDoc: { stage, doc },
         docContent: "# 加载失败\n\n无法加载文档内容，请稍后重试。",
@@ -85,11 +108,22 @@ export function CasesTabView() {
     }
   };
 
-  if (!state.selectedCase) {
+  if (loading) {
+    return (
+      <div className="cases-container">
+        <div className="cases-loading">
+          <div className="cases-loading-spinner" />
+          <span>加载中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!viewState.selectedCase) {
     return (
       <div className="cases-container">
         <div className="cases-list-grid">
-          {CASE_STUDIES.map((caseStudy, index) => (
+          {cases.map((caseStudy, index) => (
             <motion.div
               key={caseStudy.id}
               className="case-list-card"
@@ -120,19 +154,31 @@ export function CasesTabView() {
     <div className="cases-master-detail">
       <div className="cases-sidebar">
         <div className="cases-sidebar-header">
-          <button className="cases-back-btn" onClick={() => setState((prev) => ({ ...prev, selectedCase: null }))}>
-            <ChevronRight size={16} style={{ transform: "rotate(180deg)" }} />
+          <button
+            className="cases-back-btn"
+            onClick={() =>
+              setViewState((prev) => ({ ...prev, selectedCase: null }))
+            }
+          >
+            <ChevronRight
+              size={16}
+              style={{ transform: "rotate(180deg)" }}
+            />
             <span>返回案例</span>
           </button>
           <div className="cases-current-case">
-            <span className="case-card-icon">{state.selectedCase.icon}</span>
-            <span className="case-card-name">{state.selectedCase.name}</span>
+            <span className="case-card-icon">
+              {viewState.selectedCase.icon}
+            </span>
+            <span className="case-card-name">
+              {viewState.selectedCase.name}
+            </span>
           </div>
         </div>
 
         <div className="cases-tree">
-          {LIFECYCLE_STAGES.map((stage) => {
-            const isExpanded = state.expandedStages.has(stage.id);
+          {viewState.selectedCase.lifecycleStages.map((stage) => {
+            const isExpanded = viewState.expandedStages.has(stage.id);
             const hasDocs = stage.docs.length > 0;
 
             return (
@@ -143,9 +189,15 @@ export function CasesTabView() {
                 >
                   {hasDocs ? (
                     isExpanded ? (
-                      <ChevronDown size={14} className="cases-tree-chevron" />
+                      <ChevronDown
+                        size={14}
+                        className="cases-tree-chevron"
+                      />
                     ) : (
-                      <ChevronRight size={14} className="cases-tree-chevron" />
+                      <ChevronRight
+                        size={14}
+                        className="cases-tree-chevron"
+                      />
                     )
                   ) : (
                     <span className="cases-tree-placeholder" />
@@ -169,7 +221,11 @@ export function CasesTabView() {
                       {stage.docs.map((doc) => (
                         <div
                           key={doc.id}
-                          className={`cases-tree-doc ${state.selectedDoc?.doc.id === doc.id ? "active" : ""}`}
+                          className={`cases-tree-doc ${
+                            viewState.selectedDoc?.doc.id === doc.id
+                              ? "active"
+                              : ""
+                          }`}
                           onClick={() => handleDocSelect(stage, doc)}
                         >
                           <FileText size={12} />
@@ -186,25 +242,27 @@ export function CasesTabView() {
       </div>
 
       <div className="cases-content">
-        {state.loading ? (
+        {viewState.loading ? (
           <div className="cases-loading">
             <div className="cases-loading-spinner" />
             <span>加载中...</span>
           </div>
-        ) : state.selectedDoc ? (
+        ) : viewState.selectedDoc ? (
           <div className="cases-doc-view">
             <div className="cases-doc-header">
               <div className="cases-doc-breadcrumb">
-                <span>{state.selectedCase.name}</span>
+                <span>{viewState.selectedCase.name}</span>
                 <ChevronRight size={12} />
-                <span>{state.selectedDoc.stage.name}</span>
+                <span>{viewState.selectedDoc.stage.name}</span>
                 <ChevronRight size={12} />
-                <span className="cases-doc-breadcrumb-current">{state.selectedDoc.doc.name}</span>
+                <span className="cases-doc-breadcrumb-current">
+                  {viewState.selectedDoc.doc.name}
+                </span>
               </div>
             </div>
             <article className="cases-markdown">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {state.docContent}
+                {viewState.docContent}
               </ReactMarkdown>
             </article>
           </div>
