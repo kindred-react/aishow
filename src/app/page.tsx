@@ -1,5 +1,5 @@
-import { KnowledgeBoard } from "@/components/KnowledgeBoard";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <KnowledgeBoard />;
+  redirect("/atlas");
 }

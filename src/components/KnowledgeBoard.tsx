@@ -2,12 +2,10 @@
 /* eslint-disable react-hooks/preserve-manual-memoization */
 
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
 import {
   Compass,
   FileText,
   Save,
-  Sparkles,
   PenLine,
   Trash2,
   Lock,
@@ -32,6 +30,7 @@ import { CompareBlockView, CompareBlockEditor } from "@/components/CompareBlockE
 import { InterviewPanel } from "@/components/InterviewPanel";
 import { TabItemEditor } from "@/components/TabItemEditor";
 import { CommitProgressModal } from "@/components/CommitProgressModal";
+import { AtlasRouteSwitch } from "@/components/AtlasRouteSwitch";
 import { useContentStore, ALL_TAB_KEYS } from "@/lib/useContentStore";
 import { useEditMode } from "@/lib/useEditMode";
 import { useI18n } from "@/lib/i18n";
@@ -551,14 +550,7 @@ export function KnowledgeBoard() {
   return (
     <main className={`page-shell${isMounted ? " mounted" : ""}`}>
       <div className="ambient" aria-hidden />
-      <header className="hero compact">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="hero-badge">
-          <Sparkles size={14} /> AI Learning Atlas
-        </motion.div>
-        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.4 }}>
-          {t.heroTitle}
-        </motion.h1>
-      </header>
+      <AtlasRouteSwitch title={t.heroTitle} />
 
       <section className="content-shell">
         <nav className="module-menu" aria-label={t.moduleMenu}>
@@ -893,6 +885,7 @@ export function KnowledgeBoard() {
       </section>
 
       {/* ── Node Editor Modal ── */}
+
       {nodeModal.open && (
         <NodeEditorModal
           node={nodeModal.node}

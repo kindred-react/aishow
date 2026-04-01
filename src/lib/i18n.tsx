@@ -324,6 +324,8 @@ const ZH = {
   searchNavHint: "↑↓ 导航 · Enter 跳转 · Esc 关闭",
   searchFilterAll: "全部模块",
   heroTitle: "大模型多维知识中枢",
+  pageAtlas: "知识图谱",
+  pageTools: "工具推荐",
 
   // ── Empty hints ──
   emptyKnowledge: "暂无知识点",
@@ -755,6 +757,8 @@ const EN: typeof ZH = {
   searchNavHint: "↑↓ Navigate · Enter Jump · Esc Close",
   searchFilterAll: "All Modules",
   heroTitle: "LLM Multi-Dimensional Knowledge Hub",
+  pageAtlas: "Atlas",
+  pageTools: "Tools",
 
   // ── Add buttons ──
   addKnowledgeNode: "Add Knowledge",
