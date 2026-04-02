@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronDown, FileText, FolderOpenDot } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, FolderOpenDot, PanelLeftClose } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -40,6 +40,7 @@ type ViewState = {
   selectedDoc: { stage: LifecycleStage; doc: LifecycleDoc } | null;
   docContent: string;
   loading: boolean;
+  sidebarCollapsed: boolean;
 };
 
 export function CasesTabView() {
@@ -51,6 +52,7 @@ export function CasesTabView() {
     selectedDoc: null,
     docContent: "",
     loading: false,
+    sidebarCollapsed: false,
   });
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function CasesTabView() {
     setViewState((prev) => ({
       ...prev,
       selectedCase: caseStudy,
-      expandedStages: new Set(["01", "02"]),
+      expandedStages: new Set(caseStudy.lifecycleStages.map((s) => s.id)),
       selectedDoc: null,
       docContent: "",
     }));
@@ -106,6 +108,10 @@ export function CasesTabView() {
         loading: false,
       }));
     }
+  };
+
+  const toggleSidebar = () => {
+    setViewState((prev) => ({ ...prev, sidebarCollapsed: !prev.sidebarCollapsed }));
   };
 
   if (loading) {
@@ -152,90 +158,103 @@ export function CasesTabView() {
 
   return (
     <div className="cases-master-detail">
-      <div className="cases-sidebar">
-        <div className="cases-sidebar-header">
-          <button
-            className="cases-back-btn"
-            onClick={() =>
-              setViewState((prev) => ({ ...prev, selectedCase: null }))
-            }
-          >
-            <ChevronRight size={16} className="rotate-180" />
-            <span>返回案例</span>
+      <div className={`cases-sidebar ${viewState.sidebarCollapsed ? "collapsed" : ""}`}>
+        {viewState.sidebarCollapsed ? (
+          <button className="cases-sidebar-expand-btn" onClick={toggleSidebar}>
+            <PanelLeftClose size={16} />
           </button>
-          <div className="cases-current-case">
-            <span className="case-card-icon">
-              {viewState.selectedCase.icon}
-            </span>
-            <span className="case-card-name">
-              {viewState.selectedCase.name}
-            </span>
-          </div>
-        </div>
-
-        <div className="cases-tree">
-          {viewState.selectedCase.lifecycleStages.map((stage) => {
-            const isExpanded = viewState.expandedStages.has(stage.id);
-            const hasDocs = stage.docs.length > 0;
-
-            return (
-              <div key={stage.id} className="cases-tree-node">
-                <div
-                  className={`cases-tree-stage ${hasDocs ? "has-docs" : ""}`}
-                  onClick={() => hasDocs && toggleStage(stage.id)}
+        ) : (
+          <>
+            <div className="cases-sidebar-header">
+              <div className="cases-sidebar-header-top">
+                <button
+                  className="cases-back-btn"
+                  onClick={() =>
+                    setViewState((prev) => ({ ...prev, selectedCase: null }))
+                  }
                 >
-                  {hasDocs ? (
-                    isExpanded ? (
-                      <ChevronDown
-                        size={14}
-                        className="cases-tree-chevron"
-                      />
-                    ) : (
-                      <ChevronRight
-                        size={14}
-                        className="cases-tree-chevron"
-                      />
-                    )
-                  ) : (
-                    <span className="cases-tree-placeholder" />
-                  )}
-                  <span className="cases-tree-icon">{stage.icon}</span>
-                  <span className="cases-tree-label">{stage.name}</span>
-                  <span className="cases-tree-count">
-                    {stage.docs.length > 0 ? stage.docs.length : ""}
-                  </span>
-                </div>
-
-                <AnimatePresence>
-                  {isExpanded && hasDocs && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="cases-tree-children"
-                    >
-                      {stage.docs.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className={`cases-tree-doc ${
-                            viewState.selectedDoc?.doc.id === doc.id
-                              ? "active"
-                              : ""
-                          }`}
-                          onClick={() => handleDocSelect(stage, doc)}
-                        >
-                          <FileText size={12} />
-                          <span>{doc.name}</span>
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <ChevronRight size={16} className="rotate-180" />
+                  <span>返回案例</span>
+                </button>
+                <button className="cases-sidebar-collapse-btn" onClick={toggleSidebar}>
+                  <PanelLeftClose size={14} />
+                </button>
               </div>
-            );
-          })}
-        </div>
+              <div className="cases-current-case">
+                <span className="case-card-icon">
+                  {viewState.selectedCase.icon}
+                </span>
+                <span className="case-card-name">
+                  {viewState.selectedCase.name}
+                </span>
+              </div>
+            </div>
+
+            <div className="cases-tree">
+              {viewState.selectedCase.lifecycleStages.map((stage) => {
+                const isExpanded = viewState.expandedStages.has(stage.id);
+                const hasDocs = stage.docs.length > 0;
+
+                return (
+                  <div key={stage.id} className="cases-tree-node">
+                    <div
+                      className={`cases-tree-stage ${hasDocs ? "has-docs" : ""}`}
+                      onClick={() => hasDocs && toggleStage(stage.id)}
+                    >
+                      {hasDocs ? (
+                        isExpanded ? (
+                          <ChevronDown
+                            size={14}
+                            className="cases-tree-chevron"
+                          />
+                        ) : (
+                          <ChevronRight
+                            size={14}
+                            className="cases-tree-chevron"
+                          />
+                        )
+                      ) : (
+                        <span className="cases-tree-placeholder" />
+                      )}
+                      <span className="cases-tree-icon">{stage.icon}</span>
+                      <span className="cases-tree-label">{stage.name}</span>
+                      <span className="cases-tree-count">
+                        {stage.docs.length > 0 ? stage.docs.length : ""}
+                      </span>
+                    </div>
+
+                    <AnimatePresence>
+                      {isExpanded && hasDocs && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="cases-tree-children"
+                        >
+                          {stage.docs.map((doc) => (
+                            <div
+                              key={doc.id}
+                              className={`cases-tree-doc ${
+                                viewState.selectedDoc?.doc.id === doc.id
+                                  ? "active"
+                                  : ""
+                              }`}
+                              onClick={() => handleDocSelect(stage, doc)}
+                            >
+                              <FileText size={12} />
+                              <span>{doc.name}</span>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="cases-content">
