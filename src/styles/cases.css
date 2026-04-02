@@ -471,3 +471,159 @@
   border-top: 1px solid rgba(120, 160, 255, 0.08);
 }
 
+/* ============ Markdown Document Rendering ============ */
+.cases-markdown {
+  padding: 1rem 1.2rem;
+  color: #c8d8f0;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+.cases-markdown h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e0eeff;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(120, 160, 255, 0.2);
+}
+
+.cases-markdown h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #b8d4ff;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.cases-markdown h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #a8c8f8;
+  margin: 1.2rem 0 0.5rem;
+}
+
+.cases-markdown h4,
+.cases-markdown h5,
+.cases-markdown h6 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #98b8f0;
+  margin: 1rem 0 0.4rem;
+}
+
+.cases-markdown p {
+  margin: 0.6rem 0;
+}
+
+.cases-markdown strong {
+  font-weight: 600;
+  color: #d0e4ff;
+}
+
+.cases-markdown em {
+  font-style: italic;
+  color: #a0c0e8;
+}
+
+.cases-markdown ul,
+.cases-markdown ol {
+  margin: 0.6rem 0;
+  padding-left: 1.5rem;
+}
+
+.cases-markdown li {
+  margin: 0.25rem 0;
+}
+
+.cases-markdown li::marker {
+  color: rgba(120, 160, 255, 0.6);
+}
+
+.cases-markdown code {
+  background: rgba(60, 80, 140, 0.25);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: #a0d0ff;
+}
+
+.cases-markdown pre {
+  background: rgba(20, 30, 55, 0.8);
+  border: 1px solid rgba(100, 140, 220, 0.15);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  margin: 0.8rem 0;
+}
+
+.cases-markdown pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: #b8d0f0;
+}
+
+.cases-markdown blockquote {
+  border-left: 3px solid rgba(100, 150, 255, 0.4);
+  margin: 0.8rem 0;
+  padding: 0.4rem 0.8rem;
+  background: rgba(60, 90, 160, 0.1);
+  color: #a0bcd8;
+}
+
+.cases-markdown blockquote p {
+  margin: 0;
+}
+
+.cases-markdown hr {
+  border: none;
+  border-top: 1px solid rgba(100, 140, 220, 0.2);
+  margin: 1.5rem 0;
+}
+
+.cases-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8rem 0;
+  font-size: 0.78rem;
+}
+
+.cases-markdown th {
+  background: rgba(60, 90, 160, 0.25);
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  font-weight: 600;
+  color: #b8d4ff;
+  border: 1px solid rgba(100, 140, 220, 0.2);
+}
+
+.cases-markdown td {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(100, 140, 220, 0.15);
+  color: #a0bcd8;
+}
+
+.cases-markdown tr:nth-child(even) td {
+  background: rgba(40, 60, 120, 0.1);
+}
+
+.cases-markdown a {
+  color: #6ab0f5;
+  text-decoration: none;
+}
+
+.cases-markdown a:hover {
+  text-decoration: underline;
+}
+
+.cases-markdown img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+
+.cases-markdown input[type="checkbox"] {
+  margin-right: 0.4rem;
+  accent-color: #6ab0f5;
+}
+
