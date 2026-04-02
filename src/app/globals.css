@@ -4295,7 +4295,8 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 1rem;
   background: rgba(30, 40, 60, 0.35);
   border-radius: 10px;
   border: 1px solid rgba(120, 160, 255, 0.08);
@@ -4717,7 +4718,7 @@ body {
 .workflow-master-detail {
   display: grid;
   grid-template-columns: 1fr 280px;
-  gap: 1rem;
+  gap: 1.5rem;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -4738,7 +4739,11 @@ body {
   border-radius: 12px;
   border: 1px solid rgba(120, 160, 255, 0.08);
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+.workflow-nodes-sidebar > * {
+  flex-shrink: 0;
 }
 
 .workflow-nodes-sidebar-header {
