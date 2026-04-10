@@ -12,6 +12,9 @@ export const LS_KB_DIMENSION_KEY  = "kb-dimension";
 export const LS_KB_LEVEL_KEY      = "kb-level";
 export const LS_KB_LOCALE_KEY     = "kb-locale";
 
+/** Interview knowledge base (markdown docs) — scroll, TOC, menu, selected doc */
+export const LS_INTERVIEW_STATE_KEY = "aishow_interview_kb_v1";
+
 // ── GitHub ────────────────────────────────────────────────────────────────
 export const GITHUB_REPO   = "kindred-react/aishow";
 export const GITHUB_BRANCH = "main";

@@ -543,7 +543,7 @@
   color: #c8d8f0;
   font-size: 0.82rem;
   line-height: 1.7;
-  min-height: 100%;
+  overflow-y: auto;
 }
 
 .cases-markdown h1 {
