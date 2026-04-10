@@ -536,6 +536,22 @@
   border-top: 1px solid rgba(120, 160, 255, 0.08);
 }
 
+.content-doc-wrapper {
+  flex: 1;
+  animation: contentFadeIn 0.25s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ============ Markdown Document Rendering ============ */
 .cases-markdown {
   flex: 1;

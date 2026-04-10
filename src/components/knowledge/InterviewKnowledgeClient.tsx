@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- fetch + URL sync + scroll restore use intentional effect-driven state */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { AtlasRouteSwitch } from '@/components/shared/AtlasRouteSwitch';
 import { loadInterviewState, saveInterviewState } from '@/lib/interviewPersistence';
 
@@ -37,7 +37,6 @@ function safeDecodeSegment(segment: string): string {
 
 export function InterviewKnowledgeClient() {
   const params = useParams();
-  const router = useRouter();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -105,45 +104,23 @@ export function InterviewKnowledgeClient() {
       doc = documents.find((d) => d.slug === urlSlug);
       if (!doc) {
         doc = documents[0];
-        router.replace(buildDocPath(doc.slug));
       }
     } else {
       doc = documents.find((d) => d.slug === persisted.selectedSlug) ?? documents[0];
-      if (doc) {
-        router.replace(buildDocPath(doc.slug));
-      }
     }
 
     if (doc) {
       setSelectedDoc(doc);
       setCollapsedCategories(new Set(persisted.collapsedCategories));
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', buildDocPath(doc.slug));
+      }
       if (typeof window !== 'undefined' && window.location.hash?.length > 1) {
         pendingHash.current = decodeURIComponent(window.location.hash.slice(1));
       }
     }
     setSelectionReady(true);
-  }, [documents, selectionReady, urlSlug, router, loadingList]);
-
-  /**
-   * When the URL slug changes (back/forward, external link), align `selectedDoc`.
-   * Uses a functional update so we do not override a pending in-app selection before `router.replace` updates the URL.
-   */
-  useEffect(() => {
-    if (!selectionReady || documents.length === 0) return;
-    if (!urlSlug) return;
-    const doc = documents.find((d) => d.slug === urlSlug);
-    if (!doc) return;
-    setSelectedDoc((current) => (current?.slug === doc.slug ? current : doc));
-  }, [urlSlug, documents, selectionReady]);
-
-  /** Visiting `/interview` with no slug — pick persisted or first doc and normalize URL */
-  useEffect(() => {
-    if (!selectionReady || documents.length === 0) return;
-    if (urlSlug) return;
-    const persisted = loadInterviewState();
-    const doc = documents.find((d) => d.slug === persisted.selectedSlug) ?? documents[0];
-    if (doc) router.replace(buildDocPath(doc.slug));
-  }, [urlSlug, documents, selectionReady, router]);
+  }, [documents, selectionReady, urlSlug, loadingList]);
 
   const loadDocument = useCallback(async (slug: string) => {
     didRestoreScroll.current = false;
@@ -314,10 +291,12 @@ export function InterviewKnowledgeClient() {
   }
 
   function handleSelectDoc(doc: Document) {
-    setSelectedDoc(doc);
     didRestoreScroll.current = false;
     pendingHash.current = null;
-    router.replace(buildDocPath(doc.slug));
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', buildDocPath(doc.slug));
+    }
+    setSelectedDoc(doc);
     saveInterviewState({
       selectedSlug: doc.slug,
       scrollTop: 0,
@@ -458,16 +437,18 @@ export function InterviewKnowledgeClient() {
                 style={{ background: 'var(--card)', border: '1px solid var(--line)' }}
               >
                 <div className="p-6 lg:p-8">
-                  {loadingDoc ? (
-                    <div className="flex items-center justify-center py-20">
-                      <div
-                        className="animate-spin rounded-full h-12 w-12 border-b-2"
-                        style={{ borderColor: 'var(--c-neon)' }}
-                      />
-                    </div>
-                  ) : (
-                    <article ref={articleRef} className="cases-markdown" dangerouslySetInnerHTML={{ __html: content }} />
-                  )}
+                  <div className="content-doc-wrapper">
+                    {loadingDoc ? (
+                      <div className="flex items-center justify-center py-20">
+                        <div
+                          className="animate-spin rounded-full h-12 w-12 border-b-2"
+                          style={{ borderColor: 'var(--c-neon)' }}
+                        />
+                      </div>
+                    ) : (
+                      <article ref={articleRef} className="cases-markdown" dangerouslySetInnerHTML={{ __html: content }} />
+                    )}
+                  </div>
                 </div>
               </main>
 
