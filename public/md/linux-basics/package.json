@@ -1,0 +1,11 @@
+{
+  "name": "linux-basics",
+  "version": "1.0.0",
+  "description": "Linux 基础知识与面试题",
+  "scripts": {
+    "start": "echo 'Run commands in terminal'"
+  },
+  "keywords": ["linux", "interview", "devops"],
+  "author": "",
+  "license": "ISC"
+}
