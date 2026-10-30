@@ -54,14 +54,8 @@ export function ColorPicker({
   label,
 }: ColorPickerProps) {
   const [showWheel, setShowWheel] = useState(false);
-  const [inputHex, setInputHex] = useState(() => resolveColor(value));
   const pickerRef = useRef<HTMLDivElement>(null);
   const nativeRef = useRef<HTMLInputElement>(null);
-
-  // Sync inputHex when value changes externally
-  useEffect(() => {
-    setInputHex(resolveColor(value));
-  }, [value]);
 
   // Close popup on outside click
   useEffect(() => {
@@ -77,12 +71,10 @@ export function ColorPicker({
 
   const handlePreset = useCallback((preset: ColorPreset) => {
     onChange(preset.color, withAccent ? (preset.accent ?? accentFromHex(resolveColor(preset.color))) : undefined);
-    setInputHex(resolveColor(preset.color));
     setShowWheel(false);
   }, [onChange, withAccent]);
 
   const handleNativeChange = useCallback((hex: string) => {
-    setInputHex(hex);
     onChange(hex, withAccent ? accentFromHex(hex) : undefined);
   }, [onChange, withAccent]);
 
@@ -128,7 +120,7 @@ export function ColorPicker({
         ref={nativeRef}
         type="color"
         className="cp-native-input"
-        value={inputHex}
+        value={resolvedValue}
         onChange={e => handleNativeChange(e.target.value)}
       />
     </div>
